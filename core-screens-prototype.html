@@ -1,0 +1,534 @@
+<title>Termwise Core Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Figtree:wght@400;500;600;700&family=Bitter:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap">
+<!--
+  PROTOTYPE, throwaway. Question: what visual direction (palette, type, density) and layout
+  fit the faculty home, phone attendance sheet and office admin list?
+  Three variants on one page, switched from the floating bar. Hash routes (#a-home) because the host allows no query string.
+  All data is synthetic, except the two sample students from the brief. Nothing persists. Light only, by choice.
+-->
+<style>
+:root{--bg:#fff;--fg:#111;--mut:#667;--line:#ddd;--acc:#333;--acc-fg:#fff;--soft:#f4f4f4;--abs:#b3261e;--abs-soft:#fbe9e7;--late:#8a5a00;--late-soft:#fdf1d6;--ok:#1d6b45;--body:system-ui,sans-serif;--head:var(--body);--num:var(--body);--barh:56px}
+/* A Register: ink on white, the paper attendance register made dense and exact */
+.v-a{--bg:#fff;--fg:#14182b;--mut:#5d6479;--line:#dfe2ea;--acc:#26337f;--soft:#f3f4f9;--body:"IBM Plex Sans",system-ui,sans-serif;--head:"IBM Plex Sans",system-ui,sans-serif;--num:"IBM Plex Mono",ui-monospace,monospace}
+/* B Clearing: lots of air, one big action, forest green on a faintly green white */
+.v-b{--bg:#fbfcfa;--fg:#17241d;--mut:#5f6f66;--line:#e1e7e2;--acc:#1f5c43;--soft:#eef3ef;--body:"Figtree",system-ui,sans-serif;--head:"Figtree",system-ui,sans-serif;--num:"Figtree",system-ui,sans-serif}
+/* C Worklist: tasks first, slab headings, slate blue on cool grey */
+.v-c{--bg:#f2f4f7;--fg:#1a2433;--mut:#5b6778;--line:#d9dee6;--acc:#245a86;--soft:#fff;--body:"Source Sans 3",system-ui,sans-serif;--head:"Bitter",Georgia,serif;--num:"Source Sans 3",system-ui,sans-serif}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);padding-bottom:calc(var(--barh) + 20px)}
+#root{min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.4;padding-bottom:calc(var(--barh) + 20px)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+.n{font-family:var(--num);font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)}
+.phone{max-width:430px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 80px)}
+.tabs{display:flex;position:sticky;bottom:calc(var(--barh) + 8px);margin-top:auto;background:var(--bg);border-top:1px solid var(--line);padding-top:8px}
+.tabs span{flex:1;text-align:center;padding:8px 0;color:var(--mut);font-size:13px}
+.tabs .on{color:var(--acc);font-weight:600}
+.primary{background:var(--acc);color:var(--acc-fg);min-height:48px;padding:0 16px;font-weight:600;border-radius:6px;display:flex;align-items:center;justify-content:center;text-align:center}
+.foot{position:sticky;bottom:calc(var(--barh) + 8px);display:flex;flex-direction:column;gap:8px;background:var(--bg);padding-top:8px}
+.primary.w{width:100%}
+.sync{font-size:13px;color:var(--mut)}
+.sync.done{color:var(--ok);font-weight:500}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;white-space:nowrap;font-weight:500}
+.pill.short{background:var(--abs-soft);color:var(--abs)}
+.pill.risk{background:var(--late-soft);color:var(--late)}
+.low{color:var(--abs);font-weight:600}
+.scroll{overflow-x:auto;min-width:0}
+.desk{display:grid;grid-template-columns:190px minmax(0,1fr);min-height:calc(100vh - 80px)}
+.side{border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:2px}
+.side b{font-family:var(--head);font-weight:600;padding:0 8px 12px;line-height:1.25}
+.side span{padding:6px 8px;border-radius:6px;color:var(--mut);white-space:nowrap}
+.side .on{background:var(--soft);color:var(--acc);font-weight:600}
+.main{min-width:0;padding-block:20px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.main h1{font-family:var(--head);font-size:21px;font-weight:600}
+@media (max-width:760px){.desk{display:block}.side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding-block:8px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}.side b{display:none}}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:12px;font-weight:500;color:var(--mut);text-align:left;white-space:nowrap}
+td{white-space:nowrap}
+.r{text-align:right}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters span{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:13px;color:var(--mut);background:var(--bg)}
+.filters .on{border-color:var(--acc);color:var(--acc);font-weight:500}
+
+/* A */
+.v-a h1{font-size:17px;font-weight:600}
+.a-day td{padding:12px 6px;border-bottom:1px solid var(--line);vertical-align:top;white-space:normal}
+.a-day .now td{background:var(--acc);color:#fff;border-color:var(--acc)}
+.a-day .now .mut{color:#c9cfee}
+.a-day .now a,.a-day .now button{display:inline-block;background:#fff;color:var(--acc);font-weight:600;padding:8px 12px;border-radius:3px;margin-top:8px}
+.a-head{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);border-bottom:2px solid var(--fg);padding-block:8px;z-index:2}
+.a-counts{display:flex;gap:14px;font-size:13px;margin-top:4px}
+.a-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;width:100%;min-height:44px;border-bottom:1px solid var(--line)}
+.a-row .st{font-family:var(--num);font-weight:600;text-align:center;line-height:30px;height:30px;width:30px;justify-self:end;border-radius:3px;color:var(--mut)}
+.a-row[data-st=A]{background:var(--abs-soft)}.a-row[data-st=A] .st{background:var(--abs);color:#fff}
+.a-row[data-st=L]{background:var(--late-soft)}.a-row[data-st=L] .st{background:var(--late);color:#fff}
+.a-list{display:flex;flex-direction:column;margin-top:-16px}
+.a-t th,.a-t td{padding:6px 10px;border-bottom:1px solid var(--line)}
+.a-t th{position:sticky;top:0;background:var(--soft)}
+.v-a .side span,.v-a .primary{border-radius:3px}
+
+/* B */
+.b-now{display:flex;flex-direction:column;gap:6px;padding-block:28px 12px}
+.b-now h1{font-size:34px;line-height:1.1;font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+.b-big{min-height:72px;font-size:18px;border-radius:14px;margin-top:18px}
+.b-quiet{display:flex;flex-direction:column}
+.b-quiet div{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.b-last{min-height:52px;display:flex;flex-direction:column;justify-content:center}
+.b-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.b-tile{height:52px;border-radius:10px;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:600;font-size:16px}
+.b-tile i{font-style:normal;font-size:10px;font-weight:600;line-height:1;height:10px}
+.b-tile[data-st=A]{background:var(--abs);color:#fff}
+.b-tile[data-st=L]{background:var(--late);color:#fff}
+.b-pane{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:28px;align-items:start}
+.b-list{display:flex;flex-direction:column;max-height:70vh;overflow:auto;border-top:1px solid var(--line)}
+.b-item{display:flex;justify-content:space-between;gap:10px;padding:10px;border-bottom:1px solid var(--line);width:100%}
+.b-item.on{background:var(--soft);font-weight:600}
+.b-det{display:flex;flex-direction:column;gap:20px;min-width:0}
+.b-det h2{font-size:26px;font-weight:600;letter-spacing:-.01em}
+.b-fig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.b-fig strong{display:block;font-size:24px;font-weight:600}
+.b-bar{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 44px;gap:10px;align-items:center;padding:5px 0;font-size:14px}
+.b-track{position:relative;height:6px;background:var(--soft);border-radius:3px}
+.b-track u{position:absolute;inset:0 auto 0 0;background:var(--acc);border-radius:3px}
+.b-track u.bad{background:var(--abs)}
+.b-track s{position:absolute;left:75%;top:-3px;bottom:-3px;width:1px;background:var(--fg)}
+.v-b .side{border-right:0}.v-b .side .on{background:none;box-shadow:inset 2px 0 0 var(--acc)}
+@media (max-width:760px){.b-pane{grid-template-columns:minmax(0,1fr)}.b-list{max-height:220px}.v-b .side .on{box-shadow:inset 0 -2px 0 var(--acc)}}
+
+/* C */
+.v-c h1,.v-c h2{font-family:var(--head)}
+.c-strip{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.c-strip span{height:40px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#e4e8ee;color:var(--mut);font-size:13px}
+.c-strip .done{background:#cfe0d6;color:var(--ok)}
+.c-strip .cur{background:var(--acc);color:#fff;font-weight:600}
+.c-strip .later{background:var(--soft);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.c-card{background:var(--soft);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.c-card h2{font-size:16px;font-weight:600}
+.c-tag{font-size:12px;font-weight:600;color:var(--mut)}
+.c-tag.hot{color:var(--acc)}
+.c-roster{display:flex;flex-direction:column;gap:12px;padding-right:26px}
+.c-grp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.c-grp h3{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--mut)}
+.c-chip{background:var(--soft);border-radius:6px;padding:7px 9px;min-height:50px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.c-chip b{font-weight:500;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-chip small{font-size:12px;color:var(--mut)}
+.c-chip[data-st=A]{background:var(--abs);color:#fff}.c-chip[data-st=L]{background:var(--late);color:#fff}
+.c-chip[data-st=A] small,.c-chip[data-st=L] small{color:#fff}
+.c-rail{position:fixed;top:30%;right:max(calc(50vw - 215px + 4px),4px);display:flex;flex-direction:column;gap:2px;font-size:12px;z-index:2}
+.c-rail a{padding:4px 7px;color:var(--acc);text-decoration:none;background:var(--soft);border-radius:4px;text-align:center}
+.c-tray{display:flex;gap:5px;overflow-x:auto;min-height:30px}
+.c-tray button{flex:none;padding:4px 10px;border-radius:99px;font-size:13px;color:#fff;background:var(--abs)}
+.c-tray button[data-st=L]{background:var(--late)}
+.c-work{display:flex;flex-direction:column;gap:14px}
+.c-sec{background:var(--soft);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.c-sec header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.c-sec h2{font-size:16px;font-weight:600}
+.c-sec td,.c-sec th{padding:5px 12px 5px 0;border-top:1px solid var(--line)}
+.c-sec th{border:0}
+.v-c .side{background:var(--soft)}
+
+/* D Combined: B's calm palette and type, A's table, C's home and name roster */
+.v-d{--bg:#fbfcfa;--fg:#17241d;--mut:#5f6f66;--line:#e4e9e5;--acc:#1f5c43;--soft:#eef3ef;--body:"Figtree",system-ui,sans-serif;--head:"Figtree",system-ui,sans-serif;--num:"IBM Plex Mono",ui-monospace,monospace}
+.v-d .primary{border-radius:10px}
+.v-d .side{border-right:0}.v-d .side .on{background:var(--soft);border-radius:8px}
+.d-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.d-card.now{border:0;padding:0;background:none;gap:4px;padding-block:8px}
+.d-card.now h2{font-size:30px;line-height:1.1;letter-spacing:-.015em;font-weight:600}
+.d-card.now .primary{min-height:64px;font-size:17px;border-radius:14px;margin-top:14px}
+.d-card h2{font-size:16px;font-weight:600}
+.d-tag{font-size:12px;font-weight:600;color:var(--mut)}
+.d-strip{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.d-strip span{height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--soft);color:var(--mut);font-size:13px;font-family:var(--body)}
+.d-strip .done{background:#d6e7dc;color:var(--acc)}
+.d-strip .cur{background:var(--acc);color:#fff;font-weight:600}
+.d-strip .later{background:#fff;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg)}
+.d-search{width:100%;height:42px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font:inherit;background:#fff;color:var(--fg)}
+.d-search:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.d-roster{display:flex;flex-direction:column;gap:6px}
+.d-name{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 14px;min-height:48px;width:100%}
+.d-name .st{font-size:13px;font-weight:600;min-width:52px;text-align:right}
+.d-name small{font-family:var(--num);font-size:12px;color:var(--mut);margin-right:10px}
+.d-name[data-st=A]{background:var(--abs);border-color:var(--abs);color:#fff}
+.d-name[data-st=L]{background:var(--late);border-color:var(--late);color:#fff}
+.d-name[data-st=A] small,.d-name[data-st=L] small{color:#fff}
+.d-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.d-tools .d-search{flex:1 1 240px;width:auto}
+.d-sel{height:36px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:inherit;font-size:13px;padding:0 8px;max-width:100%}
+.d-sel.set{border-color:var(--acc);color:var(--acc);font-weight:600}
+.d-btn{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;font-weight:500;white-space:nowrap}
+.d-btn.solid{background:var(--acc);border-color:var(--acc);color:#fff}
+.d-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow-x:auto;min-width:0}
+.d-t th,.d-t td{padding:9px 12px;border-bottom:1px solid var(--line)}
+.d-t tbody tr:last-child td{border-bottom:0}
+.d-t tbody tr{cursor:pointer}
+.d-t tbody tr:hover{background:var(--soft)}
+.d-t th button{font-weight:500;color:var(--mut)}
+.d-t th button.on{color:var(--acc);font-weight:600}
+.d-empty{padding:36px;text-align:center;color:var(--mut)}
+.d-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;font-size:13px;color:var(--mut)}
+.d-bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:8px 12px;font-size:13px}
+.d-cols{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.d-cols label{display:flex;gap:6px;align-items:center}
+.d-drawer{position:fixed;inset:0 0 0 auto;width:min(440px,100%);background:#fff;z-index:25;border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(10,30,20,.12);padding:20px max(16px,env(safe-area-inset-right,0px)) calc(var(--barh) + 24px) 20px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.d-drawer h2{font-size:22px;font-weight:600}
+.d-toast{font-size:13px;color:var(--ok);font-weight:500}
+
+/* D colours all come from the palette tokens, so light and dark both work */
+.v-d .d-card:not(.now),.v-d .d-search,.v-d .d-name,.v-d .d-sel,.v-d .d-btn,.v-d .d-wrap,.v-d .d-cols,.v-d .d-drawer{background:var(--card);color:var(--fg)}
+.v-d .d-name[data-st=A]{background:var(--abs);border-color:var(--abs)}
+.v-d .d-name[data-st=L]{background:var(--late);border-color:var(--late)}
+.v-d .d-strip .done{background:var(--acc-soft);color:var(--acc)}
+.v-d .d-strip .cur{color:var(--acc-fg)}
+.v-d .d-strip .later{background:var(--card);color:var(--fg)}
+.v-d .d-btn.solid{background:var(--acc);color:var(--acc-fg)}
+.v-d .d-name[data-st=A],.v-d .d-name[data-st=L],.v-d .c-tray button,.v-d .d-name[data-st=A] small,.v-d .d-name[data-st=L] small{color:var(--on-st)}
+.v-d .d-t tbody tr:hover{background:var(--soft)}
+.v-d .d-sel.set,.v-d .d-t th button.on,.v-d .side .on{color:var(--acc)}
+.v-d .d-sel.set{border-color:var(--acc)}
+.v-d input[type=checkbox]{accent-color:var(--acc)}
+.d-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.d-tabs button{padding:8px 12px;color:var(--mut);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.d-tabs .on{color:var(--acc);font-weight:600;border-color:var(--acc)}
+.side button{padding:6px 8px;border-radius:8px;color:var(--mut);white-space:nowrap}
+.side button.on{background:var(--soft);font-weight:600}
+.pal-page{max-width:1120px;margin:0 auto;padding-block:24px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.pal-page h1{font-size:24px;font-weight:600}
+.pal{display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;width:100%}
+.pal.on{outline:2px solid var(--acc);outline-offset:1px}
+.pal-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pal-head b{font-size:16px;font-weight:600}
+.pal-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.pal-pair{grid-template-columns:minmax(0,1fr)}}
+.mini{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0}
+.mini .bt{background:var(--acc);color:var(--acc-fg);border-radius:8px;padding:8px;text-align:center;font-weight:600}
+.mini .ro{display:flex;justify-content:space-between;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.mini .ro.a{background:var(--abs);border-color:var(--abs);color:var(--on-st)}
+.mini .ro.l{background:var(--late);border-color:var(--late);color:var(--on-st)}
+.mini .m{color:var(--mut)}
+.mini .lk{color:var(--acc);font-weight:600}
+.mini .bad{color:var(--abs);font-weight:600}
+
+/* Confirm sheet */
+.veil{position:fixed;inset:0;background:rgba(10,14,24,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--bg);width:100%;max-width:430px;max-height:70vh;overflow:auto;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(var(--barh) + 16px) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;border-radius:12px 12px 0 0}
+.sheet h2{font-family:var(--head);font-size:18px;font-weight:600}
+.sheet ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.sheet li{display:flex;justify-content:space-between;gap:10px}
+.sheet .row{display:flex;gap:8px}
+.sheet .row>*{flex:1}
+.ghost{min-height:48px;border:1px solid var(--line);border-radius:6px;text-align:center;font-weight:500}
+
+/* Floating switcher: not part of the design being judged */
+#bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 12px;background:#000;color:#fff;font:13px/1.2 system-ui,sans-serif;padding:7px 12px;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.35);width:max-content;max-width:calc(100vw - 16px)}
+#bar button{color:#fff;padding:6px 8px;border-radius:6px;text-align:center}
+#bar button:hover{background:#333}
+#bar .sel{background:#fff;color:#000}
+#bar .sel:hover{background:#fff}
+#bar b{min-width:96px;text-align:center;font-weight:600}
+#bar .seg,#bar .var{display:flex;align-items:center;gap:2px}
+#bar output{font-variant-numeric:tabular-nums;color:#bbb;white-space:nowrap}
+@media (max-width:640px){:root{--barh:98px}}
+</style>
+
+<div id="root"></div>
+<div id="bar" role="toolbar" aria-label="Prototype switcher">
+  <div class="var"><button id="prev" aria-label="Previous variant">&#8592;</button><b id="vname"></b><button id="next" aria-label="Next variant">&#8594;</button></div>
+  <div class="seg" id="seg"></div>
+  <output id="readout"></output>
+</div>
+
+<script>
+const VARS={d:'D Combined',a:'A Register',b:'B Clearing',c:'C Worklist'},SCREENS={home:'Faculty home',att:'Attendance',office:'Office list',pal:'Colours'};
+const SEM_L={abs:'#b3261e','abs-soft':'#fbe9e7',late:'#8a5a00','late-soft':'#fdf1d6',ok:'#1d6b45','on-st':'#ffffff'};
+const SEM_D={abs:'#f08c82','abs-soft':'#4a1f1b',late:'#e7b655','late-soft':'#43320f',ok:'#7fd1a5','on-st':'#1a0f0d'};
+const PAL={
+ petrol:{name:'Petrol',note:'Blue-green. Calm, and clearly apart from the red and amber status colours.',
+  light:{bg:'#fafcfc',card:'#ffffff',fg:'#12262b',mut:'#566a70',line:'#e0e8ea',soft:'#edf3f4',acc:'#0e5a66','acc-soft':'#d3e6e9','acc-fg':'#ffffff'},
+  dark:{bg:'#0f1a1d',card:'#162427',fg:'#e4eef0',mut:'#93a8ad',line:'#263a3f',soft:'#1d2e32',acc:'#5cc0cf','acc-soft':'#1d4148','acc-fg':'#06262b'}},
+ indigo:{name:'Indigo',note:'Register ink. Formal and familiar for office staff.',
+  light:{bg:'#fafafd',card:'#ffffff',fg:'#171a2e',mut:'#5d6178',line:'#e3e4ee',soft:'#f0f1f8',acc:'#33409a','acc-soft':'#dcdff3','acc-fg':'#ffffff'},
+  dark:{bg:'#12131f',card:'#1a1c2c',fg:'#e7e8f4',mut:'#9a9dbb',line:'#2b2e45',soft:'#212338',acc:'#9aa6f5','acc-soft':'#2c3163','acc-fg':'#12163a'}},
+ forest:{name:'Forest',note:'The green you just saw. Reads close to the "synced" status green.',
+  light:{bg:'#fbfcfa',card:'#ffffff',fg:'#17241d',mut:'#5f6f66',line:'#e4e9e5',soft:'#eef3ef',acc:'#1f5c43','acc-soft':'#d6e7dc','acc-fg':'#ffffff'},
+  dark:{bg:'#0f1712',card:'#17211a',fg:'#e5efe8',mut:'#93a99b',line:'#27362c',soft:'#1d2a21',acc:'#6fcb9f','acc-soft':'#1d3f2e','acc-fg':'#07241a'}},
+ plum:{name:'Plum',note:'The most personality. Sits nearer to the red status colour.',
+  light:{bg:'#fcfafc',card:'#ffffff',fg:'#251a27',mut:'#6c5f6e',line:'#ece5ec',soft:'#f5f0f5',acc:'#6d3570','acc-soft':'#ecdcec','acc-fg':'#ffffff'},
+  dark:{bg:'#181218',card:'#211a22',fg:'#f0e8f0',mut:'#ad9eae',line:'#352b36',soft:'#2a212b',acc:'#d49ad6','acc-soft':'#432b45','acc-fg':'#2c0f2e'}},
+ graphite:{name:'Graphite',note:'No hue at all. Only status colours stand out, the most minimal.',
+  light:{bg:'#fbfbfa',card:'#ffffff',fg:'#1b1c1d',mut:'#63666a',line:'#e6e6e4',soft:'#f2f2f0',acc:'#25272a','acc-soft':'#e0e0dd','acc-fg':'#ffffff'},
+  dark:{bg:'#131415',card:'#1b1c1e',fg:'#ececea',mut:'#9c9fa3',line:'#2d2f31',soft:'#232527',acc:'#e8e8e5','acc-soft':'#37393c','acc-fg':'#17181a'}}
+};
+const tokens=(p,m)=>({...PAL[p][m],...(m==='dark'?SEM_D:SEM_L)});
+const styleOf=(p,m)=>Object.entries(tokens(p,m)).map(([k,v])=>`--${k}:${v}`).join(';');
+const SETUP={
+ Programmes:[['Programme','School','Length','Attendance cutoff'],[['B.Tech CSE','Engineering','4 years','75%'],['B.Tech Mechanical','Engineering','4 years','75%']]],
+ Batches:[['Batch','Programme','Semester','Students'],[['CSE 2024','B.Tech CSE','3','120'],['Mechanical 2024','B.Tech Mechanical','3','20']]],
+ Subjects:[['Subject','Batch','Periods a week','Internal marks'],[['Data Structures','CSE 2024','4 + lab','40'],['Discrete Mathematics','CSE 2024','4','40'],['Digital Electronics','CSE 2024','3 + lab','40'],['Object-Oriented Programming','CSE 2024','3 + lab','40'],['Engineering Economics','CSE 2024','3','40']]],
+ Faculty:[['Name','Department','Teaches','Mentees'],[['Dr. Sasmita Rath','CSE','Data Structures','18'],['Dr. Prakash Nayak','CSE','Discrete Mathematics','16'],['Dr. Lipika Das','CSE','Digital Electronics','17']]],
+ Calendar:[['Event','From','To','Counts for attendance'],[['Semester 3 teaching','3 Aug 2026','27 Nov 2026','Yes'],['Puja break','17 Oct 2026','25 Oct 2026','No'],['Internal marks due','6 Nov 2026','6 Nov 2026','Yes']]],
+ Timetable:[['Day','Period','Subject','Teacher'],[['Monday','3 (11:30)','Data Structures','Dr. Sasmita Rath'],['Monday','5-6 (14:30)','Data Structures Lab','Dr. Sasmita Rath'],['Tuesday','1 (09:30)','Discrete Mathematics','Dr. Prakash Nayak']]],
+ Rules:[['Rule','Value','Applies from'],[['Attendance cutoff','75%, per programme','Next daily run'],['Faculty can edit attendance until','End of day','Next daily run'],['At risk: attendance fall','10 points over 4 weeks','Next daily run'],['At risk: marks','Below 50% of entered components','Next daily run'],['Not enough data','Below 10 sessions','Next daily run']]]
+};
+const NAV=[['Students','students'],['Attendance'],['Marks'],['Fees'],['Risk'],['Messages'],['Assistant'],['College setup','setup']];
+const dSide=()=>`<aside class="side"><b>Engineering campus</b>${NAV.map(([t,k])=>k?`<button class="${S.sec===k?'on':''}" data-sec="${k}">${t}</button>`:`<span>${t}</span>`).join('')}</aside>`;
+function dSetup(){
+  const [h,rows]=SETUP[S.tab];
+  return `<div class="desk">${dSide()}<section class="main"><div><h1>College setup</h1><p class="mut">The records everything else depends on. Office admin keeps these up to date.</p></div>
+  <div class="d-tabs">${Object.keys(SETUP).map(t=>`<button class="${t===S.tab?'on':''}" data-tab="${t}">${t}</button>`).join('')}</div>
+  <div class="d-wrap"><table class="d-t"><thead><tr>${h.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr style="cursor:default">${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section></div>`;
+}
+function palPage(){
+  const mini=(p,m)=>`<div class="mini" style="${styleOf(p,m)}"><span class="m">${m==='dark'?'Dark':'Light'}</span><div class="bt">Mark attendance</div><div class="ro"><span>Subhashree Mohanty</span></div><div class="ro a"><span>Ankit Panda</span><span>Absent</span></div><div class="ro l"><span>Farheen Ali</span><span>Late</span></div><div style="display:flex;justify-content:space-between"><span class="lk">Students</span><span class="bad">68.2%</span></div></div>`;
+  return `<div class="pal-page"><div><h1>Colours</h1><p class="mut">Pick one to apply it to every D screen. Use Mode in the bar for light or dark.</p></div>
+  ${Object.entries(PAL).map(([k,p])=>`<button class="pal ${S.pal===k?'on':''}" data-pal="${k}"><span class="pal-head"><b>${p.name}${k==='petrol'?' (default)':''}</b><span class="mut">${p.note}</span></span><span class="pal-pair">${mini(k,'light')}${mini(k,'dark')}</span></button>`).join('')}</div>`;
+}
+const darkNow=()=>{if(S.mode!=='auto')return S.mode==='dark';const t=document.documentElement.dataset.theme;return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches};
+function applyPal(){
+  const m=darkNow()?'dark':'light',t=S.v==='d'?tokens(S.pal,m):null;
+  for(const el of [document.body,document.getElementById('root')]){
+    if(t){for(const k in t)el.style.setProperty('--'+k,t[k]);el.style.colorScheme=m}
+    else el.removeAttribute('style');
+  }
+}
+const S={v:'d',s:'home',st:{},t0:null,t1:null,sheet:false,saved:false,last:null,sel:'ENG-24-CSE-0412',
+  q:'',rq:'',f:{prog:'',yr:'',att:'',marks:'',fee:'',flag:''},sort:'roll',dir:1,page:0,picked:{},drawer:null,hidden:{},cols:false,toast:'',pal:'petrol',mode:'auto',sec:'students',tab:'Programmes'};
+
+// Deterministic synthetic roster; only Subhashree and Ankit come from the brief.
+const F=['Aditya','Ananya','Bibek','Chinmayee','Debasis','Deepika','Gourav','Ipsita','Jyoti','Kajal','Lipsa','Manas','Nibedita','Omkar','Pallavi','Pritam','Rashmi','Rohan','Sagarika','Sandeep','Smruti','Soumya','Tapas','Tanvi'];
+const L=['Mohanty','Panda','Das','Sahoo','Nayak','Behera','Mishra','Rath','Pradhan','Swain','Jena','Patra','Sethi','Rout','Dash','Biswal'];
+let seed=7;const rnd=n=>(seed=(seed*16807)%2147483647)%n;
+const make=(code,start,count,yr)=>Array.from({length:count},(_,i)=>{
+  const pct=rnd(8)===0?60+rnd(150)/10:75+rnd(220)/10,marks=rnd(9)===0?14+rnd(6):21+rnd(18);
+  return{roll:`ENG-24-${code}-${String(start+i).padStart(4,'0')}`,name:`${F[rnd(24)]} ${L[rnd(16)]}`,prog:code==='CSE'?'B.Tech CSE':'B.Tech Mechanical',yr,pct:+pct.toFixed(1),marks,fee:rnd(7)===0?[12000,22500,45000][rnd(3)]:0};
+});
+const CSE=make('CSE',380,120,2),ME=make('ME',170,20,2);
+Object.assign(CSE[32],{name:'Subhashree Mohanty',pct:81.5,marks:33,fee:0});
+Object.assign(ME[7],{name:'Ankit Panda',pct:68.2,marks:21,fee:45000});
+const ALL=[...CSE,...ME];
+const flag=x=>x.pct<75?'short':x.marks<20?'risk':'';
+const FLAG={short:'<span class="pill short">Shortage</span>',risk:'<span class="pill risk">At risk</span>',' ':''};
+const fl=x=>FLAG[flag(x)||' '];
+const inr=n=>n?'₹'+n.toLocaleString('en-IN'):'0';
+const sfx=r=>r.slice(-4);
+const stOf=r=>S.st[r]||'P';
+const LABEL={P:'P',A:'A',L:'L'},WORD={P:'Present',A:'Absent',L:'Late'};
+const CLS='Data Structures',BATCH='B.Tech CSE 2024';
+const counts=()=>{let a=0,l=0;for(const k in S.st){if(S.st[k]==='A')a++;if(S.st[k]==='L')l++}return{a,l,p:CSE.length-a-l}};
+const go=h=>`data-go="${h}"`;
+const syncText=()=>S.saved?'Saved on this phone. Will sync when you are back online.':'Offline. Roster downloaded at 08:52.';
+const sync=()=>`<p class="sync ${S.saved?'done':''}" data-sync>${syncText()}</p>`;
+const foot=()=>`<div class="foot">${sync()}<button class="primary w" id="submit">${S.saved?'Edit and save again':'Submit attendance'}</button></div>`;
+const counters=()=>`<span class="n"><span data-c="p"></span> present</span><span class="n"><span data-c="a"></span> absent</span><span class="n"><span data-c="l"></span> late</span>`;
+const FAC=['Home','Classes','Marks','Students'].map((t,i)=>`<span class="${i?'':'on'}">${t}</span>`).join('');
+const tabs=`<nav class="tabs">${FAC}</nav>`;
+const side=(extra='')=>`<aside class="side"><b>Engineering campus</b>${['Masters','Attendance','Marks','Fees','Risk','Messages','Assistant','Settings'].map((t,i)=>`<span class="${i===1?'on':''}">${t}</span>`).join('')}${extra}</aside>`;
+const SUBJ=['Data Structures','Discrete Mathematics','Digital Electronics','Object-Oriented Programming','Engineering Economics'];
+const OFF=[-3,2.5,1,-1.5,1]; // sums to zero, so the mean stays the brief's figure
+
+const COLS=[['roll','Roll no'],['name','Name'],['prog','Programme'],['yr','Yr'],['pct','Attendance %'],['marks','Marks /40'],['fee','Fee due'],['flag','Flag']];
+const PAGE=20;
+const FILTERS=[
+ ['prog','Programme',[['B.Tech CSE','B.Tech CSE'],['B.Tech Mechanical','B.Tech Mechanical']]],
+ ['att','Attendance',[['short','Below 75%'],['near','75 to 80%'],['ok','Above 80%']]],
+ ['marks','Marks',[['low','Below 20'],['mid','20 to 30'],['high','Above 30']]],
+ ['fee','Fees',[['due','Fee due'],['clear','No dues']]],
+ ['flag','Flag',[['short','Shortage'],['risk','At risk'],['none','No flag']]]];
+function filtered(){
+  const q=S.q.trim().toLowerCase(),f=S.f;
+  return ALL.filter(x=>(!q||x.name.toLowerCase().includes(q)||x.roll.toLowerCase().includes(q))
+   &&(!f.prog||x.prog===f.prog)
+   &&(!f.att||(f.att==='short'?x.pct<75:f.att==='near'?x.pct>=75&&x.pct<=80:x.pct>80))
+   &&(!f.marks||(f.marks==='low'?x.marks<20:f.marks==='mid'?x.marks>=20&&x.marks<=30:x.marks>30))
+   &&(!f.fee||(f.fee==='due'?x.fee>0:!x.fee))
+   &&(!f.flag||(f.flag==='none'?!flag(x):flag(x)===f.flag))
+  ).sort((a,b)=>{const k=S.sort,av=k==='flag'?flag(a):a[k],bv=k==='flag'?flag(b):b[k];return (av>bv?1:av<bv?-1:0)*S.dir});
+}
+function dTable(){
+  const rows=filtered(),pages=Math.max(1,Math.ceil(rows.length/PAGE));S.page=Math.min(S.page,pages-1);
+  const view=rows.slice(S.page*PAGE,(S.page+1)*PAGE),vis=COLS.filter(([k])=>!S.hidden[k]),picked=Object.keys(S.picked).length;
+  const cell={roll:x=>`<td class="n">${x.roll}</td>`,name:x=>`<td>${x.name}</td>`,prog:x=>`<td class="mut">${x.prog}</td>`,yr:x=>`<td class="n">${x.yr}</td>`,
+   pct:x=>`<td class="r n ${x.pct<75?'low':''}">${x.pct.toFixed(1)}</td>`,marks:x=>`<td class="r n">${x.marks}</td>`,fee:x=>`<td class="r n">${inr(x.fee)}</td>`,flag:x=>`<td>${fl(x)}</td>`};
+  const num=k=>['pct','marks','fee'].includes(k);
+  return `${picked?`<div class="d-bulk"><b>${picked} selected</b><button class="d-btn" data-act="Export of ${picked} students queued">Export</button><button class="d-btn" data-act="Reminder for ${picked} students added to the message log">Send fee reminder</button><button class="d-btn" data-clearpick>Clear</button></div>`:''}
+  <div class="d-wrap">${rows.length?`<table class="d-t"><thead><tr><th><input type="checkbox" id="pickall" aria-label="Select page" ${view.every(x=>S.picked[x.roll])?'checked':''}></th>${vis.map(([k,t])=>`<th class="${num(k)?'r':''}"><button class="${S.sort===k?'on':''}" data-sort="${k}">${t}${S.sort===k?(S.dir>0?' ↑':' ↓'):''}</button></th>`).join('')}</tr></thead>
+  <tbody>${view.map(x=>`<tr data-open="${x.roll}"><td><input type="checkbox" data-pick="${x.roll}" aria-label="Select ${x.name}" ${S.picked[x.roll]?'checked':''}></td>${vis.map(([k])=>cell[k](x)).join('')}</tr>`).join('')}</tbody></table>`:`<div class="d-empty">No students match these filters.<br><button class="d-btn" style="margin-top:10px" data-clear>Clear filters</button></div>`}</div>
+  <div class="d-foot"><span>Showing ${rows.length?S.page*PAGE+1:0} to ${Math.min((S.page+1)*PAGE,rows.length)} of ${rows.length}</span><span style="display:flex;gap:6px"><button class="d-btn" data-page="-1" ${S.page?'':'disabled'}>Previous</button><button class="d-btn" data-page="1" ${S.page<pages-1?'':'disabled'}>Next</button></span></div>`;
+}
+function dDrawer(){
+  const x=ALL.find(y=>y.roll===S.drawer);if(!x)return '';
+  return `<aside class="d-drawer" role="dialog" aria-label="${x.name}"><div style="display:flex;justify-content:space-between;gap:12px"><div><h2>${x.name}</h2><p class="mut"><span class="n" style="font-size:13px">${x.roll}</span><br>${x.prog}, year ${x.yr}</p></div><button class="d-btn" data-close>Close</button></div>
+  <div class="b-fig"><div><strong class="n ${x.pct<75?'low':''}">${x.pct.toFixed(1)}%</strong><span class="mut">Attendance</span></div><div><strong class="n">${x.marks}/40</strong><span class="mut">Marks</span></div><div><strong class="n">${inr(x.fee)}</strong><span class="mut">Fee due</span></div></div>
+  <div><p class="mut" style="margin-bottom:6px">By subject, line marks 75%</p>${SUBJ.map((s,i)=>{const p=Math.min(100,x.pct+OFF[i]);return `<div class="b-bar"><span>${s}</span><span class="b-track"><u class="${p<75?'bad':''}" style="width:${p}%"></u><s></s></span><span class="n r">${p.toFixed(1)}</span></div>`}).join('')}</div>
+  ${flag(x)?`<div class="d-card"><span class="d-tag">Why flagged</span><p>${x.pct<75?`Attendance ${x.pct.toFixed(1)}% is below the 75% cutoff.`:`Marks ${x.marks}/40 are below 50% of components entered.`}</p></div>`:''}</aside>`;
+}
+
+const V={
+d:{
+ home:()=>`<div class="phone"><header><p class="mut">Monday 2 Nov</p></header>
+  <div class="d-strip" aria-label="Periods 1 to 9">${[['1','done'],['2',''],['3','cur'],['4',''],['5','later'],['6','later'],['7',''],['8',''],['9','']].map(([n,c])=>`<span class="${c}">${n}</span>`).join('')}</div>
+  <div class="d-card now"><span class="d-tag">Now, period 3, until 12:25</span><h2>${CLS}</h2><p class="mut">${BATCH}, 120 students</p><button class="primary w" ${go('d-att')}>Mark attendance</button></div>
+  <div class="d-card"><span class="d-tag">Due Friday</span><h2>Submit Mid-term marks</h2><p class="mut">Data Structures, 104 of 120 entered</p></div>
+  <div class="d-card"><span class="d-tag">Mentor task</span><h2>Talk to Rohan Sahoo</h2><p class="mut">Attendance fell 12 points in 4 weeks</p></div>
+  <div class="d-card"><span class="d-tag">Today, 14:30</span><h2>Data Structures Lab</h2><p class="mut">${BATCH}, counts as 2 periods</p></div>${tabs}</div>`,
+ att:()=>`<div class="phone"><header><h1 style="font-size:20px;font-weight:600">${CLS}</h1><p class="mut">${BATCH}, period 3. Everyone starts present. Tap a student to mark absent, tap again for late.</p></header>
+  <input class="d-search" id="rq" placeholder="Find a student by name or roll no" aria-label="Find a student" value="${S.rq}">
+  <div class="c-tray" id="tray"></div>
+  <div class="d-roster" id="roster">${roster()}</div>${foot()}</div>`,
+ pal:palPage,
+ office:()=>S.sec==='setup'?dSetup():`<div class="desk">${dSide()}<section class="main"><div class="d-tools"><h1 style="margin-right:auto">Students</h1><button class="d-btn" id="colsbtn">Columns</button><button class="d-btn" data-act="Export of the filtered list queued">Export CSV</button><button class="d-btn solid" data-act="Add student opens here in the real app">Add student</button></div>
+  <div class="d-tools"><input class="d-search" id="q" placeholder="Search name or roll no" aria-label="Search students" value="${S.q}">
+  ${FILTERS.map(([k,t,o])=>`<select class="d-sel ${S.f[k]?'set':''}" data-f="${k}" aria-label="${t}"><option value="">${t}: all</option>${o.map(([v,l])=>`<option value="${v}" ${S.f[k]===v?'selected':''}>${l}</option>`).join('')}</select>`).join('')}
+  ${Object.values(S.f).some(Boolean)||S.q?'<button class="d-btn" data-clear>Clear</button>':''}</div>
+  ${S.cols?`<div class="d-cols">${COLS.map(([k,t])=>`<label><input type="checkbox" data-col="${k}" ${S.hidden[k]?'':'checked'}>${t}</label>`).join('')}</div>`:''}
+  ${S.toast?`<p class="d-toast">${S.toast}</p>`:''}
+  <div id="dtable">${dTable()}</div></section></div>${dDrawer()}`
+},
+a:{
+ home:()=>`<div class="phone">
+   <header><h1>Monday 2 Nov</h1><p class="mut">Dr. Sasmita Rath</p></header>
+   <table class="a-day"><tbody>
+    <tr><td class="n mut">P1<br>09:30</td><td>Computer Programming<br><span class="mut">B.Tech Mechanical 2024</span></td><td class="r n mut">17/20<br>synced</td></tr>
+    <tr class="now"><td class="n">P3<br>11:30</td><td colspan="2"><b>${CLS}</b><br><span class="mut">${BATCH}, 120 students</span><br><button ${go('a-att')}>Mark attendance</button></td></tr>
+    <tr><td class="n mut">P5-6<br>14:30</td><td>Data Structures Lab<br><span class="mut">${BATCH}, counts as 2</span></td><td></td></tr>
+   </tbody></table>
+   <table class="a-day"><tbody>
+    <tr><td>Internal marks to submit</td><td class="r n">1</td></tr>
+    <tr><td>Mentor tasks open</td><td class="r n">2</td></tr>
+   </tbody></table>${tabs}</div>`,
+ att:()=>`<div class="phone"><header class="a-head"><h1>${CLS}</h1><p class="mut">${BATCH}, P3, 11:30</p><div class="a-counts">${counters()}</div></header>
+  <div class="a-list">${CSE.map(x=>`<button class="a-row" data-r="${x.roll}" data-st="${stOf(x.roll)}"><span class="n mut">${sfx(x.roll)}</span><span>${x.name}</span><span class="st">${stOf(x.roll)}</span></button>`).join('')}</div>${foot()}</div>`,
+ office:()=>`<div class="desk">${side()}<section class="main"><h1>Students</h1>
+  <div class="filters"><span class="on">All 140</span><span>Shortage</span><span>At risk</span><span>Fee due</span><span>B.Tech CSE</span><span>B.Tech Mechanical</span></div>
+  <div class="scroll"><table class="a-t"><thead><tr><th>Roll no</th><th>Name</th><th>Programme</th><th>Yr</th><th class="r">Attendance %</th><th class="r">Marks /40</th><th class="r">Fee due</th><th>Flag</th></tr></thead><tbody>
+  ${[ME[7],CSE[32],...ALL.slice(0,28)].map(x=>`<tr><td class="n">${x.roll}</td><td>${x.name}</td><td class="mut">${x.prog}</td><td class="n">${x.yr}</td><td class="r n ${x.pct<75?'low':''}">${x.pct.toFixed(1)}</td><td class="r n">${x.marks}</td><td class="r n">${inr(x.fee)}</td><td>${fl(x)}</td></tr>`).join('')}
+  </tbody></table></div><p class="mut">Showing 30 of 140</p></section></div>`
+},
+b:{
+ home:()=>`<div class="phone"><div class="b-now"><p class="mut">Period 3, until 12:25</p><h1>${CLS}</h1><p class="mut">${BATCH}</p><button class="primary b-big" ${go('b-att')}>Mark attendance</button></div>
+  <div class="b-quiet"><div><span>Next: Data Structures Lab</span><span class="n mut">14:30</span></div><div><span>Marks to submit</span><span class="n mut">1</span></div><div><span>Mentor tasks</span><span class="n mut">2</span></div></div>${tabs}</div>`,
+ att:()=>`<div class="phone"><header><h1 style="font-size:20px;font-weight:600">${CLS}</h1><p class="mut">Everyone is present. Tap who is not.</p></header>
+  <div class="b-last" id="last"></div>
+  <div class="b-grid">${CSE.map(x=>`<button class="b-tile n" data-r="${x.roll}" data-st="${stOf(x.roll)}" aria-label="${x.name}">${sfx(x.roll)}<i class="st">${stOf(x.roll)==='P'?'':stOf(x.roll)}</i></button>`).join('')}</div>${foot()}</div>`,
+ office:()=>{const x=ALL.find(y=>y.roll===S.sel);return `<div class="desk">${side()}<section class="main"><div class="filters"><span class="on">All 140</span><span>Shortage</span><span>At risk</span><span>Fee due</span></div>
+  <div class="b-pane"><div class="b-list">${[ME[7],CSE[32],...ALL.slice(0,28)].map(y=>`<button class="b-item ${y.roll===S.sel?'on':''}" data-sel="${y.roll}"><span>${y.name}<br><span class="n mut" style="font-size:12px;font-weight:400">${y.roll}</span></span><span>${fl(y)}</span></button>`).join('')}<p class="mut" style="padding:10px">Showing 30 of 140</p></div>
+  <article class="b-det"><div><h2>${x.name}</h2><p class="mut"><span class="n">${x.roll}</span>, ${x.prog}, year ${x.yr}</p></div>
+   <div class="b-fig"><div><strong class="n ${x.pct<75?'low':''}">${x.pct.toFixed(1)}%</strong><span class="mut">Attendance</span></div><div><strong class="n">${x.marks}/40</strong><span class="mut">Internal marks</span></div><div><strong class="n">${inr(x.fee)}</strong><span class="mut">Fee due</span></div></div>
+   <div><p class="mut" style="margin-bottom:6px">By subject, line marks 75%</p>${SUBJ.map((s,i)=>{const p=Math.min(100,x.pct+OFF[i]);return `<div class="b-bar"><span>${s}</span><span class="b-track"><u class="${p<75?'bad':''}" style="width:${p}%"></u><s></s></span><span class="n r">${p.toFixed(1)}</span></div>`}).join('')}</div>
+  </article></div></section></div>`}
+},
+c:{
+ home:()=>`<div class="phone"><header><h1 style="font-size:19px;font-weight:600">Monday 2 Nov</h1></header>
+  <div class="c-strip n" aria-label="Periods 1 to 9">${[['1','done'],['2',''],['3','cur'],['4',''],['5','later'],['6','later'],['7',''],['8',''],['9','']].map(([n,c])=>`<span class="${c}">${n}</span>`).join('')}</div>
+  <div class="c-card"><span class="c-tag hot">Now, period 3</span><h2>${CLS}</h2><p class="mut">${BATCH}, 120 students</p><button class="primary w" ${go('c-att')}>Mark attendance</button></div>
+  <div class="c-card"><span class="c-tag">Due Friday</span><h2>Submit Mid-term marks</h2><p class="mut">Data Structures, 104 of 120 entered</p></div>
+  <div class="c-card"><span class="c-tag">Mentor task</span><h2>Talk to Rohan Sahoo</h2><p class="mut">Attendance fell 12 points in 4 weeks</p></div>
+  <div class="c-card"><span class="c-tag">Today, 14:30</span><h2>Data Structures Lab</h2><p class="mut">${BATCH}, counts as 2 periods</p></div>${tabs}</div>`,
+ att:()=>{const g=[];for(let i=0;i<CSE.length;i+=20)g.push(CSE.slice(i,i+20));return `<div class="phone"><header><h1 style="font-size:19px;font-weight:600">${CLS}</h1><p class="mut">${BATCH}, period 3</p></header>
+  <nav class="c-rail" aria-label="Jump to roll range">${g.map((a,i)=>`<a href="#c-att" data-jump="g${i}">${sfx(a[0].roll).slice(1,3)}</a>`).join('')}</nav>
+  <div class="c-roster">${g.map((a,i)=>`<div class="c-grp" id="g${i}"><h3 class="n">${sfx(a[0].roll)} to ${sfx(a[a.length-1].roll)}</h3>${a.map(x=>`<button class="c-chip" data-r="${x.roll}" data-st="${stOf(x.roll)}"><b>${x.name}</b><small class="n">${sfx(x.roll)} <span class="st">${stOf(x.roll)==='P'?'':WORD[stOf(x.roll)]}</span></small></button>`).join('')}</div>`).join('')}</div>
+  <div class="foot"><div class="c-tray" id="tray"></div>${sync()}<button class="primary w" id="submit">${S.saved?'Edit and save again':'Submit attendance'}</button></div></div>`},
+ office:()=>{const sh=ALL.filter(x=>x.pct<75).sort((a,b)=>a.pct-b.pct),due=ALL.filter(x=>x.fee).sort((a,b)=>b.fee-a.fee),risk=ALL.filter(x=>flag(x)==='risk');
+  const t=(rows,cols)=>`<div class="scroll"><table><tbody>${rows.slice(0,4).map(cols).join('')}</tbody></table></div>`;
+  return `<div class="desk">${side()}<section class="main"><h1>What needs you today</h1><div class="c-work">
+   <section class="c-sec"><header><h2>Sync conflicts</h2><span class="mut n">1 to resolve</span></header>${t([CSE[10]],x=>`<tr><td>${x.name}</td><td class="n mut">${x.roll}</td><td>Dr. Rath: Present</td><td>Dr. Nayak: Absent</td></tr>`)}</section>
+   <section class="c-sec"><header><h2>Attendance shortage</h2><span class="mut n">Showing 4 of ${sh.length}</span></header>${t(sh,x=>`<tr><td>${x.name}</td><td class="n mut">${x.roll}</td><td class="n low r">${x.pct.toFixed(1)}%</td></tr>`)}</section>
+   <section class="c-sec"><header><h2>Fees due</h2><span class="mut n">Showing 4 of ${due.length}</span></header>${t(due,x=>`<tr><td>${x.name}</td><td class="n mut">${x.roll}</td><td class="n r">${inr(x.fee)}</td></tr>`)}</section>
+   <section class="c-sec"><header><h2>At risk, mentor not yet assigned</h2><span class="mut n">Showing 4 of ${risk.length}</span></header>${t(risk,x=>`<tr><td>${x.name}</td><td class="n mut">${x.roll}</td><td class="n r">${x.marks}/40 marks</td></tr>`)}</section>
+  </div></section></div>`}
+}};
+
+const root=document.getElementById('root');
+function roster(){
+  const q=S.rq.trim().toLowerCase(),list=CSE.filter(x=>!q||x.name.toLowerCase().includes(q)||x.roll.includes(q));
+  return list.map(x=>{const s=stOf(x.roll);return `<button class="d-name" data-r="${x.roll}" data-st="${s}"><span><small>${sfx(x.roll)}</small>${x.name}</span><span class="st">${s==='P'?'':WORD[s]}</span></button>`}).join('')||`<p class="d-empty">No student matches "${S.rq}".</p>`;
+}
+const redrawTable=()=>{const t=root.querySelector('#dtable');if(t)t.innerHTML=dTable()};
+root.addEventListener('input',e=>{
+  if(e.target.id==='q'){S.q=e.target.value;S.page=0;redrawTable()}
+  if(e.target.id==='rq'){S.rq=e.target.value;root.querySelector('#roster').innerHTML=roster()}
+});
+root.addEventListener('change',e=>{
+  const d=e.target.dataset;
+  if(d.f){S.f[d.f]=e.target.value;S.page=0;render()}
+  if(d.col){S.hidden[d.col]=!e.target.checked;redrawTable()}
+  if(d.pick){if(e.target.checked)S.picked[d.pick]=1;else delete S.picked[d.pick];redrawTable()}
+  if(e.target.id==='pickall'){const rows=filtered().slice(S.page*PAGE,(S.page+1)*PAGE);rows.forEach(x=>{if(e.target.checked)S.picked[x.roll]=1;else delete S.picked[x.roll]});redrawTable()}
+});
+function sheet(){
+  const list=CSE.filter(x=>stOf(x.roll)!=='P');
+  const {a,l,p}=counts();
+  return `<div class="veil"><div class="sheet" role="dialog" aria-label="Confirm attendance"><h2>${p} present, ${a} absent, ${l} late</h2>
+   ${list.length?`<ul>${list.map(x=>`<li><span>${x.name}</span><span class="n">${WORD[stOf(x.roll)]}</span></li>`).join('')}</ul>`:'<p class="mut">Nobody marked absent or late.</p>'}
+   <div class="row"><button class="ghost" id="cancel">Back</button><button class="primary" id="confirm">Confirm</button></div></div></div>`;
+}
+function paint(){
+  const {a,l,p}=counts();
+  root.querySelectorAll('[data-c=a]').forEach(e=>e.textContent=a);
+  root.querySelectorAll('[data-c=l]').forEach(e=>e.textContent=l);
+  root.querySelectorAll('[data-c=p]').forEach(e=>e.textContent=p);
+  const tray=root.querySelector('#tray');
+  if(tray)tray.innerHTML=CSE.filter(x=>stOf(x.roll)!=='P').map(x=>`<button data-r="${x.roll}" data-st="${stOf(x.roll)}">${x.name.split(' ')[0]} ${sfx(x.roll)}</button>`).join('')||`<span class="mut" style="font-size:13px">Everyone present. Tap a name to mark absent.</span>`;
+  const last=root.querySelector('#last');
+  if(last){const x=CSE.find(y=>y.roll===S.last);last.innerHTML=x?`<b>${x.name}</b><span class="mut n">${sfx(x.roll)}, ${WORD[stOf(x.roll)]}</span>`:`<span class="mut n">${p} present, ${a} absent, ${l} late</span>`}
+  const secs=S.t0?Math.round(((S.t1||Date.now())-S.t0)/1000):0;
+  document.getElementById('readout').textContent=S.s==='att'?`P${p} A${a} L${l} · ${secs}s · ${S.saved?'pending sync':'draft'}`:`${S.v}-${S.s}`;
+}
+function render(){
+  root.className='v-'+S.v;
+  document.body.className='v-'+S.v;
+  applyPal();
+  root.innerHTML=V[S.v][S.s]()+(S.sheet?sheet():'');
+  document.getElementById('vname').textContent=VARS[S.v];
+  document.getElementById('seg').innerHTML=Object.entries(SCREENS).filter(([k])=>V[S.v][k]).map(([k,t])=>`<button class="${k===S.s?'sel':''}" data-go="${S.v}-${k}">${t}</button>`).join('')+(S.v==='d'?`<button id="mode">Mode: ${S.mode}</button>`:'');
+  paint();
+}
+function route(){const m=(location.hash||'').match(/^#([abcd])-(home|att|office|pal)$/);if(m){S.v=m[1];S.s=m[2]}if(!V[S.v][S.s])S.s='home';S.sheet=false;render()}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
+new MutationObserver(render).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+function nav(h){if(location.hash==='#'+h)route();else location.hash=h}
+function cycle(d){const k=Object.keys(VARS),i=(k.indexOf(S.v)+d+k.length)%k.length;nav(k[i]+'-'+S.s)}
+document.getElementById('prev').onclick=()=>cycle(-1);
+document.getElementById('next').onclick=()=>cycle(1);
+addEventListener('hashchange',route);
+addEventListener('keydown',e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.key==='ArrowLeft')cycle(-1);if(e.key==='ArrowRight')cycle(1)});
+document.addEventListener('click',e=>{
+  if(e.target.matches('input[type=checkbox]'))return;
+  const t=e.target.closest('[data-go],[data-r],[data-sel],[data-jump],[data-sort],[data-page],[data-clear],[data-clearpick],[data-close],[data-act],#colsbtn,[data-open],[data-pal],[data-sec],[data-tab],#mode,#submit,#confirm,#cancel');
+  if(!t)return;
+  if(t.dataset.pal){S.pal=t.dataset.pal;return render()}
+  if(t.dataset.sec){S.sec=t.dataset.sec;S.drawer=null;return render()}
+  if(t.dataset.tab){S.tab=t.dataset.tab;return render()}
+  if(t.id==='mode'){S.mode={auto:'light',light:'dark',dark:'auto'}[S.mode];return render()}
+  if(t.dataset.sort){const k=t.dataset.sort;if(S.sort===k)S.dir=-S.dir;else{S.sort=k;S.dir=1}return redrawTable()}
+  if(t.dataset.page){S.page+=+t.dataset.page;return redrawTable()}
+  if('clear' in t.dataset){S.q='';S.page=0;for(const k in S.f)S.f[k]='';return render()}
+  if('clearpick' in t.dataset){S.picked={};return redrawTable()}
+  if('close' in t.dataset){S.drawer=null;return render()}
+  if(t.dataset.act){S.toast=t.dataset.act;return render()}
+  if(t.id==='colsbtn'){S.cols=!S.cols;return render()}
+  if(t.dataset.open){S.drawer=t.dataset.open;return render()}
+  if(t.dataset.go)return nav(t.dataset.go);
+  if(t.dataset.jump){e.preventDefault();return document.getElementById(t.dataset.jump).scrollIntoView({block:'start'})}
+  if(t.dataset.sel){S.sel=t.dataset.sel;return render()}
+  if(t.dataset.r){
+    const r=t.dataset.r,n={P:'A',A:'L',L:'P'}[stOf(r)];
+    if(n==='P')delete S.st[r];else S.st[r]=n;
+    S.t0=S.t0||Date.now();S.t1=null;S.last=r;S.saved=false;
+    root.querySelectorAll(`[data-r="${r}"]`).forEach(el=>{el.dataset.st=n;const s=el.querySelector('.st');if(s)s.textContent=S.v==='a'?n:S.v==='b'?(n==='P'?'':n):(n==='P'?'':WORD[n])});
+    const rq=root.querySelector('#rq');if(rq&&S.rq){S.rq='';rq.value='';root.querySelector('#roster').innerHTML=roster();rq.focus()}
+    const sy=root.querySelector('[data-sync]');if(sy){sy.textContent=syncText();sy.className='sync'}
+    const sb=root.querySelector('#submit');if(sb)sb.textContent='Submit attendance';
+    return paint();
+  }
+  if(t.id==='submit'){S.t1=Date.now();S.t0=S.t0||S.t1;S.sheet=true;return render()}
+  if(t.id==='cancel'){S.sheet=false;S.t1=null;return render()}
+  if(t.id==='confirm'){S.sheet=false;S.saved=true;return render()}
+});
+setInterval(()=>{if(S.s==='att'&&S.t0&&!S.t1)paint()},1000);
+route();
+</script>
