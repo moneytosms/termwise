@@ -8,6 +8,7 @@ import { dues, instalmentDue, validatePayment } from "@/domain/fees";
 import { requireAdmin, studentScope } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
+import { parentUrl } from "@/server/parent-link";
 import { batch, feeInstalment, feePayment, message, programme, student } from "@/server/schema";
 import { paidSql } from "./queries";
 import { isMinor, reminderBody } from "./reminder";
@@ -37,7 +38,7 @@ export async function sendFeeReminders(ids: number[]): Promise<{ error?: string;
       const due = dues(instalments.filter((i) => i.studentId === p.id), today).totalPaise;
       if (!due) { n.skipped++; continue; }
       const status = isMinor(p.birthDate, today) && !p.parentConsentAt ? "blocked_no_consent" : "logged";
-      await tx.insert(message).values({ studentId: p.id, kind: "fee_reminder", language: "en", body: reminderBody(p.name, p.rollNo, due), status });
+      await tx.insert(message).values({ studentId: p.id, kind: "fee_reminder", language: "en", body: `${reminderBody(p.name, p.rollNo, due)}\n${parentUrl(p.id)}`, status });
       await audit(tx, v, { action: "fees.reminder", entity: "student", entityId: p.id, newValue: { status, duePaise: due } });
       if (status === "logged") n.logged++; else n.blocked++;
     }

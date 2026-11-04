@@ -10,6 +10,6 @@ describe("isMinor", () => {
 
 describe("reminderBody", () => {
   it("fills the template", () => {
-    expect(reminderBody("Asha", "CS001", 150000)).toBe("Fee reminder for Asha (CS001): ₹1,500 is due. Please pay at the bank counter.");
+    expect(reminderBody("Asha", "CS001", 150000)).toBe("Fee reminder for Asha (CS001): ₹1,500 is due. Pay at the bank counter or with the link below.");
   });
 });

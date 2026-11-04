@@ -6,7 +6,7 @@ export function shortageMessage(lang: "en" | "or", name: string, subject: string
 }
 export function feeMessage(lang: "en" | "or", name: string, amount: string) {
   return lang === "en"
-    ? `Fee reminder: ${amount} is due for ${name}. Please pay at the bank counter.`
+    ? `Fee reminder: ${amount} is due for ${name}. Pay at the bank counter or with the link below.`
     : `ଶୁଳ୍କ ସ୍ମାରକ: ${name} ଙ୍କ ପାଇଁ ${amount} ବକେୟା ଅଛି। ଦୟାକରି ବ୍ୟାଙ୍କ କାଉଣ୍ଟରରେ ପଇଠ କରନ୍ତୁ।`;
 }
 export const isMinor = (birthDate: string, today: string) => {
