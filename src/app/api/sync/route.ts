@@ -16,10 +16,13 @@ const Item = z.object({
   periodCount: z.number().int().min(1).max(9),
   entries: z.array(z.object({ studentId: z.number().int(), status: z.enum(["present", "absent", "late"]) })).min(1).max(500),
   editedAt: z.iso.datetime(),
+  markedBy: z.number().int(),
 });
 const Body = z.object({ clientNow: z.iso.datetime(), items: z.array(Item).max(100) });
 
 async function apply(v: Viewer, item: OutboxItem, editedAt: Date) {
+  // A shared phone can hold a sheet from a teacher whose sign-in expired; only they can send it.
+  if (item.markedBy !== v.staffId) return { outcome: "rejected" as const, error: "Marked by another teacher on this phone. They need to sign in to send it." };
   // The subject must belong to this batch and campus, and the sheet must cover exactly its students.
   const [valid] = await db.select({ id: subject.id }).from(subject)
     .innerJoin(batch, eq(subject.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id))

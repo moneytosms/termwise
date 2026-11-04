@@ -229,7 +229,7 @@ export async function saveSlot(fd: FormData): Promise<Result> {
     const dayRows = await tx.select().from(timetableSlot)
       .where(and(eq(timetableSlot.batchId, batchId), eq(timetableSlot.dayOfWeek, dayOfWeek)));
     const cell = dayRows.find((s) => s.period === period);
-    const clash = dayRows.find((s) => s !== cell && s.startTime < endTime && startTime < s.endTime);
+    const clash = dayRows.find((s) => s !== cell && ((s.startTime < endTime && startTime < s.endTime) || (s.period < period + periodCount && period < s.period + s.periodCount)));
     if (clash) return `Overlaps the slot at period ${clash.period} on this day.`;
     if (cell) {
       const [row] = await tx.update(timetableSlot).set(values).where(eq(timetableSlot.id, cell.id)).returning();

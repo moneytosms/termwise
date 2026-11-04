@@ -34,7 +34,7 @@ async function doFlush(): Promise<FlushResult> {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({
         clientNow: new Date().toISOString(),
-        items: rows.slice(0, 100).map((r) => ({ sessionId: r.sessionId, batchId: r.batchId, subjectId: r.subjectId, date: r.date, period: r.period, periodCount: r.periodCount, entries: r.entries, editedAt: r.editedAt })),
+        items: rows.slice(0, 100).map((r) => ({ sessionId: r.sessionId, batchId: r.batchId, subjectId: r.subjectId, date: r.date, period: r.period, periodCount: r.periodCount, entries: r.entries, editedAt: r.editedAt, markedBy: r.markedBy })),
       }),
     });
   } catch { return "offline"; }

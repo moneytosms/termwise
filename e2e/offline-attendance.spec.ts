@@ -58,14 +58,17 @@ test("a second teacher's sheet for a saved class goes to the conflict queue", as
   const cls = classes[classes.length - 1];
   const item = {
     sessionId: crypto.randomUUID(), batchId: cls.batchId, subjectId: cls.subjectId, date: cls.date, period: cls.period, periodCount: cls.periodCount,
-    entries: cls.roster.map((s: { id: number }) => ({ studentId: s.id, status: "present" })), editedAt: new Date().toISOString(),
+    entries: cls.roster.map((s: { id: number }) => ({ studentId: s.id, status: "present" })), editedAt: new Date().toISOString(), markedBy: cls.staffId,
   };
   const send = (req: typeof page.request, body = item) => req.post("/api/sync", { data: { clientNow: new Date().toISOString(), items: [body] } });
   expect((await (await send(page.request)).json()).results[0].outcome).toMatch(/saved|stale/);
 
   const other = await playwright.request.newContext({ baseURL: "http://localhost:3100" });
   await other.post("/api/auth/sign-in/email", { data: { email: "faculty2@termwise.demo", password: "termwise-demo" }, headers: { origin: "http://localhost:3100" } });
-  const r = await send(other, { ...item, sessionId: crypto.randomUUID() });
+  const otherId = (await (await other.get("/api/today")).json()).staffId;
+  const borrowed = await send(other, { ...item, sessionId: crypto.randomUUID() });
+  expect((await borrowed.json()).results[0].outcome).toBe("rejected"); // the first teacher's sheet on the second teacher's sign-in
+  const r = await send(other, { ...item, sessionId: crypto.randomUUID(), markedBy: otherId });
   expect((await r.json()).results[0].outcome).toBe("conflict");
   await other.dispose();
 });

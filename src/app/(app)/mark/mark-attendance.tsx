@@ -79,7 +79,7 @@ export function MarkAttendance() {
       sessionId: cls.sessionId ?? existing?.sessionId ?? crypto.randomUUID(),
       batchId: cls.batchId, subjectId: cls.subjectId, date: cls.date, period: cls.period, periodCount: cls.periodCount,
       entries: cls.roster.map((s) => ({ studentId: s.id, status: status(s.id) })),
-      editedAt: new Date().toISOString(),
+      editedAt: new Date().toISOString(), markedBy: cls.staffId,
     });
     void requestBackgroundSync();
     void flushOutbox();

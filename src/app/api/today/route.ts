@@ -25,9 +25,9 @@ export async function GET() {
   const sessions = await db.select({ id: attendanceSession.id, batchId: attendanceSession.batchId, subjectId: attendanceSession.subjectId, period: attendanceSession.period })
     .from(attendanceSession).where(eq(attendanceSession.date, date));
   return NextResponse.json({
-    date, serverNow: new Date().toISOString(),
+    date, serverNow: new Date().toISOString(), staffId: v.staffId,
     classes: slots.map((s) => ({
-      ...s, date, key: `${s.batchId}:${s.subjectId}:${date}:${s.period}`,
+      ...s, date, staffId: v.staffId, key: `${s.batchId}:${s.subjectId}:${date}:${s.period}`,
       sessionId: sessions.find((x) => x.batchId === s.batchId && x.subjectId === s.subjectId && x.period === s.period)?.id ?? null,
       roster: students.filter((x) => x.batchId === s.batchId).map(({ id, rollNo, name }) => ({ id, rollNo, name })),
     })),

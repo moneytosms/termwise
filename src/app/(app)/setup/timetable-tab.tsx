@@ -33,6 +33,8 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
   const [editing, setEditing] = useState<Cell | null>(null);
   const [busy, start] = useTransition();
   const byCell = new Map(slots.map((s) => [`${s.dayOfWeek}-${s.period}`, s]));
+  // Periods a lab spans after its first one belong to that lab's cell.
+  const covered = new Set(slots.flatMap((s) => Array.from({ length: s.periodCount - 1 }, (_, i) => `${s.dayOfWeek}-${s.period + i + 1}`)));
   const slot = editing?.slot;
 
   function remove() {
@@ -67,12 +69,13 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
               <tr key={p} className="border-b last:border-0">
                 <th scope="row" className="p-2 text-left font-mono font-medium">{p}</th>
                 {DAYS.map((d) => {
+                  if (covered.has(`${d.n}-${p}`)) return null;
                   const s = byCell.get(`${d.n}-${p}`);
                   return (
-                    <td key={d.n} className="p-1 align-top">
+                    <td key={d.n} rowSpan={s?.periodCount ?? 1} className="p-1 align-top">
                       <button type="button" aria-label={`${d.long}, period ${p}${s ? `: ${s.subject ?? s.label}` : ""}`}
                         onClick={() => setEditing({ dayOfWeek: d.n, period: p, slot: s })}
-                        className="flex min-h-14 w-full min-w-24 flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors hover:bg-muted">
+                        className="flex h-full min-h-14 w-full min-w-24 flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors hover:bg-muted">
                         {s ? (
                           <>
                             <span className="font-medium">{s.subject ?? s.label}</span>

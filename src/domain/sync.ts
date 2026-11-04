@@ -10,6 +10,7 @@ export type OutboxItem = {
   periodCount: number;
   entries: { studentId: number; status: AttendanceStatus }[];
   editedAt: string;
+  markedBy: number; // staff id of the teacher who marked it
 };
 
 export type SyncOutcome = "saved" | "stale" | "conflict";

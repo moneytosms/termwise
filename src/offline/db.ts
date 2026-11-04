@@ -15,6 +15,7 @@ export type TodayClass = {
   startTime: string;
   endTime: string;
   sessionId: string | null; // set when already saved on the server
+  staffId: number; // teacher this copy was downloaded for
   roster: RosterStudent[];
 };
 export type OutboxRow = OutboxItem & { key: string; state: "pending" | "failed" | "saved" | "conflict"; error?: string };
