@@ -20,7 +20,7 @@ export function evaluateRisk(s: RiskInput, r: RiskRules): RiskResult {
   const short = s.subjectPercents.filter((x) => x.percent !== null && x.percent < x.cutoff);
   if (short.length) {
     codes.push("attendance_shortage");
-    parts.push(`Below cutoff in ${short.map((x) => `${x.subject} (${x.percent}%)`).join(", ")}`);
+    parts.push(`Attendance below cutoff in ${short.map((x) => `${x.subject} (${x.percent}%)`).join(", ")}`);
   }
   if (s.overallNow !== null && s.overallFourWeeksAgo !== null && s.overallFourWeeksAgo - s.overallNow >= r.dropPoints) {
     codes.push("attendance_drop");

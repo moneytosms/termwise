@@ -58,6 +58,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
                         </div>
                       )}
                       {f.taskStatus && f.taskStatus !== "open" && <p className="mt-1 text-xs text-muted-foreground">Mentor task {f.taskStatus}</p>}
+                      {f.taskStatus === "open" && isAdmin && <p className="mt-1 text-xs text-muted-foreground">Mentor task open with {d.student.mentor ?? "no mentor"}</p>}
                     </div>
                   ))}
                 </>
