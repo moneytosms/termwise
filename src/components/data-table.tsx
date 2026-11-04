@@ -25,7 +25,9 @@ function toCsv<T>(rows: T[], columns: { header: string; value: (r: T) => unknown
  * paging, row selection with bulk actions, CSV export and an empty state.
  * Columns need `accessorKey` or `accessorFn` plus a string `header` to be exported and hidden.
  */
-export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filters = [], initialFilters = {}, onRowClick, bulkActions, exportName, emptyTitle, emptyAction, pageSize = 20 }: {
+const NO_FILTERS: never[] = [];
+
+export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filters = NO_FILTERS, initialFilters = {}, onRowClick, bulkActions, exportName, emptyTitle, emptyAction, pageSize = 20 }: {
   data: T[];
   columns: ColumnDef<T, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   searchPlaceholder?: string;
@@ -61,6 +63,9 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
     onGlobalFilterChange: setSearch, onSortingChange: setSorting, onColumnVisibilityChange: setVisibility, onRowSelectionChange: setSelection,
     getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize } },
+    // Callers pass inline columns, so data and columns change identity on every parent render.
+    // The automatic page reset would then set state during render forever; reset on search and filter changes instead.
+    autoResetPageIndex: false,
   });
 
   function exportCsv() {
@@ -83,11 +88,11 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-48 flex-1 md:max-w-xs">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input aria-label={searchPlaceholder} placeholder={searchPlaceholder} className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input aria-label={searchPlaceholder} placeholder={searchPlaceholder} className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }} />
         </div>
         {filters.map((f) => (
           <select key={f.label} aria-label={f.label} value={picked[f.label] ?? ""}
-            onChange={(e) => setPicked((p) => ({ ...p, [f.label]: e.target.value }))}
+            onChange={(e) => { setPicked((p) => ({ ...p, [f.label]: e.target.value })); table.setPageIndex(0); }}
             className="h-9 rounded-md border bg-card px-2 text-sm">
             <option value="">{f.label}: all</option>
             {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
