@@ -20,7 +20,7 @@ export function Today() {
     <section>
       <SyncLine s={sync} />
       <SectionHeading title="Today" count={classes?.length} />
-      {classes === undefined ? <Skeleton className="h-16 w-full" /> : classes.length === 0 ? (
+      {classes === undefined || (classes.length === 0 && sync.online && !sync.refreshed) ? <Skeleton className="h-16 w-full" /> : classes.length === 0 ? (
         <EmptyState icon={CalendarDays} title="No classes today." />
       ) : (
         <ul className="space-y-2">

@@ -54,7 +54,7 @@ export function MarkAttendance() {
     return q ? cls.roster.filter((s) => s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q)) : cls.roster;
   }, [cls, find]);
 
-  if (cls === undefined) return <div className="space-y-2" aria-busy="true" aria-label="Loading">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
+  if (cls === undefined || (cls === null && sync.online && !sync.refreshed)) return <div className="space-y-2" aria-busy="true" aria-label="Loading">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
   if (cls === null) {
     return (
       <EmptyState title="This class isn't on this phone. Connect once to download today's classes."

@@ -45,7 +45,7 @@ export function FacultyHome({ name }: { name: string }) {
         <div className="mt-2"><SyncLine s={sync} /></div>
       </div>
 
-      {classes === undefined || now === null ? (
+      {classes === undefined || now === null || (classes.length === 0 && sync.online && !sync.refreshed) ? (
         <div className="space-y-3" aria-busy="true" aria-label="Loading"><Skeleton className="h-12 w-full" /><Skeleton className="h-44 w-full" /></div>
       ) : classes.length === 0 ? (
         <EmptyState icon={CalendarDays} title={sync.online ? "No classes today." : "Today's classes aren't on this phone yet. Connect once to download them."}

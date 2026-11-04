@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { offlineDb } from "./db";
 import { flushOutbox, refreshToday } from "./sync";
 
-export type SyncState = { pending: number; failed: number; conflict: number; online: boolean; signedOut: boolean; retry: () => void };
+export type SyncState = { pending: number; failed: number; conflict: number; online: boolean; signedOut: boolean; refreshed: boolean; retry: () => void };
 
 function subscribeOnline(cb: () => void) {
   window.addEventListener("online", cb);
@@ -17,6 +17,7 @@ function subscribeOnline(cb: () => void) {
 export function useSync(): SyncState {
   const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
   const [signedOut, setSignedOut] = useState(false);
+  const [refreshed, setRefreshed] = useState(false); // first download attempt finished
   const counts = useLiveQuery(async () => {
     const rows = await offlineDb.outbox.toArray();
     return {
@@ -30,6 +31,7 @@ export function useSync(): SyncState {
     const flush = await flushOutbox();
     const today = await refreshToday();
     setSignedOut(flush === "signed_out" || today === "signed_out");
+    setRefreshed(true);
   }, []);
 
   useEffect(() => {
@@ -40,5 +42,5 @@ export function useSync(): SyncState {
     return () => { window.removeEventListener("online", on); clearTimeout(first); clearInterval(timer); };
   }, [retry]);
 
-  return { ...counts, online, signedOut, retry };
+  return { ...counts, online, signedOut, refreshed, retry };
 }
