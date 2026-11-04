@@ -12,5 +12,4 @@ Timetable_Sem_5.jpg
 /playwright-report
 next-env.d.ts
 *.tsbuildinfo
-/public/sw*
 drizzle/meta/_*
