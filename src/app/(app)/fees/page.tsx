@@ -1,5 +1,8 @@
 import { AlertTriangle, IndianRupee, Users, Wallet } from "lucide-react";
 import { PageHeader, StatCard } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { istDate } from "@/domain/attendance";
 import { requireAdmin } from "@/server/access";
 import { rupees } from "@/lib/utils";
 import { FeePanel } from "./fee-panel";
@@ -19,7 +22,13 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
   const withDues = rows.filter((r) => r.duePaise > 0).length;
   return (
     <>
-      <PageHeader title="Fees" description={`${rows.length} students on this campus.`} />
+      <PageHeader title="Fees" description={`${rows.length} students on this campus.`} actions={
+        <form action="/fees/tally" className="flex flex-wrap items-end gap-2">
+          <Input type="date" name="from" aria-label="Tally export from" defaultValue={`${istDate().slice(0, 7)}-01`} className="w-auto" />
+          <Input type="date" name="to" aria-label="Tally export to" defaultValue={istDate()} className="w-auto" />
+          <Button type="submit" variant="outline">Download Tally XML</Button>
+        </form>
+      } />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total due" value={rupees(totalDue)} icon={IndianRupee} />
         <StatCard label="Overdue" value={rupees(overdue)} icon={AlertTriangle} tone="absent" href="/fees?status=Overdue" />
