@@ -1,0 +1,114 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { toast } from "sonner";
+import { SectionHeading, StatusPill } from "@/components/page";
+import { EmptyState } from "@/components/states";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { istDate } from "@/domain/attendance";
+import { instalmentDue } from "@/domain/fees";
+import { rupees } from "@/lib/utils";
+import { recordPayment } from "./actions";
+import type { FeeDetail } from "./queries";
+
+export function FeePanel({ detail }: { detail: FeeDetail | null }) {
+  const router = useRouter();
+  const close = () => router.push("/fees", { scroll: false });
+  const today = istDate();
+
+  return (
+    <Sheet open onOpenChange={(o) => { if (!o) close(); }}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        {!detail ? (
+          <>
+            <SheetHeader><SheetTitle>Student</SheetTitle><SheetDescription className="sr-only">Not available</SheetDescription></SheetHeader>
+            <div className="px-4"><EmptyState title="This student isn't available to you." /></div>
+          </>
+        ) : (
+          <>
+            <SheetHeader>
+              <SheetTitle>{detail.student.name}</SheetTitle>
+              <SheetDescription><span className="font-mono">{detail.student.rollNo}</span> · {detail.student.batch}</SheetDescription>
+            </SheetHeader>
+            <div className="space-y-2 px-4 pb-8">
+              <SectionHeading title="Instalments" count={detail.instalments.length} />
+              {detail.instalments.length === 0 ? <EmptyState title="No fee records yet." /> : (
+                <div className="space-y-3">
+                  {detail.instalments.map((i) => {
+                    const due = instalmentDue(i);
+                    return (
+                      <div key={i.id} className="rounded-xl border p-3 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">{i.label}</span>
+                          {due === 0 ? <StatusPill tone="ok">Paid</StatusPill> : i.dueDate < today ? <StatusPill tone="absent">Overdue</StatusPill> : <StatusPill tone="late">Due</StatusPill>}
+                        </div>
+                        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                          <dt className="text-muted-foreground">Amount</dt><dd className="text-right font-mono">{rupees(i.amountPaise)}</dd>
+                          <dt className="text-muted-foreground">Scholarship</dt><dd className="text-right font-mono">{rupees(i.scholarshipPaise)}</dd>
+                          <dt className="text-muted-foreground">Paid</dt><dd className="text-right font-mono">{rupees(i.paidPaise)}</dd>
+                          <dt className="text-muted-foreground">Due</dt><dd className="text-right font-mono">{rupees(due)}</dd>
+                          <dt className="text-muted-foreground">Due date</dt><dd className="text-right font-mono">{i.dueDate}</dd>
+                        </dl>
+                        {due > 0 && <PaymentForm instalmentId={i.id} duePaise={due} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <SectionHeading title="Payments" count={detail.payments.length} />
+              {detail.payments.length === 0 ? <p className="text-sm text-muted-foreground">No payments yet.</p> : (
+                <ul className="space-y-2 text-sm">
+                  {detail.payments.map((p) => (
+                    <li key={p.id} className="rounded-xl border p-3">
+                      <div className="flex justify-between gap-2"><span className="font-mono">{rupees(p.amountPaise)}</span><span className="text-muted-foreground">{p.label}</span></div>
+                      <p className="text-muted-foreground">
+                        {p.mode === "bank_counter" ? "Bank counter" : p.mode} · Ref <span className="font-mono">{p.reference}</span> · {p.paidAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function PaymentForm({ instalmentId, duePaise }: { instalmentId: number; duePaise: number }) {
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    start(async () => {
+      const r = await recordPayment({ instalmentId, rupees: Number(fd.get("rupees")), reference: String(fd.get("reference")) });
+      if (r.error) { toast.error(r.error); return; }
+      toast.success("Payment recorded.");
+      form.reset();
+      router.refresh();
+    });
+  };
+  return (
+    <form onSubmit={submit} className="mt-3 space-y-2 border-t pt-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label htmlFor={`amount-${instalmentId}`}>Amount (₹)</Label>
+          <Input id={`amount-${instalmentId}`} name="rupees" type="number" inputMode="decimal" step="0.01" min="0.01" max={duePaise / 100} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`ref-${instalmentId}`}>Bank reference</Label>
+          <Input id={`ref-${instalmentId}`} name="reference" maxLength={40} required />
+        </div>
+      </div>
+      <Button type="submit" size="sm" disabled={busy}>Record payment</Button>
+    </form>
+  );
+}

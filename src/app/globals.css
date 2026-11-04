@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #fafcfc;
+  --foreground: #12262b;
+  --card: #ffffff;
+  --card-foreground: #12262b;
+  --popover: #ffffff;
+  --popover-foreground: #12262b;
+  --primary: #0e5a66;
+  --primary-foreground: #ffffff;
+  --secondary: #edf3f4;
+  --secondary-foreground: #12262b;
+  --muted: #edf3f4;
+  --muted-foreground: #566a70;
+  --accent: #d3e6e9;
+  --accent-foreground: #12262b;
+  --destructive: #b3261e;
+  --border: #e0e8ea;
+  --input: #e0e8ea;
+  --ring: #0e5a66;
+  --radius: 0.75rem;
+  --absent: #b3261e;
+  --absent-soft: #fbe9e7;
+  --late: #8a5a00;
+  --late-soft: #fdf1d6;
+  --ok: #1d6b45;
+  --ok-soft: #e3f3ea;
+}
+.dark {
+  --background: #0f1a1d;
+  --foreground: #e4eef0;
+  --card: #162427;
+  --card-foreground: #e4eef0;
+  --popover: #162427;
+  --popover-foreground: #e4eef0;
+  --primary: #5cc0cf;
+  --primary-foreground: #06262b;
+  --secondary: #1d2e32;
+  --secondary-foreground: #e4eef0;
+  --muted: #1d2e32;
+  --muted-foreground: #93a8ad;
+  --accent: #1d4148;
+  --accent-foreground: #e4eef0;
+  --destructive: #f2877e;
+  --border: #263a3f;
+  --input: #263a3f;
+  --ring: #5cc0cf;
+  --absent: #f2877e;
+  --absent-soft: #3a1f1d;
+  --late: #e8b95a;
+  --late-soft: #3a2d12;
+  --ok: #6fd0a0;
+  --ok-soft: #173327;
+}
+
+@theme inline {
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-plex-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-absent: var(--absent);
+  --color-absent-soft: var(--absent-soft);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground antialiased; }
+  button:not(:disabled), [role="button"] { cursor: pointer; }
+}

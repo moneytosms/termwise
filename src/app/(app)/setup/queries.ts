@@ -1,0 +1,71 @@
+import { and, eq, sql } from "drizzle-orm";
+import { db } from "@/server/db";
+import { batch, calendarDay, campus, department, programme, staff, student, subject, timetableSlot } from "@/server/schema";
+
+export const listDepartments = (campusId: number) =>
+  db.select({ id: department.id, name: department.name }).from(department)
+    .where(eq(department.campusId, campusId)).orderBy(department.name);
+
+export const listProgrammes = (campusId: number) =>
+  db.select({
+    id: programme.id, code: programme.code, name: programme.name, departmentId: programme.departmentId,
+    department: department.name, cutoff: programme.attendanceCutoff,
+  }).from(programme)
+    .leftJoin(department, eq(programme.departmentId, department.id))
+    .where(eq(programme.campusId, campusId)).orderBy(programme.code);
+
+export const listBatches = (campusId: number) =>
+  db.select({
+    id: batch.id, code: batch.code, programmeId: batch.programmeId, programme: programme.name,
+    admissionYear: batch.admissionYear, year: batch.year, semester: batch.semester,
+    students: sql<number>`(select count(*) from ${student} where ${student.batchId} = ${batch.id})`.mapWith(Number),
+  }).from(batch)
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(eq(programme.campusId, campusId)).orderBy(batch.code);
+
+export const listSubjects = (campusId: number) =>
+  db.select({
+    id: subject.id, batchId: subject.batchId, batch: batch.code, code: subject.code, name: subject.name,
+    facultyId: subject.facultyId, faculty: staff.name, marksStatus: subject.marksStatus,
+  }).from(subject)
+    .innerJoin(batch, eq(subject.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .leftJoin(staff, eq(subject.facultyId, staff.id))
+    .where(eq(programme.campusId, campusId)).orderBy(batch.code, subject.code);
+
+/** Staff with role faculty on this campus, for subject assignment. */
+export const listFaculty = (campusId: number) =>
+  db.select({ id: staff.id, name: staff.name }).from(staff)
+    .where(and(eq(staff.campusId, campusId), eq(staff.role, "faculty"))).orderBy(staff.name);
+
+export const listStaff = (campusId: number) =>
+  db.select({
+    id: staff.id, name: staff.name, department: department.name, role: staff.role,
+    hasAccount: sql<boolean>`${staff.userId} is not null`,
+    subjects: sql<number>`(select count(*) from ${subject} where ${subject.facultyId} = ${staff.id})`.mapWith(Number),
+    mentees: sql<number>`(select count(*) from ${student} where ${student.mentorId} = ${staff.id})`.mapWith(Number),
+  }).from(staff)
+    .leftJoin(department, eq(staff.departmentId, department.id))
+    .where(eq(staff.campusId, campusId)).orderBy(staff.name);
+
+export const listCalendar = (campusId: number) =>
+  db.select().from(calendarDay).where(eq(calendarDay.campusId, campusId)).orderBy(calendarDay.date);
+
+/** Slots of one batch, which the caller has already checked is on this campus. */
+export const listSlots = (campusId: number, batchId: number) =>
+  db.select({
+    id: timetableSlot.id, dayOfWeek: timetableSlot.dayOfWeek, period: timetableSlot.period,
+    periodCount: timetableSlot.periodCount, startTime: timetableSlot.startTime, endTime: timetableSlot.endTime,
+    subjectId: timetableSlot.subjectId, subject: subject.name, label: timetableSlot.label,
+  }).from(timetableSlot)
+    .innerJoin(batch, eq(timetableSlot.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .leftJoin(subject, eq(timetableSlot.subjectId, subject.id))
+    .where(and(eq(timetableSlot.batchId, batchId), eq(programme.campusId, campusId)));
+
+export async function getRules(campusId: number) {
+  const [row] = await db.select({
+    riskDropPoints: campus.riskDropPoints, riskMarksPercent: campus.riskMarksPercent, riskMinSessions: campus.riskMinSessions,
+  }).from(campus).where(eq(campus.id, campusId));
+  return row;
+}
