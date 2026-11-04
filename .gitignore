@@ -1,0 +1,16 @@
+.remember/
+.scratch/
+.env*
+!.env.example
+node_modules/
+.next/
+Timetable_Sem_5.jpg
+
+# build
+/coverage
+/test-results
+/playwright-report
+next-env.d.ts
+*.tsbuildinfo
+/public/sw*
+drizzle/meta/_*
