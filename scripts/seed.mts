@@ -133,11 +133,14 @@ async function history(slots: typeof cseSlots, batchId: number, subs: typeof cse
   }
   await db.insert(t.attendanceSession).values(sessions);
 
+  const bySubject = Map.groupBy(sessions.map((x, i) => ({ x, i })), ({ x }) => x.subjectId);
+  const share = (i: number) => { const list = bySubject.get(sessions[i].subjectId)!; return (list.findIndex((e) => e.i === i) + 0.5) / list.length; };
   const entries: (typeof t.attendanceEntry.$inferInsert)[] = [];
   for (const [si, st] of students.entries()) {
-    const typical = si % 9 === 0 ? 0.32 : si % 5 === 0 ? 0.2 : 0.09; // a realistic share fall short
+    const typical = si % 12 === 0 ? 0.32 : si % 7 === 0 ? 0.14 : 0.07; // a realistic share fall short
     let absentLeft = Math.round(targetPeriods * (exact.has(st.id) ? (100 - exact.get(st.id)!) / 100 : typical));
-    const order = sessions.map((_, i) => i).sort(() => rnd() - 0.5);
+    // Pinned students get absences spread evenly across subjects, so no subject dips far from their overall figure.
+    const order = exact.has(st.id) ? sessions.map((_, i) => i).sort((a, b) => share(a) - share(b)) : sessions.map((_, i) => i).sort(() => rnd() - 0.5);
     const status = new Map<number, "present" | "absent" | "late">();
     for (const i of order) {
       if (absentLeft >= sessions[i].periodCount!) { status.set(i, "absent"); absentLeft -= sessions[i].periodCount!; }
@@ -166,7 +169,7 @@ async function marks(subs: typeof cseSubs, students: typeof cseStudents, pinned:
     if (status !== "draft") await db.update(t.subject).set({ marksStatus: status }).where(eqId(sub.id));
     const rows: (typeof t.mark.$inferInsert)[] = [];
     for (const [si, st] of students.entries()) {
-      const total = pinned.get(st.id) ?? (si % 11 === 0 ? 14 + Math.floor(rnd() * 5) : 20 + Math.floor(rnd() * 17));
+      const total = pinned.get(st.id) ?? (si % 17 === 0 ? 14 + Math.floor(rnd() * 5) : 20 + Math.floor(rnd() * 17));
       const split = SPLIT(total);
       comps.forEach((c, ci) => {
         // A draft subject has its last two components still to enter.
