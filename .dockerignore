@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.scratch
+.remember
+.vitest
+test-results
+playwright-report
+.env*
