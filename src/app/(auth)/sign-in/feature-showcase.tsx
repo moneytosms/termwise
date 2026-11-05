@@ -5,7 +5,7 @@ import { RegisterSheet } from "@/components/register-sheet";
 import { StatusPill } from "@/components/page";
 import { cn } from "@/lib/utils";
 
-const INTERVAL_MS = 4500;
+const INTERVAL_MS = 3500;
 const QUERY = "(prefers-reduced-motion: reduce)";
 
 function subscribeReduced(cb: () => void) {
@@ -122,7 +122,7 @@ export function FeatureShowcase() {
       <div className="grid">
         {SLIDES.map((s, i) => (
           <section key={s.title} inert={i !== active} aria-label={`${i + 1} of ${SLIDES.length}`}
-            className={cn("col-start-1 row-start-1 space-y-8 transition-opacity duration-500", i === active ? "opacity-100" : "opacity-0")}>
+            className={cn("col-start-1 row-start-1 space-y-8 transition-opacity duration-300", i === active ? "opacity-100" : "opacity-0")}>
             <div className="max-w-md">
               <h2 className="text-[2rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">{s.title}</h2>
               <p className="mt-3 text-base text-muted-foreground">{s.copy}</p>
@@ -134,8 +134,8 @@ export function FeatureShowcase() {
       <div role="group" aria-label="Choose a feature" className="flex items-center gap-1">
         {SLIDES.map((s, i) => (
           <button key={s.title} type="button" aria-label={`Show ${i + 1}: ${s.title}`} aria-current={i === active} onClick={() => setActive(i)}
-            className="flex h-6 w-6 items-center justify-center">
-            <span className={cn("h-1.5 rounded-full transition-all duration-300", i === active ? "w-6 bg-foreground" : "w-1.5 bg-foreground/25")} />
+            className="flex h-8 min-w-8 items-center justify-center">
+            <span className={cn("h-2 rounded-full transition-all duration-300", i === active ? "w-8 bg-foreground" : "w-2 bg-foreground/30")} />
           </button>
         ))}
       </div>

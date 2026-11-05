@@ -40,15 +40,14 @@ export default function SignInPage() {
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(28rem,36rem)]">
-      <section className="relative hidden flex-col justify-between overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
-        <p className="flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight"><Mark />Termwise</p>
+      <section className="relative hidden flex-col justify-center gap-12 overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
         <FeatureShowcase />
         <p className="text-sm text-muted-foreground">One student record, from admission to graduation.</p>
       </section>
 
       <section className="flex flex-col justify-center px-4 py-10 sm:px-10">
         <div className="mx-auto w-full max-w-sm">
-          <p className="mb-10 flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight lg:hidden"><Mark />Termwise</p>
+          <p className="mb-10 flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight"><Mark />Termwise</p>
           <h1 className="text-2xl leading-tight font-semibold tracking-[-0.02em]">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">Use your college account.</p>
           <form onSubmit={submit} className="mt-8 space-y-4">
