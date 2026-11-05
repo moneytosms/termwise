@@ -13,7 +13,6 @@ test("office admin corrects a past session with a reason, and the change is audi
 
   const dialog = page.getByRole("dialog");
   const select = dialog.getByRole("combobox", { name: /^Status for/ }).first();
-  const name = (await select.getAttribute("aria-label"))!.replace("Status for ", "");
   const before = (await select.textContent())!.trim();
   const after = before === "Absent" ? "Present" : "Absent";
   await select.click();
@@ -25,7 +24,8 @@ test("office admin corrects a past session with a reason, and the change is audi
   await expect(page.getByText("Correction saved.")).toBeVisible();
 
   await page.goto(sessionUrl);
-  await expect(page.getByRole("dialog").getByRole("combobox", { name: `Status for ${name}` })).toHaveText(after);
+  // Same first row: two students can share a name.
+  await expect(page.getByRole("dialog").getByRole("combobox", { name: /^Status for/ }).first()).toHaveText(after);
 
   await page.goto("/audit");
   await page.getByLabel("Search changes").fill(reason);

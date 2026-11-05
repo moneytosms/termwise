@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signIn } from "./helpers";
 
 const ROLL = "ENG-24-CSE-0115"; // not one of the brief's sample students, whose figures other tests check
-const NAME = "Arpita Samal";
+const NAME = "Chinmay Patnaik"; // the seed is deterministic
 const money = (s: string) => Number(s.replace(/\D/g, ""));
 
 async function openFees(page: import("@playwright/test").Page) {

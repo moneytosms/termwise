@@ -19,7 +19,8 @@ const pick = <A,>(xs: A[]) => xs[Math.floor(rnd() * xs.length)];
 
 const FIRST = ["Aarav", "Aditi", "Amrita", "Anil", "Arpita", "Bikash", "Chinmay", "Debasish", "Deepika", "Gyana", "Ipsita", "Jyoti", "Kajal", "Lipsa", "Manas", "Monalisa", "Nihar", "Pallavi", "Pradeep", "Priya", "Rakesh", "Rashmi", "Rohan", "Sagar", "Sasmita", "Satya", "Smruti", "Soumya", "Sushant", "Tapas"];
 const LAST = ["Behera", "Biswal", "Das", "Dash", "Jena", "Mishra", "Mohapatra", "Nayak", "Panda", "Patnaik", "Pradhan", "Rath", "Rout", "Sahoo", "Samal", "Sethi", "Swain", "Tripathy"];
-const personName = () => `${pick(FIRST)} ${pick(LAST)}`;
+// A student and their guardian share a surname.
+const family = () => { const last = pick(LAST); return { name: `${pick(FIRST)} ${last}`, guardianName: `${pick(FIRST)} ${last}` }; };
 
 async function person(campusId: number, departmentId: number | null, name: string, email: string, role: "faculty" | "office_admin") {
   const { user } = await auth.api.signUpEmail({ body: { name, email, password: PASSWORD } });
@@ -104,14 +105,14 @@ const cseStudents = await db.insert(t.student).values([
   ...Array.from({ length: 119 }, (_, i) => {
     const num = String(i < 411 ? i + 1 : i + 2).padStart(4, "0");
     return {
-      rollNo: `ENG-24-CSE-${num}`, name: personName(), batchId: cseB.id, mentorId: i % 2 ? faculty.id : faculty2.id,
-      birthDate: dob(2006), guardianName: personName(), guardianPhone: `+91 90000 0${num}`,
+      rollNo: `ENG-24-CSE-${num}`, ...family(), batchId: cseB.id, mentorId: i % 2 ? faculty.id : faculty2.id,
+      birthDate: dob(2006), guardianPhone: `+91 90000 0${num}`,
     };
   }),
 ]).returning();
 const meStudents = await db.insert(t.student).values([
   { rollNo: "ENG-24-ME-0177", name: "Ankit Panda", batchId: meB.id, mentorId: meFaculty.id, birthDate: "2006-07-02", guardianName: "Sarat Panda", guardianPhone: "+91 90000 00177" },
-  ...Array.from({ length: 9 }, (_, i) => ({ rollNo: `ENG-24-ME-${String(i + 1).padStart(4, "0")}`, name: personName(), batchId: meB.id, mentorId: meFaculty.id, birthDate: dob(2006), guardianName: personName(), guardianPhone: `+91 90000 1000${i}` })),
+  ...Array.from({ length: 9 }, (_, i) => ({ rollNo: `ENG-24-ME-${String(i + 1).padStart(4, "0")}`, ...family(), batchId: meB.id, mentorId: meFaculty.id, birthDate: dob(2006), guardianPhone: `+91 90000 1000${i}` })),
 ]).returning();
 const mbaStudents = await db.insert(t.student).values([
   { rollNo: "MBA-25-0093", name: "Farheen Ali", batchId: mbaB.id, mentorId: mbaFaculty.id, birthDate: "2003-11-21", guardianName: "Imran Ali", guardianPhone: "+91 90000 00093" },

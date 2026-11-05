@@ -13,8 +13,8 @@ const client = createAuthClient();
 const DEMO = [
   { label: "Faculty", email: "faculty@termwise.demo" },
   { label: "Office admin", email: "admin@termwise.demo" },
-  { label: "Student", email: "student@termwise.demo" },
-  { label: "Parent", email: "parent@termwise.demo" },
+  { label: "Student", email: "ankit.panda@termwise.demo" },
+  { label: "Parent", email: "sarat.panda@termwise.demo" },
 ];
 
 export default function SignInPage() {
@@ -62,7 +62,7 @@ export default function SignInPage() {
           </form>
           <div className="mt-6 rounded-xl bg-card p-4 text-sm shadow-sheet">
             <p className="font-medium">Demo accounts</p>
-            <p className="mt-0.5 text-muted-foreground">Password: termwise-demo</p>
+            <p className="mt-0.5 text-muted-foreground">Password: termwise-demo. Every student and parent has one too, as firstname.lastname@termwise.demo.</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {DEMO.map((d) => (
                 <Button key={d.email} type="button" variant="outline" className="h-10" onClick={() => { setEmail(d.email); setPassword("termwise-demo"); }}>

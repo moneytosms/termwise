@@ -46,7 +46,7 @@ describe.skipIf(!owner || !assistant)("assistant views scope by role in the data
   });
 
   it("a student sees only their own rows and no flags", async () => {
-    const { rows: [me] } = await admin.query(`SELECT s.id, p.campus_id FROM student s JOIN "user" u ON u.id = s.user_id JOIN batch b ON b.id = s.batch_id JOIN programme p ON p.id = b.programme_id WHERE u.email = 'student@termwise.demo'`);
+    const { rows: [me] } = await admin.query(`SELECT s.id, p.campus_id FROM student s JOIN "user" u ON u.id = s.user_id JOIN batch b ON b.id = s.batch_id JOIN programme p ON p.id = b.programme_id WHERE s.roll_no = 'ENG-24-ME-0177'`);
     for (const view of ["v_students", "v_subject_attendance", "v_marks", "v_fee_dues"]) {
       const rows = await asViewer(`SELECT DISTINCT student_id FROM ${view}`, me.campus_id, "student", 0, me.id);
       expect(rows.map((r) => r.student_id), view).toEqual([me.id]);

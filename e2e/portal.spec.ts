@@ -8,7 +8,7 @@ const ok = async (page: Page, path: string, heading: string | RegExp) => {
 };
 
 test("student screens load and staff pages stay closed", async ({ page }) => {
-  await signIn(page, "student@termwise.demo");
+  await signIn(page, "ankit.panda@termwise.demo");
   await expect(page).toHaveURL(/\/my$/);
   for (const [path, heading] of [
     ["/my", /Ankit/], ["/my/timetable", "Timetable"], ["/my/attendance", "Attendance"], ["/my/marks", "Internal marks"],
@@ -21,7 +21,7 @@ test("student screens load and staff pages stay closed", async ({ page }) => {
 });
 
 test("parent switches child and sees each child's data", async ({ page }) => {
-  await signIn(page, "parent@termwise.demo");
+  await signIn(page, "sarat.panda@termwise.demo");
   await ok(page, "/my/messages", "Messages");
   await ok(page, "/my/profile", "Profile");
   await expect(page.getByText("ENG-24-ME-0177").first()).toBeVisible();
@@ -38,7 +38,7 @@ test("leave goes student → parent → mentor", async ({ browser }) => {
   const card = (page: Page) => page.locator("li").filter({ hasText: reason }).filter({ has: page.getByRole("button", { name: "Approve" }) });
 
   const student = await browser.newPage();
-  await signIn(student, "student@termwise.demo");
+  await signIn(student, "ankit.panda@termwise.demo");
   await student.goto("/my/leave");
   await student.getByRole("button", { name: "Apply for leave" }).click();
   await student.getByRole("textbox", { name: "From" }).fill(day(10));
@@ -48,7 +48,7 @@ test("leave goes student → parent → mentor", async ({ browser }) => {
   await expect(student.getByText(reason)).toBeVisible();
 
   const parent = await browser.newPage();
-  await signIn(parent, "parent@termwise.demo");
+  await signIn(parent, "sarat.panda@termwise.demo");
   await parent.goto("/my/leave");
   await card(parent).getByRole("button", { name: "Approve" }).click();
   await expect(card(parent)).toHaveCount(0);
