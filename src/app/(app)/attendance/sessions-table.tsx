@@ -38,6 +38,7 @@ export function SessionsTable({ rows, base }: { rows: SessionRow[]; base: string
           <span className="mt-0.5 flex items-center justify-between gap-3 text-[13px] text-muted-foreground"><span className="truncate">{r.date} · {r.batch} · P{r.period} · {r.faculty}</span>{r.absent > 0 && <span className="shrink-0 text-absent">{r.absent} absent</span>}</span>
         </span>
       )}
+      rowNav={{ key: "sessions", id: (r) => r.id }}
       onRowClick={(r) => router.push(`/attendance?${base}&session=${r.id}`, { scroll: false })} />
   );
 }

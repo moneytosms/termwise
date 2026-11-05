@@ -24,6 +24,7 @@ export function ConflictsTable({ rows, base }: { rows: ConflictRow[]; base: stri
           <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{KIND_LABEL[r.kind]} · {r.submitter} · {r.date}</span>
         </span>
       )}
+      rowNav={{ key: "conflicts", id: (r) => r.id }}
       onRowClick={(r) => router.push(`/attendance?${base}&conflict=${r.id}`, { scroll: false })} />
   );
 }

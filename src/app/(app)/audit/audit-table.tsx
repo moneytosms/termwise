@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable, type TableFilter } from "@/components/data-table";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { RecordModal } from "@/components/record-modal";
 
 export type AuditRow = {
   id: number; at: string; actor: string; action: string; entity: string; entityId: string; reason: string;
@@ -34,7 +34,7 @@ export function AuditTable({ rows, selectedId }: { rows: AuditRow[]; selectedId?
   return (
     <>
       <DataTable data={rows} columns={columns} filters={filters} exportName="audit-log" searchPlaceholder="Search changes"
-        emptyTitle="No changes recorded yet."
+        emptyTitle="No changes recorded yet." rowNav={{ key: "audit", id: (r) => String(r.id) }}
         mobile={(r) => (
           <span className="block">
             <span className="flex items-center justify-between gap-3"><span className="truncate font-code text-[13px]">{r.action}</span><span className="shrink-0 text-xs text-muted-foreground">{ist(r.at)}</span></span>
@@ -42,30 +42,29 @@ export function AuditTable({ rows, selectedId }: { rows: AuditRow[]; selectedId?
           </span>
         )}
         onRowClick={(r) => router.push(`/audit?entry=${r.id}`, { scroll: false })} />
-      <Sheet open={!!entry} onOpenChange={(o) => { if (!o) router.push("/audit", { scroll: false }); }}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          {entry && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="font-code text-base">{entry.action}</SheetTitle>
-                <SheetDescription>{ist(entry.at)} · {entry.actor}</SheetDescription>
-              </SheetHeader>
-              <div className="space-y-4 px-4 pb-4 text-sm">
-                <p>{entry.entity} <span className="font-code text-xs">{entry.entityId}</span></p>
-                <p className="text-muted-foreground">{entry.reason || "No reason given."}</p>
-                <div>
-                  <h3 className="mb-1 font-medium">Old values</h3>
-                  <pre className="overflow-x-auto rounded-lg bg-muted p-3 font-code text-xs">{json(entry.oldValue)}</pre>
-                </div>
-                <div>
-                  <h3 className="mb-1 font-medium">New values</h3>
-                  <pre className="overflow-x-auto rounded-lg bg-muted p-3 font-code text-xs">{json(entry.newValue)}</pre>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      {entry && (
+        <RecordModal wide title={<span className="font-code text-base">{entry.action}</span>} description={`${ist(entry.at)} · ${entry.actor}`}
+          nav={{ key: "audit", id: String(entry.id), href: (id) => `/audit?entry=${id}` }}
+          onClose={() => router.push("/audit", { scroll: false })}>
+          <div className="space-y-4 text-sm">
+            <p>{entry.entity} <span className="font-code text-xs">{entry.entityId}</span></p>
+            <p className="text-muted-foreground">{entry.reason || "No reason given."}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <JsonBox label="Old values" value={entry.oldValue} />
+              <JsonBox label="New values" value={entry.newValue} />
+            </div>
+          </div>
+        </RecordModal>
+      )}
     </>
+  );
+}
+
+function JsonBox({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div className="min-w-0">
+      <h3 className="mb-1.5 font-medium">{label}</h3>
+      <pre className="whitespace-pre-wrap break-words rounded-xl bg-muted/60 p-3 font-code text-xs">{json(value)}</pre>
+    </div>
   );
 }
