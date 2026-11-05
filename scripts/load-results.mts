@@ -1,6 +1,7 @@
 // Simulates 7,800 students reading results concurrently: one signed-in session is reused for every request.
 // Documented assumption: a shared cookie stands in for many students, so this measures the route and the database, not sign-in.
-// Usage: BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts
+// Usage: start the server with E2E=1 BETTER_AUTH_URL=$BASE (E2E=1 disables better-auth's rate limiter; BETTER_AUTH_URL must match the origin),
+// then: BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const EMAIL = process.env.EMAIL ?? "ankit.panda@termwise.demo";
 const N = Number(process.env.N ?? 7800);
@@ -8,7 +9,7 @@ const C = Number(process.env.C ?? 200);
 
 const signIn = await fetch(`${BASE}/api/auth/sign-in/email`, {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", Origin: BASE },
   body: JSON.stringify({ email: EMAIL, password: "termwise-demo" }),
 });
 if (!signIn.ok) throw new Error(`Sign-in failed: ${signIn.status}`);
