@@ -17,6 +17,13 @@ export function isShortage(percent: number | null, cutoff: number): boolean {
   return percent !== null && percent < cutoff;
 }
 
+/** Smallest n ≥ 0 with (attended + n) / (held + n) ≥ line (fraction). Infinity when line ≥ 1 and not already full. */
+export function classesToReach(attended: number, held: number, line: number): number {
+  if (attended >= line * held) return 0;
+  if (line >= 1) return Infinity;
+  return Math.ceil((line * held - attended) / (1 - line));
+}
+
 /** Faculty may edit until the end of the session's date, IST. */
 export function facultyCanEdit(sessionDate: string, now: Date = new Date()): boolean {
   return sessionDate >= istDate(now);

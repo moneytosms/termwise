@@ -50,7 +50,7 @@ export function FeesTable({ rows, initialFilters }: { rows: FeeRow[]; initialFil
     <DataTable data={rows} columns={columns} filters={filters} initialFilters={initialFilters}
       searchPlaceholder="Search name or roll number" exportName="fee-dues" pageSize={20}
       bulkActions={(selected, clear) => <RemindButton ids={selected.map((r) => r.id)} clear={clear} />}
-      emptyTitle="No fee records yet."
+      emptyTitle="No fee records yet." rowNav={{ key: "fees", id: (r) => String(r.id) }}
       mobile={(r) => (
         <span className="flex items-center gap-3">
           <span className="min-w-0 flex-1"><span className="block truncate font-medium">{r.name}</span><span className="block truncate text-[13px] text-muted-foreground">{r.rollNo} · {r.batch}{r.nextDue && ` · next ${r.nextDue}`}</span></span>

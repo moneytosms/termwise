@@ -65,7 +65,10 @@ export async function getStudentDetail(v: Viewer, id: number) {
     .where(eq(attendanceEntry.studentId, id));
   const bySubject = new Map<string, { status: AttendanceStatus; periods: number }[]>();
   for (const a of att) bySubject.set(a.subject, [...(bySubject.get(a.subject) ?? []), a]);
-  const subjects = [...bySubject].map(([name, rows]) => ({ name, percent: attendancePercent(rows) })).sort((a, b) => a.name.localeCompare(b.name));
+  const subjects = [...bySubject].map(([name, rows]) => ({
+    name, percent: attendancePercent(rows),
+    held: rows.reduce((n, r) => n + r.periods, 0), attended: rows.reduce((n, r) => n + (r.status === "absent" ? 0 : r.periods), 0),
+  })).sort((a, b) => a.name.localeCompare(b.name));
 
   const marks = await db.select({ subject: subject.name, status: subject.marksStatus, component: markComponent.name, max: markComponent.maxMarks, marks: mark.marks })
     .from(mark).innerJoin(markComponent, eq(mark.componentId, markComponent.id)).innerJoin(subject, eq(markComponent.subjectId, subject.id))

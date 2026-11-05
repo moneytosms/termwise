@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { SectionHeading, StatusPill } from "@/components/page";
+import { RecordModal } from "@/components/record-modal";
 import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { istDate } from "@/domain/attendance";
 import { instalmentDue } from "@/domain/fees";
 import { rupees } from "@/lib/utils";
@@ -20,21 +20,21 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
   const close = () => router.push("/fees", { scroll: false });
   const today = istDate();
 
+  if (!detail) {
+    return (
+      <RecordModal title="Student" description="Not available" onClose={close}>
+        <EmptyState title="This student isn't available to you." />
+      </RecordModal>
+    );
+  }
+
   return (
-    <Sheet open onOpenChange={(o) => { if (!o) close(); }}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-        {!detail ? (
-          <>
-            <SheetHeader><SheetTitle>Student</SheetTitle><SheetDescription className="sr-only">Not available</SheetDescription></SheetHeader>
-            <div className="px-4"><EmptyState title="This student isn't available to you." /></div>
-          </>
-        ) : (
-          <>
-            <SheetHeader>
-              <SheetTitle>{detail.student.name}</SheetTitle>
-              <SheetDescription><span className="tabular-nums">{detail.student.rollNo}</span> · {detail.student.batch}</SheetDescription>
-            </SheetHeader>
-            <div className="space-y-2 px-4 pb-8">
+    <RecordModal
+      title={detail.student.name}
+      description={<><span className="tabular-nums">{detail.student.rollNo}</span> · {detail.student.batch}</>}
+      onClose={close}
+      nav={{ key: "fees", id: String(detail.student.id), href: (id) => `/fees?student=${id}` }}>
+      <div className="space-y-2 pb-4">
               <SectionHeading title="Instalments" count={detail.instalments.length} />
               {detail.instalments.length === 0 ? <EmptyState title="No fee records yet." /> : (
                 <div className="space-y-3">
@@ -73,11 +73,8 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
                   ))}
                 </ul>
               )}
-            </div>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </RecordModal>
   );
 }
 

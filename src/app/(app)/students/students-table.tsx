@@ -35,7 +35,7 @@ export function StudentsTable({ rows, isAdmin, initialFilters }: { rows: Student
   return (
     <DataTable data={rows} columns={columns} filters={filters} initialFilters={initialFilters}
       searchPlaceholder="Search name or roll number" exportName="students"
-      emptyTitle="No students here yet."
+      emptyTitle="No students here yet." rowNav={{ key: "students", id: (r) => String(r.id) }}
       mobile={(r) => (
         <span className="flex items-center gap-3">
           <Initials name={r.name} />
