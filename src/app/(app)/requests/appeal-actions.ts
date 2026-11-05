@@ -9,7 +9,8 @@ import { validateMark } from "@/domain/marks";
 import { AccessError, assertSubjectAccess, requireViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { appeal, attendanceEntry, attendanceSession, mark, markComponent } from "@/server/schema";
+import { writeResults } from "@/server/results";
+import { appeal, attendanceEntry, attendanceSession, mark, markComponent, subject } from "@/server/schema";
 
 const input = z.object({
   id: z.number().int().positive(),
@@ -70,6 +71,8 @@ export async function decideAppeal(
         oldValue: { [`${row.componentId}:${row.studentId}`]: before?.marks ?? null },
         newValue: { [`${row.componentId}:${row.studentId}`]: d.newValue }, reason: `Appeal ${d.id}`,
       });
+      const [sub] = await tx.select({ status: subject.marksStatus }).from(subject).where(eq(subject.id, row.subjectId));
+      if (sub.status === "locked") await writeResults(tx, row.subjectId);
     }
     if (d.action === "accept" && !isMark) {
       const [before] = await tx.select({ status: attendanceEntry.status }).from(attendanceEntry)
