@@ -4,14 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BookOpenCheck, CalendarDays, ClipboardCheck, CornerDownLeft, History, Home, IndianRupee, LogOut,
-  Menu, MessageSquare, Moon, Search, Settings2, ShieldAlert, Sparkles, Sun, Users, type LucideIcon,
+  BookOpenCheck, CalendarDays, ClipboardCheck, History, Home, IndianRupee, LogOut,
+  Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, Sparkles, Users, type LucideIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { createAuthClient } from "better-auth/react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { CommandPalette } from "@/components/command-palette";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Mark } from "@/components/mark";
+import { setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { clearOfflineData } from "@/offline/db";
 
@@ -57,61 +58,75 @@ export function AppShell({ role, name, campus, children }: {
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const s = useSettings();
   const groups = role === "faculty" ? FACULTY : ADMIN;
   const all = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const active = (href: string) => pathname === href || pathname.startsWith(href + "/");
-  const { resolvedTheme, setTheme } = useTheme();
   const [more, setMore] = useState(false);
-  const [jump, setJump] = useState(false);
-  const [q, setQ] = useState("");
-  const [pick, setPick] = useState(0);
+  const [palette, setPalette] = useState(false);
+  const [settings, setSettings] = useState(false);
   // Phone tab bar: faculty get all four; admin gets the daily four plus a menu holding the rest.
   const tabs = role === "faculty" ? all : all.slice(0, 4);
   const current = all.find((i) => active(i.href));
-  const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
-
-  const actions = useMemo(() => [
-    ...(role === "faculty" ? [{ href: "/mark", label: "Mark attendance", icon: ClipboardCheck }] : []),
-    ...all,
-  ], [all, role]);
-  const hits = actions.filter((a) => a.label.toLowerCase().includes(q.trim().toLowerCase()));
+  const collapsed = s.sidebarCollapsed;
 
   useEffect(() => {
+    if (!s.shortcuts) return;
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setJump((v) => !v); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") { e.preventDefault(); setSetting("sidebarCollapsed", !collapsed); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [s.shortcuts, collapsed]);
 
-  const go = (href: string) => { setJump(false); setQ(""); setPick(0); router.push(href); };
+  // Send a fresh sign-in to the chosen landing page once per tab.
+  useEffect(() => {
+    if (pathname !== "/home" || s.landing === "/home" || !all.some((i) => i.href === s.landing)) return;
+    try {
+      if (sessionStorage.getItem("termwise:landed")) return;
+      sessionStorage.setItem("termwise:landed", "1");
+    } catch { return; }
+    router.replace(s.landing);
+  }, [pathname, s.landing, all, router]);
 
   const navLink = (on: boolean) => cn(
     "group flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-rail-hover hover:text-foreground",
-    on && "bg-rail-active font-medium text-foreground hover:bg-rail-active");
+    on && "bg-rail-active font-medium text-foreground hover:bg-rail-active", collapsed && "justify-center px-0");
+  const hide = collapsed ? "sr-only" : undefined;
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[15rem_1fr]">
+    <div className={cn("min-h-dvh transition-[grid-template-columns] duration-200 md:grid", collapsed ? "md:grid-cols-[4rem_1fr]" : "md:grid-cols-[15rem_1fr]")}>
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-border/70 bg-rail px-3 py-4 md:flex">
-        <div className="flex items-center gap-2.5 px-1.5 pb-4">
+        <div className={cn("flex items-center gap-2.5 pb-4", collapsed ? "flex-col" : "px-1.5")}>
           <Mark />
-          <div className="min-w-0">
-            <p className="text-[0.95rem] leading-tight font-semibold tracking-tight">Termwise</p>
-            <p className="truncate text-xs text-muted-foreground">{campus}</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.95rem] leading-tight font-semibold tracking-tight">Termwise</p>
+              <p className="truncate text-xs text-muted-foreground">{campus}</p>
+            </div>
+          )}
+          <button onClick={() => setSetting("sidebarCollapsed", !collapsed)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-rail-hover hover:text-foreground">
+            <PanelLeft className="size-4" strokeWidth={1.75} aria-hidden />
+          </button>
         </div>
-        <button onClick={() => setJump(true)} className="mb-4 flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-sm text-muted-foreground shadow-raised transition-colors hover:text-foreground">
-          <Search className="size-3.5" aria-hidden /><span className="flex-1 text-left">Go to…</span>
-          <kbd className="rounded bg-muted px-1.5 text-[11px] font-medium">Ctrl K</kbd>
+        <button onClick={() => setPalette(true)} title="Go to" aria-label="Go to"
+          className={cn("mb-4 flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-sm text-muted-foreground shadow-raised transition-colors hover:text-foreground", collapsed && "justify-center px-0")}>
+          <Search className="size-3.5" aria-hidden />
+          {!collapsed && <>
+            <span className="flex-1 text-left">Go to…</span>
+            <kbd className="rounded bg-muted px-1.5 text-[11px] font-medium">Ctrl K</kbd>
+          </>}
         </button>
         <nav className="flex-1 space-y-5 overflow-y-auto" aria-label="Main">
           {groups.map((g, gi) => (
             <div key={gi}>
-              {g.label && <p className="mb-1 px-2.5 text-xs text-muted-foreground">{g.label}</p>}
+              {collapsed && gi > 0 && <div className="mx-2 mb-2 border-t border-border/70" aria-hidden />}
+              {g.label && !collapsed && <p className="mb-1 px-2.5 text-xs text-muted-foreground">{g.label}</p>}
               <div className="space-y-0.5">
                 {g.items.map((i) => (
-                  <Link key={i.href} href={i.href} aria-current={active(i.href) ? "page" : undefined} className={navLink(active(i.href))}>
-                    <i.icon className="size-4" strokeWidth={1.75} aria-hidden />{i.label}
+                  <Link key={i.href} href={i.href} title={collapsed ? i.label : undefined} aria-current={active(i.href) ? "page" : undefined} className={navLink(active(i.href))}>
+                    <i.icon className="size-4" strokeWidth={1.75} aria-hidden /><span className={hide}>{i.label}</span>
                   </Link>
                 ))}
               </div>
@@ -119,16 +134,17 @@ export function AppShell({ role, name, campus, children }: {
           ))}
         </nav>
         <div className="space-y-0.5 pt-3">
-          <button onClick={toggleTheme} className={cn(navLink(false), "w-full")}>
-            <Sun className="size-4 dark:hidden" strokeWidth={1.75} aria-hidden /><Moon className="hidden size-4 dark:block" strokeWidth={1.75} aria-hidden />
-            <span className="dark:hidden">Dark theme</span><span className="hidden dark:inline">Light theme</span>
+          <button onClick={() => setSettings(true)} title="Settings" className={cn(navLink(false), "w-full")}>
+            <Settings className="size-4" strokeWidth={1.75} aria-hidden /><span className={hide}>Settings</span>
           </button>
-          <div className="mt-2 flex items-center gap-2.5 rounded-md px-1.5 py-1.5">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">{name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium leading-tight">{name}</span>
-              <span className="block text-xs text-muted-foreground">{role === "faculty" ? "Faculty" : "Office admin"}</span>
-            </span>
+          <div className={cn("mt-2 flex items-center gap-2.5 rounded-md py-1.5", collapsed ? "flex-col" : "px-1.5")}>
+            <span title={name} className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold">{name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</span>
+            {!collapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium leading-tight">{name}</span>
+                <span className="block text-xs text-muted-foreground">{role === "faculty" ? "Faculty" : "Office admin"}</span>
+              </span>
+            )}
             <button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-rail-hover hover:text-foreground">
               <LogOut className="size-4" strokeWidth={1.75} aria-hidden />
             </button>
@@ -140,7 +156,7 @@ export function AppShell({ role, name, campus, children }: {
         <header className="sticky top-0 z-30 flex h-13 items-center gap-2.5 border-b border-border/70 bg-background px-4 md:hidden">
           <Mark className="size-6" />
           <span className="flex-1 truncate text-[0.95rem] font-semibold tracking-tight">{current?.label ?? "Termwise"}</span>
-          <button aria-label="Go to" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-rail-hover" onClick={() => setJump(true)}>
+          <button aria-label="Go to" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-rail-hover" onClick={() => setPalette(true)}>
             <Search className="size-4.5" aria-hidden />
           </button>
           {role === "faculty" && (
@@ -185,43 +201,15 @@ export function AppShell({ role, name, campus, children }: {
           </nav>
           <div className="mt-3 flex items-center gap-2 border-t border-border px-3 pt-3">
             <span className="min-w-0 flex-1 truncate text-sm"><span className="font-medium">{name}</span> <span className="text-muted-foreground">· {role === "faculty" ? "Faculty" : "Office admin"}</span></span>
-            <button onClick={toggleTheme} aria-label="Switch theme" className="grid size-10 place-items-center rounded-md text-muted-foreground active:bg-muted">
-              <Sun className="size-4.5 dark:hidden" aria-hidden /><Moon className="hidden size-4.5 dark:block" aria-hidden />
-            </button>
+            <button onClick={() => { setMore(false); setSettings(true); }} className="h-10 rounded-md px-3 text-sm font-medium text-muted-foreground active:bg-muted">Settings</button>
             <button onClick={signOut} className="h-10 rounded-md px-3 text-sm font-medium active:bg-muted">Sign out</button>
           </div>
         </SheetContent>
       </Sheet>
 
-      <Dialog open={jump} onOpenChange={(o) => { setJump(o); if (!o) { setQ(""); setPick(0); } }}>
-        <DialogContent showCloseButton={false} className="top-[18%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-md">
-          <DialogTitle className="sr-only">Go to</DialogTitle>
-          <div className="flex items-center gap-2.5 border-b border-border px-4">
-            <Search className="size-4 text-muted-foreground" aria-hidden />
-            <input autoFocus value={q} placeholder="Go to a page or action" aria-label="Go to a page or action"
-              onChange={(e) => { setQ(e.target.value); setPick(0); }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown") { e.preventDefault(); setPick((p) => Math.min(p + 1, hits.length - 1)); }
-                if (e.key === "ArrowUp") { e.preventDefault(); setPick((p) => Math.max(p - 1, 0)); }
-                if (e.key === "Enter" && hits[pick]) go(hits[pick].href);
-              }}
-              className="h-12 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm" />
-          </div>
-          <ul role="listbox" aria-label="Results" className="max-h-80 overflow-y-auto p-1.5">
-            {hits.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">Nothing called “{q}”.</li>}
-            {hits.map((h, i) => (
-              <li key={h.href + h.label} role="option" aria-selected={i === pick}>
-                <button onMouseEnter={() => setPick(i)} onClick={() => go(h.href)}
-                  className={cn("flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm", i === pick && "bg-muted")}>
-                  <h.icon className="size-4 text-muted-foreground" strokeWidth={1.75} aria-hidden />
-                  <span className="flex-1">{h.label}</span>
-                  {i === pick && <CornerDownLeft className="size-3.5 text-muted-foreground" aria-hidden />}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </DialogContent>
-      </Dialog>
+      <CommandPalette open={palette} onOpenChange={setPalette} nav={all} role={role}
+        onSettings={() => setSettings(true)} onSignOut={signOut} />
+      <SettingsDialog open={settings} onOpenChange={setSettings} role={role} pages={all} />
     </div>
   );
 }
