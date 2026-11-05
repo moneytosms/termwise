@@ -51,6 +51,36 @@ test("documents: attach a PDF, open it, verify it; a text file is refused", asyn
   await expect(page.getByText("Only PDF, JPEG or PNG files.").filter({ visible: true })).toBeVisible();
 });
 
+test("admission: attach, view and verify every document, then confirm", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signIn(page, "eng.admin@termwise.demo");
+  await page.goto("/applicants");
+  await page.getByRole("row", { name: /Tapas Rout/ }).click();
+
+  const dialog = page.getByRole("dialog");
+  const pending = ["Transfer certificate", "Passport photo"];
+  const item = (doc: string) => dialog.getByRole("listitem").filter({ has: dialog.getByRole("group", { name: `Status of ${doc}`, exact: true }) });
+  for (const doc of pending) {
+    await dialog.getByLabel(`Attach file for ${doc}`, { exact: true }).setInputFiles({
+      name: "doc.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test"),
+    });
+    await expect(item(doc).getByRole("link", { name: "View", exact: true })).toBeVisible();
+  }
+
+  const view = item(pending[0]).getByRole("link", { name: "View", exact: true });
+  const res = await page.request.get((await view.getAttribute("href"))!);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("application/pdf");
+
+  for (const doc of pending) {
+    await item(doc).getByRole("group", { name: `Status of ${doc}`, exact: true }).getByRole("button", { name: "Verified", exact: true }).click();
+  }
+  await expect(dialog.getByText("5/5 verified · complete")).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Confirm admission" }).click();
+  await expect(dialog.getByText(/Confirmed as ENG-24-CSE-/)).toBeVisible();
+});
+
 test("import: a valid CSV adds applicants, a bad one lists its line errors and imports nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await signIn(page, "eng.admin@termwise.demo");
