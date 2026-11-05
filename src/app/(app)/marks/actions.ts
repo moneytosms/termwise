@@ -7,6 +7,7 @@ import { canEditMarks, canSubmit, SECTIONS, transition, validateComponents, vali
 import { AccessError, assertSubjectAccess, requireViewer, type Viewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
+import { clearResults, writeResults } from "@/server/results";
 import { mark, markComponent, student, subject } from "@/server/schema";
 
 const key = (componentId: number, studentId: number) => `${componentId}:${studentId}`;
@@ -107,6 +108,8 @@ export async function transitionMarks(subjectId: number, action: MarksAction, re
     const updated = await tx.update(subject).set({ marksStatus: t.to })
       .where(and(eq(subject.id, id), eq(subject.marksStatus, s.status))).returning({ id: subject.id });
     if (updated.length === 0) return false;
+    if (t.to === "locked") await writeResults(tx, id);
+    else if (s.status === "locked") await clearResults(tx, id);
     await audit(tx, v, {
       action: `marks.${action}`, entity: "subject", entityId: id,
       oldValue: { marksStatus: s.status }, newValue: { marksStatus: t.to }, reason: reason?.trim() || undefined,
@@ -116,6 +119,7 @@ export async function transitionMarks(subjectId: number, action: MarksAction, re
   if (!saved) return { error: "Marks changed while you were looking. Refresh and try again." };
   revalidatePath(`/marks/${id}`);
   revalidatePath("/marks");
+  revalidatePath("/my/marks");
   return {};
 }
 

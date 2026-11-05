@@ -8,7 +8,7 @@ import { requirePortal } from "@/server/portal";
 import { myAppeals, portalStudent } from "@/server/portal-data";
 import { AppealButton } from "../appeal-client";
 import { AppealList, AppealPill } from "../appeal-list";
-import { studentMarks, type MarksStatus } from "./queries";
+import { studentMarks, studentResults, type MarksStatus } from "./queries";
 
 const STATUS: Record<MarksStatus, { label: string; tone: "default" | "ok" }> = {
   draft: { label: "Being entered", tone: "default" },
@@ -20,7 +20,10 @@ export default async function MarksPage() {
   const v = await requirePortal();
   const s = await portalStudent(v.studentId);
   if (!s) redirect("/my");
-  const [subjects, appeals] = await Promise.all([studentMarks(v.studentId, s.batchId), myAppeals(v.studentId, "mark")]);
+  const [subjects, appeals, results] = await Promise.all([studentMarks(v.studentId, s.batchId), myAppeals(v.studentId, "mark"), studentResults(v.studentId)]);
+  const totals = new Map(results.map((r) => [r.subjectId, r.total]));
+  // Locked subjects show the precomputed result; others show the live sum once every component has a mark.
+  const finalOf = (x: (typeof subjects)[number]) => (x.status === "locked" ? totals.get(x.id) ?? null : x.final?.total ?? null);
   const locked = subjects.filter((x) => x.status === "locked").length;
   // The stats count the internal section only, matching the internal marks of 40 used elsewhere.
   const withInternal = subjects.filter((x) => x.internal !== null);
@@ -88,12 +91,12 @@ export default async function MarksPage() {
                     Final
                     {x.kind === "lab" && <span className="ml-1 text-xs">(theory scaled to {x.scheme.theoryScale}%)</span>}
                   </span>
-                  <span className="font-medium tabular-nums">{x.final === null ? "–" : `${x.final.total} / 100`}</span>
+                  <span className="font-medium tabular-nums">{finalOf(x) === null ? "–" : `${finalOf(x)} / 100`}</span>
                 </div>
               </div>
-              {x.final !== null && (
+              {finalOf(x) !== null && (
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary" aria-hidden>
-                  <div className="h-full rounded-full bg-data" style={{ width: `${x.final.total}%` }} />
+                  <div className="h-full rounded-full bg-data" style={{ width: `${finalOf(x)}%` }} />
                 </div>
               )}
             </li>

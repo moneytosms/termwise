@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { finalScore, sectionsFor, type Kind, type Scheme, type Section } from "@/domain/marks";
 import { db } from "@/server/db";
-import { mark, markComponent, subject } from "@/server/schema";
+import { mark, markComponent, result, subject } from "@/server/schema";
 
 export type MarksStatus = "draft" | "submitted" | "locked";
 
@@ -48,4 +48,15 @@ export async function studentMarks(studentId: number, batchId: number) {
     if (s.comps.length > 0 && s.comps.every((c) => c.marks !== null)) s.final = finalScore(s.scheme, sums);
     return s;
   });
+}
+
+/** Final results of locked subjects, read from the precomputed rows only. */
+export async function studentResults(studentId: number) {
+  return db.select({
+    subjectId: result.subjectId, code: subject.code, name: subject.name,
+    internal: result.internal, theoryScaled: result.theoryScaled, lab: result.lab, total: result.total,
+  }).from(result)
+    .innerJoin(subject, eq(result.subjectId, subject.id))
+    .where(eq(result.studentId, studentId))
+    .orderBy(subject.code);
 }
