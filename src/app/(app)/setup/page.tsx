@@ -7,15 +7,17 @@ import { requireAdmin } from "@/server/access";
 import { BatchesTab } from "./batches-tab";
 import { CollegeTab } from "./college-tab";
 import { CalendarTab } from "./calendar-tab";
+import { DocumentsTab } from "./documents-tab";
 import { FacultyTab } from "./faculty-tab";
 import { ProgrammesTab } from "./programmes-tab";
 import { RulesTab } from "./rules-tab";
-import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listProgrammes, listSlots, listStaff, listSubjects } from "./queries";
+import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listProgrammes, listRequiredDocuments, listSlots, listStaff, listSubjects } from "./queries";
 import { SubjectsTab } from "./subjects-tab";
 import { TimetableTab } from "./timetable-tab";
 
 const TABS = [
   { key: "programmes", label: "Programmes" },
+  { key: "documents", label: "Documents" },
   { key: "batches", label: "Batches" },
   { key: "subjects", label: "Subjects" },
   { key: "faculty", label: "Faculty" },
@@ -34,6 +36,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   let body: React.ReactNode;
   if (current === "programmes") {
     body = <ProgrammesTab rows={await listProgrammes(c)} departments={await listDepartments(c)} />;
+  } else if (current === "documents") {
+    body = <DocumentsTab rows={await listRequiredDocuments(c)} programmes={await listProgrammes(c)} />;
   } else if (current === "batches") {
     body = <BatchesTab rows={await listBatches(c)} programmes={await listProgrammes(c)} />;
   } else if (current === "subjects") {

@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db";
-import { batch, calendarDay, campus, department, programme, staff, student, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, programme, requiredDocument, staff, student, subject, timetableSlot } from "@/server/schema";
 
 export const getCampus = async (campusId: number) => {
   const [row] = await db.select().from(campus).where(eq(campus.id, campusId));
@@ -18,6 +18,14 @@ export const listProgrammes = (campusId: number) =>
   }).from(programme)
     .leftJoin(department, eq(programme.departmentId, department.id))
     .where(eq(programme.campusId, campusId)).orderBy(programme.code);
+
+export const listRequiredDocuments = (campusId: number) =>
+  db.select({
+    id: requiredDocument.id, programmeId: requiredDocument.programmeId, programme: programme.code,
+    name: requiredDocument.name, categories: requiredDocument.categories,
+  }).from(requiredDocument)
+    .innerJoin(programme, eq(requiredDocument.programmeId, programme.id))
+    .where(eq(programme.campusId, campusId)).orderBy(programme.code, requiredDocument.name);
 
 export const listBatches = (campusId: number) =>
   db.select({

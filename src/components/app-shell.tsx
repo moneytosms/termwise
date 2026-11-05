@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpenCheck, CalendarDays, CalendarOff, ClipboardCheck, FileText, History, Home, Inbox, IndianRupee, LogOut,
-  Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, UserRound, Users,
+  Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, UserPlus, UserRound, Users,
 } from "lucide-react";
 import { createAuthClient } from "better-auth/react";
 import { CommandPalette } from "@/components/command-palette";
@@ -27,6 +27,7 @@ const FACULTY: Group[] = [{ items: [
   { href: "/marks", label: "Marks", icon: BookOpenCheck },
   { href: "/students", label: "Students", icon: Users },
   { href: "/requests", label: "Requests", icon: Inbox },
+  { href: "/leave", label: "Leave", icon: CalendarOff },
   { href: "/assistant", label: "Termy", icon: TermyIcon },
 ] }];
 const ADMIN: Group[] = [
@@ -34,6 +35,7 @@ const ADMIN: Group[] = [
     { href: "/home", label: "Home", icon: Home },
     { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
     { href: "/students", label: "Students", icon: Users },
+    { href: "/applicants", label: "Applicants", icon: UserPlus },
     { href: "/marks", label: "Marks", icon: BookOpenCheck },
     { href: "/fees", label: "Fees", icon: IndianRupee },
   ] },
@@ -41,6 +43,7 @@ const ADMIN: Group[] = [
     { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk" },
     { href: "/messages", label: "Messages", icon: MessageSquare },
     { href: "/requests", label: "Requests", icon: Inbox },
+    { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave" },
     { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
