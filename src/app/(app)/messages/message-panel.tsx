@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { RecordModal } from "@/components/record-modal";
 import { SectionHeading, StatusPill } from "@/components/page";
+import { STATUS } from "./labels";
 import type { MessageRow } from "./queries";
 
 export function MessagePanel({ message: m }: { message: MessageRow }) {
@@ -13,7 +14,7 @@ export function MessagePanel({ message: m }: { message: MessageRow }) {
       onClose={() => router.push("/messages", { scroll: false })}>
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          <StatusPill tone={m.status === "logged" ? "ok" : "absent"}>{m.status}</StatusPill>
+          <StatusPill tone={m.status === STATUS.logged ? "ok" : "absent"}>{m.status}</StatusPill>
           {m.language === "Odia" && <StatusPill tone="late">Needs native review</StatusPill>}
         </div>
         <SectionHeading title="Message" />

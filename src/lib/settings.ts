@@ -1,5 +1,7 @@
-// No "use client": the root layout imports SETTINGS_BOOT as a plain string.
+"use client";
+
 import { useSyncExternalStore } from "react";
+import { SETTINGS_KEY } from "./settings-boot";
 
 // Per-device preferences. Light/dark/system lives in next-themes; everything else here.
 export const PRESETS = [
@@ -27,7 +29,6 @@ export const DEFAULT_SETTINGS: Settings = {
   landing: "/home", pageSize: 20, confirmAttendance: true, shortcuts: true,
 };
 
-export const SETTINGS_KEY = "termwise:settings";
 let cache: Settings | undefined;
 const listeners = new Set<() => void>();
 
@@ -59,5 +60,3 @@ export function useSettings(): Settings {
   return useSyncExternalStore(subscribe, read, () => DEFAULT_SETTINGS);
 }
 
-/** Inline in <head> so the preset applies before first paint (no flash). */
-export const SETTINGS_BOOT = `try{var s=JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})||"{}"),d=document.documentElement.dataset;d.preset=s.preset||"default";d.density=s.density||"comfortable";d.motion=s.reduceMotion?"reduce":"full"}catch(e){}`;

@@ -48,7 +48,8 @@ export function SelectField({ options, value, defaultValue, onValueChange, name,
       onValueChange={(v) => onValueChange?.((v as string | null) ?? "")}>
       <SelectTrigger size={size} id={aria.id} aria-label={aria["aria-label"]}
         className={cn("min-w-32", active && "bg-foreground text-background shadow-none [&_svg]:text-background", className)}>
-        <SelectValue placeholder={placeholder} />
+        {/* Base UI treats "" as no value, so the "all" option's label doubles as the placeholder. */}
+        <SelectValue placeholder={options.find((o) => o.value === "")?.label ?? placeholder} />
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}

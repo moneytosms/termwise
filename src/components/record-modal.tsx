@@ -44,7 +44,7 @@ export function RecordModal({ title, description, leading, onClose, nav, footer,
   return (
     <DialogPrimitive.Root open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-[rgb(var(--ink)/0.28)] backdrop-blur-[3px] transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-[rgb(var(--ink)/0.28)] backdrop-blur-[1.5px] transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <DialogPrimitive.Popup
           data-slot="record-modal"
           className={cn(
