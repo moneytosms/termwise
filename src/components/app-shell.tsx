@@ -76,12 +76,15 @@ const PARENT: Group[] = [
     { href: "/my/profile", label: "Profile", icon: UserRound },
   ] },
 ];
-const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, student: STUDENT, parent: PARENT };
-const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", student: "Student", parent: "Parent" };
+const TRUST: Group[] = [{ label: "Trust", items: [
+  { href: "/trust", label: "Campuses", icon: Home },
+] }];
+const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, student: STUDENT, parent: PARENT, trust: TRUST };
+const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", student: "Student", parent: "Parent", trust: "Trust" };
 // Exact match only: every other page sits under these.
 const ROOTS = new Set(["/home", "/my"]);
 
-export type ShellRole = "faculty" | "office_admin" | "student" | "parent";
+export type ShellRole = "faculty" | "office_admin" | "student" | "parent" | "trust";
 type Kid = { id: number; name: string };
 
 const client = createAuthClient();
