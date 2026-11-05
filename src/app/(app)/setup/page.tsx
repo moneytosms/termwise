@@ -8,6 +8,7 @@ import { can } from "@/domain/roles";
 import { requireViewer } from "@/server/access";
 import { BatchesTab } from "./batches-tab";
 import { CollegeTab } from "./college-tab";
+import { DepartmentsTab } from "./departments-tab";
 import { CalendarTab } from "./calendar-tab";
 import { DocumentsTab } from "./documents-tab";
 import { FacultyTab } from "./faculty-tab";
@@ -15,12 +16,13 @@ import { FeeStructureTab } from "./fee-structure-tab";
 import { ProgrammesTab } from "./programmes-tab";
 import { RulesTab } from "./rules-tab";
 import { SchemesTab } from "./schemes-tab";
-import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listFeeStructure, listProgrammes, listRequiredDocuments, listSchemes, listSlots, listStaff, listSubjects } from "./queries";
+import { getCampus, getRules, listBatches, listCalendar, listDepartmentPosts, listDepartments, listFaculty, listFeeStructure, listProgrammes, listRequiredDocuments, listSchemes, listSlots, listStaff, listSubjects } from "./queries";
 import { SubjectsTab } from "./subjects-tab";
 import { TimetableTab } from "./timetable-tab";
 
 const TABS = [
   { key: "programmes", label: "Programmes" },
+  { key: "departments", label: "Departments" },
   { key: "documents", label: "Documents" },
   { key: "fee-structure", label: "Fee structure" },
   { key: "batches", label: "Batches" },
@@ -47,6 +49,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   let body: React.ReactNode;
   if (current === "programmes") {
     body = <ProgrammesTab rows={await listProgrammes(c)} departments={await listDepartments(c)} />;
+  } else if (current === "departments") {
+    body = <DepartmentsTab rows={await listDepartmentPosts(c)} />;
   } else if (current === "documents") {
     body = <DocumentsTab rows={await listRequiredDocuments(c)} programmes={await listProgrammes(c)} />;
   } else if (current === "fee-structure") {

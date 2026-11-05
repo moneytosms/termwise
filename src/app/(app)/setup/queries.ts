@@ -12,6 +12,14 @@ export const listDepartments = (campusId: number) =>
   db.select({ id: department.id, name: department.name }).from(department)
     .where(eq(department.campusId, campusId)).orderBy(department.name);
 
+/** Departments with their sanctioned posts and full-time teachers (faculty and HODs). */
+export const listDepartmentPosts = (campusId: number) =>
+  db.select({
+    id: department.id, name: department.name, sanctionedPosts: department.sanctionedPosts,
+    teachers: sql<number>`(select count(*) from ${staff} s where s.department_id = ${department.id} and s.role in ('faculty', 'hod'))`.mapWith(Number),
+  }).from(department)
+    .where(eq(department.campusId, campusId)).orderBy(department.name);
+
 export const listProgrammes = (campusId: number) =>
   db.select({
     id: programme.id, code: programme.code, name: programme.name, departmentId: programme.departmentId,

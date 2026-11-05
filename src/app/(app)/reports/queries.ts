@@ -3,11 +3,15 @@ import { istDate } from "@/domain/attendance";
 import type { Instalment } from "@/domain/fees";
 import { sectionsFor, type Scheme, type Section } from "@/domain/marks";
 import {
-  aicteFacultyRows, asOfDate, cadreRows, feeRows, intakeRows, lastDay, marksRows, REPORTS, sfrRows, shortageRows, strengthRows, type Column,
-  type ReportKey, type Row, type StudentFees, type SubjectAttendance, type SubjectMarks,
+  aicteFacultyRows, asOfDate, cadreRows, departmentPostRows, enrolmentRows, feeRows, intakeRows, lastDay, marksRows, passMarkFor, passRows, REPORTS,
+  scholarshipRows, sfrRows, shortageRows, strengthRows, studentTeacherRows, type Column, type ReportKey, type Row, type StudentFees,
+  type SubjectAttendance, type SubjectMarks,
 } from "@/domain/reports";
 import { db } from "@/server/db";
-import { attendanceEntry, attendanceSession, batch, department, feeInstalment, feePayment, mark, markComponent, programme, staff, student, subject } from "@/server/schema";
+import {
+  attendanceEntry, attendanceSession, batch, department, feeInstalment, feePayment, mark, markComponent, programme, result, scholarshipAward,
+  scholarshipScheme, staff, student, subject,
+} from "@/server/schema";
 
 const DAY = 86_400_000;
 const heldSum = sql<number>`coalesce(sum(${attendanceSession.periodCount}), 0)`.mapWith(Number);
@@ -143,6 +147,56 @@ function loadCadre(campusId: number) {
   return Promise.all([departments, campusStaff(campusId)]);
 }
 
+/** Students not yet alumni on the campus, in the programme if one is chosen. */
+async function countStudents(campusId: number, programmeId: number | null): Promise<number> {
+  const [{ n }] = await db.select({ n: sql<number>`count(*)`.mapWith(Number) }).from(student)
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId), isNull(student.graduatedOn)));
+  return n;
+}
+
+const loadTeachers = (campusId: number) => Promise.all([countStudents(campusId, null), campusStaff(campusId)]);
+
+function loadPosts(campusId: number) {
+  const departments = db.select({ id: department.id, name: department.name, sanctionedPosts: department.sanctionedPosts }).from(department)
+    .where(eq(department.campusId, campusId));
+  return Promise.all([departments, campusStaff(campusId)]);
+}
+
+/** Results of locked subjects in final-year batches (batch year = programme duration), alumni included. */
+async function loadPass(campusId: number, programmeId: number | null) {
+  const programmes = db.select({ code: programme.code }).from(programme)
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
+  const results = db.select({
+    studentId: result.studentId, programme: programme.code, total: result.total,
+    kind: subject.kind, theoryScale: subject.theoryScale, labExamMax: subject.labExamMax, vivaMax: subject.vivaMax, ceMax: subject.ceMax,
+  }).from(result)
+    .innerJoin(subject, eq(result.subjectId, subject.id))
+    .innerJoin(batch, eq(subject.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .innerJoin(student, and(eq(student.id, result.studentId), eq(student.batchId, batch.id)))
+    .where(and(
+      eq(programme.campusId, campusId), programmeFilter(programmeId), eq(subject.marksStatus, "locked"),
+      sql`${batch.year} = ${programme.durationYears}`,
+    ));
+  const [codes, lines] = await Promise.all([programmes, results]);
+  return passRows(codes.map((p) => p.code), lines.map((l) => ({ studentId: l.studentId, programme: l.programme, total: l.total, passMark: passMarkFor(l) })));
+}
+
+/** Awards not withdrawn, for students not yet alumni, by funding source. */
+async function loadScholarships(campusId: number, programmeId: number | null) {
+  const awards = await db.select({ studentId: scholarshipAward.studentId, fundingSource: scholarshipScheme.fundingSource }).from(scholarshipAward)
+    .innerJoin(scholarshipScheme, eq(scholarshipAward.schemeId, scholarshipScheme.id))
+    .innerJoin(student, eq(scholarshipAward.studentId, student.id))
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(
+      eq(programme.campusId, campusId), programmeFilter(programmeId), isNull(student.graduatedOn), isNull(scholarshipAward.withdrawnAt),
+    ));
+  return Promise.all([awards, countStudents(campusId, programmeId)]);
+}
+
 export type ReportOptions = { month: string; programmeId?: number | null; today?: string };
 
 /** One report's columns and rows for a campus. `month` is YYYY-MM; fees are as at its end, or today for the current month. */
@@ -159,6 +213,11 @@ export async function runReport(v: { campusId: number }, key: ReportKey, o: Repo
   else if (key === "aicte_faculty") rows = aicteFacultyRows(await campusStaff(v.campusId));
   else if (key === "aicte_sfr") { const [programmes, students, staffRows] = await loadSfr(v.campusId, programmeId); rows = sfrRows(programmes, students, staffRows); }
   else if (key === "aicte_cadre") { const [departments, staffRows] = await loadCadre(v.campusId); rows = cadreRows(departments, staffRows); }
+  else if (key === "naac_2_1_1") { const [batches, students] = await loadIntake(v.campusId, programmeId); rows = enrolmentRows(batches, students); }
+  else if (key === "naac_2_2") { const [students, staffRows] = await loadTeachers(v.campusId); rows = studentTeacherRows(students, staffRows); }
+  else if (key === "naac_2_4_1") { const [departments, staffRows] = await loadPosts(v.campusId); rows = departmentPostRows(departments, staffRows); }
+  else if (key === "naac_2_6_3") rows = await loadPass(v.campusId, programmeId);
+  else if (key === "naac_5_1_1") { const [awards, total] = await loadScholarships(v.campusId, programmeId); rows = scholarshipRows(awards, total); }
   else throw new Error(`Unknown report: ${key}`);
   return { columns, rows };
 }

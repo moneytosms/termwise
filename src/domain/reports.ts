@@ -7,13 +7,14 @@ import { finalScore, type MarksStatus, type Scheme, type Section } from "./marks
 export type Row = Record<string, string | number | null>;
 export type Column = { key: string; label: string };
 
-export const REPORT_KEYS = ["strength", "shortage", "marks", "fees", "aicte_intake", "aicte_faculty", "aicte_sfr", "aicte_cadre"] as const;
+export const REPORT_KEYS = ["strength", "shortage", "marks", "fees", "aicte_intake", "aicte_faculty", "aicte_sfr", "aicte_cadre", "naac_2_1_1", "naac_2_2", "naac_2_4_1", "naac_2_6_3", "naac_5_1_1"] as const;
 export type ReportKey = (typeof REPORT_KEYS)[number];
 
 /** The capability that opens each report: the fees return is for accounts, the rest for exams. */
 export const REPORT_CAP: Record<ReportKey, Capability> = {
   strength: "reports", shortage: "reports", marks: "reports", fees: "fee_reports",
   aicte_intake: "reports", aicte_faculty: "reports", aicte_sfr: "reports", aicte_cadre: "reports",
+  naac_2_1_1: "reports", naac_2_2: "reports", naac_2_4_1: "reports", naac_2_6_3: "reports", naac_5_1_1: "reports",
 };
 
 /** University, AICTE and NAAC returns. Column keys are row keys; labels go in the CSV header. */
@@ -50,6 +51,21 @@ export const REPORTS: { key: ReportKey; title: string; columns: Column[]; note?:
   { key: "aicte_cadre", title: "AICTE cadre ratio", note: "[A] Professors, associate and assistant professors per department, against 1:2:6. Below norm when professors or associates fall short of 1 and 2 per 6 assistants.", columns: [
     { key: "department", label: "Department" }, { key: "professors", label: "Professors" }, { key: "associates", label: "Associate professors" },
     { key: "assistants", label: "Assistant professors" }, { key: "ratio", label: "Ratio" }, { key: "norm", label: "Norm" }, { key: "status", label: "Status" },
+  ] },
+  { key: "naac_2_1_1", title: "NAAC 2.1.1 Enrolment percentage", note: "[A] Enrolment % = students admitted in the admission year (alumni included) / sanctioned seats of the programmes with a batch that year, x 100.", columns: [
+    { key: "year", label: "Admission year" }, { key: "admitted", label: "Admitted" }, { key: "sanctioned", label: "Sanctioned seats" }, { key: "percent", label: "Enrolment %" },
+  ] },
+  { key: "naac_2_2", title: "NAAC 2.2 Student : full-time teacher ratio", note: "[A] Students not yet alumni / full-time teachers (faculty and HODs) on the campus. Campus-wide; the programme filter does not apply.", columns: [
+    { key: "students", label: "Students" }, { key: "teachers", label: "Full-time teachers" }, { key: "ratio", label: "Ratio" },
+  ] },
+  { key: "naac_2_4_1", title: "NAAC 2.4.1 Full-time teachers against sanctioned posts", note: "[A] Full-time teachers (faculty and HODs) / sanctioned posts of the department, x 100. Posts are set in College setup, Departments. Campus-wide; the programme filter does not apply.", columns: [
+    { key: "department", label: "Department" }, { key: "teachers", label: "Full-time teachers" }, { key: "posts", label: "Sanctioned posts" }, { key: "percent", label: "%" },
+  ] },
+  { key: "naac_2_6_3", title: "NAAC 2.6.3 Pass percentage of final-year students", note: "[A] Final year = batch year equal to the programme's duration; alumni included. A student passes when every locked-subject result is at least the pass mark; students with no locked result yet are not counted. Pass mark 40 of 100 [A]; a lab subject's pass mark is 40% of its full total.", columns: [
+    { key: "programme", label: "Programme" }, { key: "students", label: "Final-year students" }, { key: "passed", label: "Passed" }, { key: "percent", label: "Pass %" },
+  ] },
+  { key: "naac_5_1_1", title: "NAAC 5.1.1 Students benefited by scholarships", note: "[A] Students not yet alumni with an award not withdrawn from each funding source / students not yet alumni on the campus, x 100. A student with awards from two sources counts under both. The programme filter applies to both counts.", columns: [
+    { key: "source", label: "Funding source" }, { key: "benefited", label: "Students benefited" }, { key: "total", label: "Total students" }, { key: "percent", label: "%" },
   ] },
 ];
 
@@ -225,6 +241,86 @@ export function cadreRows(departments: { id: number; name: string }[], staff: Te
         ratio: `${professors}:${associates}:${assistants}`, norm: "1:2:6", status: low ? "Below norm" : "OK",
       };
     });
+}
+
+/** Pass mark as a percentage of a subject's full total, which is 100 for theory. */
+export const PASS_MARK = 40;
+
+/** A subject's full total: theory scale, plus the lab sections for a lab. */
+export function maxTotal(s: Pick<Scheme, "kind" | "theoryScale" | "labExamMax" | "vivaMax" | "ceMax">): number {
+  return s.theoryScale + (s.kind === "lab" ? s.labExamMax + s.vivaMax + s.ceMax : 0);
+}
+
+/** The mark a result needs to pass its subject. */
+export const passMarkFor = (s: Pick<Scheme, "kind" | "theoryScale" | "labExamMax" | "vivaMax" | "ceMax">) => (PASS_MARK * maxTotal(s)) / 100;
+
+/** numerator / denominator as a percent to one decimal; null when there is nothing to divide by. */
+const share = (num: number, den: number) => (den ? Math.round((num / den) * 1000) / 10 : null);
+
+/** Admitted against sanctioned seats per admission year. A programme's seats count once a year, however many batches it has. */
+export function enrolmentRows(batches: { programme: string; sanctioned: number; year: number }[], students: { year: number }[]): Row[] {
+  const years = new Map<number, { sanctioned: number; admitted: number; programmes: Set<string> }>();
+  for (const b of batches) {
+    const y = years.get(b.year) ?? { sanctioned: 0, admitted: 0, programmes: new Set<string>() };
+    if (!y.programmes.has(b.programme)) {
+      y.programmes.add(b.programme);
+      y.sanctioned += b.sanctioned;
+    }
+    years.set(b.year, y);
+  }
+  for (const s of students) {
+    const y = years.get(s.year);
+    if (y) y.admitted++;
+  }
+  return [...years.entries()].sort(([a], [b]) => a - b).map(([year, y]) => ({
+    year, admitted: y.admitted, sanctioned: y.sanctioned, percent: share(y.admitted, y.sanctioned),
+  }));
+}
+
+/** One campus row: students not yet alumni against full-time teachers (faculty and HODs). */
+export function studentTeacherRows(students: number, staff: TeachingStaff[]): Row[] {
+  const teachers = staff.filter((s) => s.role === "faculty" || s.role === "hod").length;
+  return [{ students, teachers, ratio: teachers ? `${(students / teachers).toFixed(1)}:1` : null }];
+}
+
+/** Full-time teachers against the department's sanctioned posts. Percent is blank when there are no posts. */
+export function departmentPostRows(departments: { id: number; name: string; sanctionedPosts: number }[], staff: TeachingStaff[]): Row[] {
+  return [...departments]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((d) => {
+      const teachers = staff.filter((s) => (s.role === "faculty" || s.role === "hod") && s.departmentId === d.id).length;
+      return { department: d.name, teachers, posts: d.sanctionedPosts, percent: share(teachers, d.sanctionedPosts) };
+    });
+}
+
+export type ResultLine = { studentId: number; programme: string; total: number; passMark: number };
+
+/** A student passes when every result line of theirs reaches its pass mark. Programmes with no final-year students show a blank percent. */
+export function passRows(programmes: string[], results: ResultLine[]): Row[] {
+  const byStudent = new Map<number, { programme: string; passed: boolean }>();
+  for (const r of results) {
+    const s = byStudent.get(r.studentId) ?? { programme: r.programme, passed: true };
+    if (r.total < r.passMark) s.passed = false;
+    byStudent.set(r.studentId, s);
+  }
+  const students = [...byStudent.values()];
+  return [...new Set(programmes)].sort((a, b) => a.localeCompare(b)).map((code) => {
+    const mine = students.filter((s) => s.programme === code);
+    const passed = mine.filter((s) => s.passed).length;
+    return { programme: code, students: mine.length, passed, percent: share(passed, mine.length) };
+  });
+}
+
+const FUNDING: { source: "government" | "institution" | "non_government"; label: string }[] = [
+  { source: "government", label: "Government" }, { source: "institution", label: "Institution" }, { source: "non_government", label: "Non-government" },
+];
+
+/** Distinct students with an award per funding source, against the campus's students not yet alumni. */
+export function scholarshipRows(awards: { studentId: number; fundingSource: string }[], totalStudents: number): Row[] {
+  return FUNDING.map(({ source, label }) => {
+    const benefited = new Set(awards.filter((a) => a.fundingSource === source).map((a) => a.studentId)).size;
+    return { source: label, benefited, total: totalStudents, percent: share(benefited, totalStudents) };
+  });
 }
 
 const csvCell = (v: string | number | null) => (v === null ? "" : /[",\r\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v));

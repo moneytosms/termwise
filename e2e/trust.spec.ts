@@ -8,6 +8,15 @@ test("trust sign-in lands on the campus overview", async ({ page }) => {
   await expect(page.getByRole("link", { name: /Management School/ })).toBeVisible();
 });
 
+test("trust sees the NAAC returns for all three campuses", async ({ page }) => {
+  await signIn(page, "trust@termwise.demo");
+  await page.getByRole("link", { name: "NAAC returns" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "NAAC returns" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Engineering College", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Management School", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Pharmacy College", exact: true }).first()).toBeVisible();
+});
+
 test("campus drill-down is a read-only view", async ({ page }) => {
   await signIn(page, "trust@termwise.demo");
   await page.getByRole("link", { name: /Engineering College/ }).click();
