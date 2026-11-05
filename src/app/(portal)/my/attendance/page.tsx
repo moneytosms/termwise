@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { CountUp } from "@/components/count-up";
 import { AttendanceMeter, PageHeader, SectionHeading, StatusPill, type Tone } from "@/components/page";
+import { Pager, paginate } from "@/components/pager";
 import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +14,11 @@ import { portalStudent } from "@/server/portal-data";
 import { attendanceEntry, attendanceSession, leaveRequest, subject } from "@/server/schema";
 import { plannerLine } from "./planner";
 
-const REGISTER_LIMIT = 60;
+const REGISTER_PAGE = 30;
 const WORD: Record<AttendanceStatus, [string, Tone]> = { present: ["Present", "ok"], late: ["Late", "late"], absent: ["Absent", "absent"] };
 const dayLabel = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ subject?: string; q?: string; status?: string; from?: string; to?: string }> }) {
+export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ subject?: string; q?: string; status?: string; from?: string; to?: string; page?: string }> }) {
   const v = await requirePortal();
   const [s, rows, leaves] = await Promise.all([
     portalStudent(v.studentId),
@@ -34,7 +35,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   ]);
   if (!s) return null;
 
-  const { subject: wanted, q = "", status = "", from = "", to = "" } = await searchParams;
+  const { subject: wanted, q = "", status = "", from = "", to = "", page } = await searchParams;
   const cutoff = s.cutoff;
   const you = v.role === "student" ? "Your" : `${s.name.split(" ")[0]}'s`;
 
@@ -63,7 +64,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     && (!status || r.status === status)
     && (!from || r.date >= from) && (!to || r.date <= to));
   const filtered = Boolean(needle || status || from || to);
-  const register = shown.slice(0, REGISTER_LIMIT);
+  const paged = paginate(shown, page, REGISTER_PAGE);
+  const register = paged.items;
   const days: { date: string; items: typeof register }[] = [];
   for (const r of register) {
     const last = days.at(-1);
@@ -71,8 +73,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     else days.push({ date: r.date, items: [r] });
   }
   const leaveOn = (date: string) => leaves.find((l) => l.fromDate <= date && date <= l.toDate);
-  const hrefFor = (code?: string) => {
-    const qs = new URLSearchParams(Object.entries({ subject: code ?? "", q, status, from, to }).filter(([, val]) => val)).toString();
+  const hrefFor = (code?: string, p = 1) => {
+    const qs = new URLSearchParams(Object.entries({ subject: code ?? "", q, status, from, to, page: p > 1 ? String(p) : "" }).filter(([, val]) => val)).toString();
     return qs ? `/my/attendance?${qs}` : "/my/attendance";
   };
 
@@ -172,9 +174,9 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
           ))}
         </div>
       )}
+      <Pager page={paged.page} pages={paged.pages} href={(p) => hrefFor(filter?.code, p)} />
       {register.length > 0 && (
         <p className="mt-4 text-xs text-muted-foreground">
-          {shown.length > REGISTER_LIMIT ? `Showing ${REGISTER_LIMIT} of ${shown.length} sessions. ` : ""}
           Approved leave is shown, but still counts as absent toward the % (college rule).
         </p>
       )}

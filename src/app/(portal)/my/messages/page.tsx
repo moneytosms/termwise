@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { PageHeader, SectionHeading, StatusPill } from "@/components/page";
+import { Pager, paginate } from "@/components/pager";
 import { EmptyState } from "@/components/states";
 import { db } from "@/server/db";
 import { requireParent } from "@/server/portal";
@@ -11,8 +12,9 @@ import { LanguageToggle, MentorNoteForm } from "./controls";
 const ist = (d: Date) => d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
 const KIND = { shortage: "Attendance alert", fee_reminder: "Fee reminder" } as const;
 
-export default async function MessagesPage() {
+export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const v = await requireParent();
+  const { page } = await searchParams;
   const s = await portalStudent(v.studentId);
   if (!s) return <EmptyState title="No student record found." />;
   const first = s.name.split(" ")[0];
@@ -23,6 +25,7 @@ export default async function MessagesPage() {
   const messages = await db.select().from(message)
     .where(and(eq(message.studentId, v.studentId), eq(message.language, lang)))
     .orderBy(desc(message.createdAt));
+  const inbox = paginate(messages, page, 15);
   const notes = await db.select().from(portalRequest)
     .where(and(eq(portalRequest.studentId, v.studentId), eq(portalRequest.kind, "mentor_note"), eq(portalRequest.fromUserId, v.userId)))
     .orderBy(desc(portalRequest.createdAt));
@@ -34,7 +37,7 @@ export default async function MessagesPage() {
       <SectionHeading title="Inbox" count={messages.length} />
       {messages.length === 0 ? <EmptyState title="No messages yet." /> : (
         <ul className="space-y-2">
-          {messages.map((m) => {
+          {inbox.items.map((m) => {
             const held = m.status === "blocked_no_consent";
             // The sender appends a sign-in link as the last line; it is not message text.
             const body = m.body.replace(/\n\S*\/sign-in\s*$/, "");
@@ -55,6 +58,7 @@ export default async function MessagesPage() {
           })}
         </ul>
       )}
+      {messages.length > 0 && <Pager page={inbox.page} pages={inbox.pages} href={(p) => `/my/messages?page=${p}`} />}
       {lang === "or" && messages.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Odia text is a fixed template.</p>}
 
       <SectionHeading title="Write to the mentor" />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { paidSql } from "@/app/(app)/fees/queries";
 import { PageHeader, SectionHeading, StatCard, StatStrip, StatusPill } from "@/components/page";
+import { Pager, paginate } from "@/components/pager";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { istDate } from "@/domain/attendance";
@@ -15,8 +16,9 @@ import { PayButton } from "./controls";
 
 const ist = (d: Date) => d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
 
-export default async function FeesPage() {
+export default async function FeesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const v = await requirePortal();
+  const { page } = await searchParams;
   const s = await portalStudent(v.studentId);
   if (!s) return <EmptyState title="No student record found." />;
   const first = s.name.split(" ")[0];
@@ -32,6 +34,7 @@ export default async function FeesPage() {
     .where(eq(feeInstalment.studentId, v.studentId))
     .orderBy(desc(feePayment.paidAt));
 
+  const paged = paginate(payments, page, 10);
   const today = istDate();
   const year = today.slice(0, 4);
   const { totalPaise, overduePaise } = dues(instalments, today);
@@ -76,17 +79,20 @@ export default async function FeesPage() {
 
       <SectionHeading title={you("Your payments", `${first}'s payments`)} count={payments.length} />
       {payments.length === 0 ? <p className="text-sm text-muted-foreground">No payments yet.</p> : (
-        <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
-          {payments.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="min-w-0">{p.label}<span className="block text-xs text-muted-foreground">{ist(p.paidAt)}</span></span>
-                <span className="flex shrink-0 items-center gap-3">
-                  <span className="font-medium tabular-nums">{rupees(p.amountPaise)}</span>
-                  <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/my/fees/receipt/${p.id}`} />}>Receipt</Button>
-                </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
+            {paged.items.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="min-w-0">{p.label}<span className="block text-xs text-muted-foreground">{ist(p.paidAt)}</span></span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="font-medium tabular-nums">{rupees(p.amountPaise)}</span>
+                    <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/my/fees/receipt/${p.id}`} />}>Receipt</Button>
+                  </span>
+              </li>
+            ))}
+          </ul>
+          <Pager page={paged.page} pages={paged.pages} href={(p) => `/my/fees?page=${p}`} />
+        </>
       )}
     </>
   );

@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { PageHeader, SectionHeading, StatusPill } from "@/components/page";
+import { Pager, paginate } from "@/components/pager";
 import { EmptyState } from "@/components/states";
 import { db } from "@/server/db";
 import { requirePortal } from "@/server/portal";
@@ -9,9 +10,11 @@ import { ApplyLeave, DecideLeave, WithdrawLeave } from "./leave-client";
 import { dayCount, statusLabel, statusTone } from "./shared";
 
 const fmt = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const href = (p: number) => `/my/leave?page=${p}`;
 
-export default async function LeavePage() {
+export default async function LeavePage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const v = await requirePortal();
+  const { page } = await searchParams;
   const [rows, student] = await Promise.all([
     db.select().from(leaveRequest).where(eq(leaveRequest.studentId, v.studentId)).orderBy(desc(leaveRequest.createdAt)),
     portalStudent(v.studentId),
@@ -20,7 +23,7 @@ export default async function LeavePage() {
 
   if (v.role === "parent") {
     const waiting = rows.filter((r) => r.status === "pending_parent");
-    const history = rows.filter((r) => r.status !== "pending_parent");
+    const history = paginate(rows.filter((r) => r.status !== "pending_parent"), page, 10);
     return (
       <>
         <PageHeader title="Leave" description="You apply → parent approves → mentor approves. Approved days show as 'On leave' in attendance." />
@@ -34,16 +37,18 @@ export default async function LeavePage() {
             ))}
           </ul>
         )}
-        <SectionHeading title="History" count={history.length} />
-        {history.length === 0 ? <EmptyState title="No earlier requests." /> : (
+        <SectionHeading title="History" count={history.items.length} />
+        {history.items.length === 0 ? <EmptyState title="No earlier requests." /> : (
           <ul className="space-y-3">
-            {history.map((r) => <Row key={r.id} r={r} mentor={mentor} />)}
+            {history.items.map((r) => <Row key={r.id} r={r} mentor={mentor} />)}
           </ul>
         )}
+        <Pager page={history.page} pages={history.pages} href={href} />
       </>
     );
   }
 
+  const requests = paginate(rows, page, 10);
   return (
     <>
       <PageHeader
@@ -52,15 +57,18 @@ export default async function LeavePage() {
         actions={<ApplyLeave />} />
       <SectionHeading title="Requests" count={rows.length} />
       {rows.length === 0 ? <EmptyState title="No leave requests yet." /> : (
-        <ul className="space-y-3">
-          {rows.map((r) => (
-            <Row key={r.id} r={r} mentor={mentor}>
-              {(r.status === "pending_parent" || r.status === "pending_mentor") && (
-                <div className="mt-3 flex justify-end"><WithdrawLeave id={r.id} /></div>
-              )}
-            </Row>
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-3">
+            {requests.items.map((r) => (
+              <Row key={r.id} r={r} mentor={mentor}>
+                {(r.status === "pending_parent" || r.status === "pending_mentor") && (
+                  <div className="mt-3 flex justify-end"><WithdrawLeave id={r.id} /></div>
+                )}
+              </Row>
+            ))}
+          </ul>
+          <Pager page={requests.page} pages={requests.pages} href={href} />
+        </>
       )}
     </>
   );
