@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db, type Tx } from "@/server/db";
-import { batch, calendarDay, campus, department, feeStructure, mark, markComponent, programme, staff, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, feeStructure, mark, markComponent, programme, scholarshipScheme, staff, subject, timetableSlot } from "@/server/schema";
 import { sectionMax, sectionsFor, SECTION_LABEL, type Section } from "@/domain/marks";
 import { APPLICANT_CATEGORIES } from "@/domain/applicants";
 
@@ -79,6 +79,22 @@ const feeInput = z.object({
   programmeId: pick("Pick a programme."),
   category: z.enum(["default", ...APPLICANT_CATEGORIES] as const, "Pick a category."),
   fee: z.string().trim().refine((s) => s === "" || /^\d+$/.test(s), "Fee must be a whole number of rupees."),
+});
+const schemeInput = z.object({
+  id: optId,
+  name: text("Name", 120),
+  fundingSource: z.enum(["government", "institution", "non_government"], "Pick a funding source."),
+  kind: z.enum(["fixed", "percent"], "Pick a kind."),
+  value: z.coerce.number("Enter a value."),
+  categories: z.array(z.enum(APPLICANT_CATEGORIES)),
+  active: z.boolean(),
+}).superRefine((s, ctx) => {
+  if (s.kind === "percent" && (!Number.isInteger(s.value) || s.value < 1 || s.value > 100)) {
+    ctx.addIssue({ code: "custom", message: "Percent must be a whole number from 1 to 100.", path: ["value"] });
+  }
+  if (s.kind === "fixed" && !(s.value > 0)) {
+    ctx.addIssue({ code: "custom", message: "Enter an amount above zero.", path: ["value"] });
+  }
 });
 const rulesInput = z.object({
   riskDropPoints: range("Drop points", 1, 100),
@@ -340,6 +356,32 @@ export async function saveFeeStructure(fd: FormData): Promise<Result> {
       action: old ? "setup.fee_structure.update" : "setup.fee_structure.create", entity: "fee_structure", entityId: row.id,
       oldValue: old ?? null, newValue: row,
     });
+    return null;
+  });
+  if (error) return { error };
+  revalidatePath("/setup");
+  return {};
+}
+
+export async function saveScheme(fd: FormData): Promise<Result> {
+  const v = await requireCan("fees");
+  const r = schemeInput.safeParse({
+    ...Object.fromEntries(fd), categories: fd.getAll("categories"), active: fd.get("active") === "on",
+  });
+  if (!r.success) return { error: r.error.issues[0].message };
+  const { id, value, ...input } = r.data;
+  const values = { ...input, value: input.kind === "fixed" ? Math.round(value * 100) : value };
+  const error = await db.transaction(async (tx) => {
+    if (id) {
+      const [old] = await tx.select().from(scholarshipScheme)
+        .where(and(eq(scholarshipScheme.id, id), eq(scholarshipScheme.campusId, v.campusId)));
+      if (!old) return "Scheme not found on this campus.";
+      const [row] = await tx.update(scholarshipScheme).set(values).where(eq(scholarshipScheme.id, id)).returning();
+      await audit(tx, v, { action: "setup.scholarship_scheme.update", entity: "scholarship_scheme", entityId: id, oldValue: old, newValue: row });
+    } else {
+      const [row] = await tx.insert(scholarshipScheme).values({ ...values, campusId: v.campusId }).returning();
+      await audit(tx, v, { action: "setup.scholarship_scheme.create", entity: "scholarship_scheme", entityId: row.id, newValue: row });
+    }
     return null;
   });
   if (error) return { error };

@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const rows = await tx.select({
       id: feePayment.id, paidAt: feePayment.paidAt, amountPaise: feePayment.amountPaise, mode: feePayment.mode,
       reference: feePayment.reference, instalmentLabel: feeInstalment.label, rollNo: student.rollNo,
-      studentName: student.name, programmeCode: programme.code,
+      studentName: student.name, programmeCode: programme.code, scholarshipPaise: feeInstalment.scholarshipPaise,
     }).from(feePayment)
       .innerJoin(feeInstalment, eq(feePayment.instalmentId, feeInstalment.id))
       .innerJoin(student, eq(feeInstalment.studentId, student.id))

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { paidSql } from "@/app/(app)/fees/queries";
 import { PageHeader, SectionHeading, StatCard, StatStrip, StatusPill } from "@/components/page";
 import { Pager, paginate } from "@/components/pager";
@@ -11,7 +11,7 @@ import { rupees } from "@/lib/utils";
 import { db } from "@/server/db";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
-import { feeInstalment, feePayment } from "@/server/schema";
+import { feeInstalment, feePayment, scholarshipAward, scholarshipScheme } from "@/server/schema";
 import { PayButton } from "./controls";
 
 const ist = (d: Date) => d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
@@ -33,6 +33,12 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
     .innerJoin(feeInstalment, eq(feePayment.instalmentId, feeInstalment.id))
     .where(eq(feeInstalment.studentId, v.studentId))
     .orderBy(desc(feePayment.paidAt));
+
+  const awards = await db.select({ id: scholarshipAward.id, scheme: scholarshipScheme.name, semester: scholarshipAward.semester, amountPaise: scholarshipAward.amountPaise })
+    .from(scholarshipAward)
+    .innerJoin(scholarshipScheme, eq(scholarshipAward.schemeId, scholarshipScheme.id))
+    .where(and(eq(scholarshipAward.studentId, v.studentId), isNull(scholarshipAward.withdrawnAt)))
+    .orderBy(scholarshipAward.semester, scholarshipAward.id);
 
   const paged = paginate(payments, page, 10);
   const today = istDate();
@@ -75,6 +81,20 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
             );
           })}
         </ul>
+      )}
+
+      {awards.length > 0 && (
+        <>
+          <SectionHeading title={you("Your scholarships", `${first}'s scholarships`)} count={awards.length} />
+          <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
+            {awards.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="min-w-0">{a.scheme}<span className="block text-xs text-muted-foreground">Semester {a.semester}</span></span>
+                <span className="shrink-0 font-medium tabular-nums">{rupees(a.amountPaise)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <SectionHeading title={you("Your payments", `${first}'s payments`)} count={payments.length} />

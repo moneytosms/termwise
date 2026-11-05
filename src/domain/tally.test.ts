@@ -3,7 +3,7 @@ import { rupeeAmount, tallyReceiptsXml, type TallyRow } from "./tally";
 
 const row = (o: Partial<TallyRow> = {}): TallyRow => ({
   receiptNo: "R-000123", paidAt: new Date("2026-11-03T05:00:00Z"), rollNo: "CS2601", studentName: "Asha Rao",
-  instalmentLabel: "Sem 1 instalment 1", reference: "UTR1", amountPaise: 4500000, mode: "bank_counter",
+  instalmentLabel: "Sem 1 instalment 1", reference: "UTR1", amountPaise: 4500000, scholarshipPaise: 0, mode: "bank_counter",
   programmeCode: "BCA", ...o,
 });
 
@@ -12,6 +12,13 @@ describe("tallyReceiptsXml", () => {
     const xml = tallyReceiptsXml([row()]);
     expect(xml).toContain("<LEDGERNAME>Bank Counter</LEDGERNAME><ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE><AMOUNT>-45000.00</AMOUNT>");
     expect(xml).toContain("<LEDGERNAME>Fees Received - BCA</LEDGERNAME><ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE><AMOUNT>45000.00</AMOUNT>");
+  });
+
+  it("keeps the cash entries at the amount paid and notes the scholarship in the narration", () => {
+    const xml = tallyReceiptsXml([row({ scholarshipPaise: 1250000 })]);
+    expect(xml).toContain("<AMOUNT>-45000.00</AMOUNT>");
+    expect(xml).toContain("<AMOUNT>45000.00</AMOUNT>");
+    expect(xml).toContain("<NARRATION>CS2601 Asha Rao Sem 1 instalment 1 ref UTR1 scholarship 12500.00</NARRATION>");
   });
 
   it("formats paise without float drift", () => {

@@ -22,7 +22,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
 
   const [r] = /^\d{1,9}$/.test(paymentId) ? await db.select({
     id: feePayment.id, amountPaise: feePayment.amountPaise, mode: feePayment.mode, reference: feePayment.reference, paidAt: feePayment.paidAt,
-    label: feeInstalment.label, name: student.name, rollNo: student.rollNo, batch: batch.code, programme: programme.name, campus,
+    label: feeInstalment.label, scholarshipPaise: feeInstalment.scholarshipPaise, name: student.name, rollNo: student.rollNo, batch: batch.code, programme: programme.name, campus,
   }).from(feePayment)
     .innerJoin(feeInstalment, eq(feePayment.instalmentId, feeInstalment.id))
     .innerJoin(student, eq(feeInstalment.studentId, student.id))
@@ -49,6 +49,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
     ["Roll no", r.rollNo],
     ["Programme / batch", `${r.programme} · ${r.batch}`],
     ["Instalment", r.label],
+    ...(r.scholarshipPaise > 0 ? [["Scholarship applied", inr(r.scholarshipPaise)] as [string, string]] : []),
     ["Mode", MODE[r.mode]],
     ["Reference", r.reference],
     ["Paid at", ist(r.paidAt, "time") + " IST"],
