@@ -4,11 +4,12 @@ import { hashPassword } from "better-auth/crypto";
 import { confirmBlocker, nextRollNo } from "@/domain/admission";
 import { applicableDocs, checklist } from "@/domain/applicants";
 import { istDate } from "@/domain/attendance";
+import { semesterFee } from "@/domain/fee-structure";
 import type { Viewer } from "./access";
 import { audit } from "./audit";
 import { db, type Tx } from "./db";
 import {
-  account, applicant, applicantDocument, batch, campus, feeInstalment, guardian, guardianStudent,
+  account, applicant, applicantDocument, batch, campus, feeInstalment, feeStructure, guardian, guardianStudent,
   programme, requiredDocument, student, studentDocument, user,
 } from "./schema";
 
@@ -63,6 +64,8 @@ export async function confirmApplicant(actor: Viewer, applicantId: number): Prom
       const [b] = await tx.select().from(batch).where(eq(batch.id, app.batchId)).for("update");
       const [p] = await tx.select({ code: programme.code, semesterFeePaise: programme.semesterFeePaise, campusCode: campus.code })
         .from(programme).innerJoin(campus, eq(programme.campusId, campus.id)).where(eq(programme.id, b.programmeId));
+      const feeRows = await tx.select({ category: feeStructure.category, semesterFeePaise: feeStructure.semesterFeePaise })
+        .from(feeStructure).where(eq(feeStructure.programmeId, b.programmeId));
       const rolls = (await tx.select({ rollNo: student.rollNo }).from(student).where(eq(student.batchId, b.id)))
         .map((r) => r.rollNo).filter((r) => /\d{4}$/.test(r));
       const rollNo = nextRollNo(rolls, `${p.campusCode}-${String(b.admissionYear).slice(2)}-${p.code}-`);
@@ -71,17 +74,19 @@ export async function confirmApplicant(actor: Viewer, applicantId: number): Prom
       const [s] = await tx.insert(student).values({
         rollNo, name: app.name, batchId: b.id, mentorId: null, birthDate: app.birthDate,
         guardianName: app.guardianName, guardianPhone: app.guardianPhone, parentConsentAt: app.parentConsentAt,
+        category: app.category, gender: app.gender,
       }).returning({ id: student.id });
       if (items.length > 0) {
         await tx.insert(studentDocument).values(items.map((i) => ({
           studentId: s.id, name: i.name, status: i.status, fileId: statuses.find((d) => d.name === i.name)?.fileId ?? null,
         })));
       }
-      if (p.semesterFeePaise > 0) {
-        const half = Math.round(p.semesterFeePaise / 2);
+      const fee = semesterFee(p.semesterFeePaise, feeRows, app.category);
+      if (fee > 0) {
+        const half = Math.round(fee / 2);
         await tx.insert(feeInstalment).values([
-          { studentId: s.id, label: "Instalment 1", dueDate: addDays(today, 30), amountPaise: half, scholarshipPaise: 0 },
-          { studentId: s.id, label: "Instalment 2", dueDate: addDays(today, 120), amountPaise: half, scholarshipPaise: 0 },
+          { studentId: s.id, semester: b.semester, label: "Instalment 1", dueDate: addDays(today, 30), amountPaise: half, scholarshipPaise: 0 },
+          { studentId: s.id, semester: b.semester, label: "Instalment 2", dueDate: addDays(today, 120), amountPaise: half, scholarshipPaise: 0 },
         ]);
       }
 

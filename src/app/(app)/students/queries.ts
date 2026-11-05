@@ -56,6 +56,7 @@ export async function getStudentDetail(v: Viewer, id: number) {
   await assertStudentAccess(v, id);
   const [s] = await db.select({
     id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code, programme: programme.name, year: batch.year, semester: batch.semester, cutoff: programme.attendanceCutoff,
+    category: student.category, gender: student.gender,
     mentor: staff.name, guardianName: student.guardianName, guardianPhone: student.guardianPhone,
   }).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id)).leftJoin(staff, eq(student.mentorId, staff.id))

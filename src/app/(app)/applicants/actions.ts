@@ -101,7 +101,7 @@ export async function importApplicants(batchId: number, csvText: string): Promis
 
     await tx.insert(applicant).values(parsed.rows.map((r) => ({
       programmeId: b.programmeId, batchId: b.id, name: r.name, birthDate: r.birthDate, category: r.category,
-      guardianName: r.guardianName, guardianPhone: r.guardianPhone, guardianEmail: r.guardianEmail,
+      guardianName: r.guardianName, guardianPhone: r.guardianPhone, guardianEmail: r.guardianEmail, gender: r.gender,
     })));
     await audit(tx, v, { action: "applicant.import", entity: "batch", entityId: b.id, newValue: { count: parsed.rows.length } });
     return null;

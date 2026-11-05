@@ -20,7 +20,7 @@ export function listProgrammes(campusId: number) {
 }
 
 function loadStrength(campusId: number, programmeId: number | null) {
-  return db.select({ programme: programme.code, year: batch.year, batch: batch.code }).from(student)
+  return db.select({ programme: programme.code, year: batch.year, batch: batch.code, category: student.category, gender: student.gender }).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
@@ -116,6 +116,7 @@ export async function runReport(v: { campusId: number }, key: ReportKey, o: Repo
   if (key === "strength") rows = strengthRows(await loadStrength(v.campusId, programmeId));
   else if (key === "shortage") rows = shortageRows(await loadShortage(v.campusId, o.month, programmeId));
   else if (key === "marks") rows = marksRows(await loadMarks(v.campusId, programmeId));
-  else rows = feeRows(await loadFees(v.campusId, asOf, programmeId), asOf);
+  else if (key === "fees") rows = feeRows(await loadFees(v.campusId, asOf, programmeId), asOf);
+  else throw new Error(`Unknown report: ${key}`);
   return { columns, rows };
 }

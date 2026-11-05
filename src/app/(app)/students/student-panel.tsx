@@ -12,6 +12,7 @@ import { Initials } from "./students-table";
 import { dues } from "@/domain/fees";
 import { classesToReach, istDate } from "@/domain/attendance";
 import { rupees } from "@/lib/utils";
+import { categoryLabel, genderLabel } from "@/domain/applicants";
 import { SOURCE } from "../risk/labels";
 import { closeMentorTask } from "./actions";
 import type { StudentDetail } from "./queries";
@@ -82,6 +83,8 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
           {d.instalments
             ? <div className="bg-card p-3.5"><dt className="text-muted-foreground">Fee due</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{rupees(feeDue)}</dd></div>
             : <div className="bg-card p-3.5"><dt className="text-muted-foreground">Line</dt><dd className="mt-1 text-xl font-medium tabular-nums">{d.student.cutoff}%</dd></div>}
+          <div className="bg-card p-3.5"><dt className="text-muted-foreground">Category</dt><dd className="mt-1 font-medium">{categoryLabel(d.student.category)}</dd></div>
+          <div className="bg-card p-3.5"><dt className="text-muted-foreground">Gender</dt><dd className="mt-1 font-medium">{genderLabel(d.student.gender)}</dd></div>
         </dl>
         <p className="pt-1 text-sm text-muted-foreground">Mentor: <span className="text-foreground">{d.student.mentor ?? "None"}</span></p>
         {isAdmin && <Link href={`/students/${d.student.id}/sheet`} className="text-sm underline underline-offset-4">Mark sheet</Link>}
