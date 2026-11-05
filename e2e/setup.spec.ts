@@ -34,6 +34,9 @@ test("rules: minimum sessions persists across reload and is restored", async ({ 
 // overlap period 2 (09:50-10:40); the save is rejected, so nothing changes.
 test("timetable: a slot overlapping the next period is rejected", async ({ page }) => {
   await page.goto("/setup?tab=timetable");
+  await page.getByRole("combobox", { name: "Batch", exact: true }).click();
+  await page.getByRole("option", { name: "CSE-2024", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Batch", exact: true })).toContainText("CSE-2024");
   await page.getByRole("button", { name: /^Monday, period 1: / }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Start", { exact: true }).fill("09:30");
