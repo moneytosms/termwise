@@ -83,6 +83,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
             : <div className="bg-card p-3.5"><dt className="text-muted-foreground">Line</dt><dd className="mt-1 text-xl font-medium tabular-nums">{d.student.cutoff}%</dd></div>}
         </dl>
         <p className="pt-1 text-sm text-muted-foreground">Mentor: <span className="text-foreground">{d.student.mentor ?? "None"}</span></p>
+        {isAdmin && <Link href={`/students/${d.student.id}/sheet`} className="text-sm underline underline-offset-4">Mark sheet</Link>}
 
         {d.flags.length > 0 && (
           <>
