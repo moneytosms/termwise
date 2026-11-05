@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db";
-import { batch, calendarDay, campus, department, programme, requiredDocument, staff, student, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, feeStructure, programme, requiredDocument, staff, student, subject, timetableSlot } from "@/server/schema";
 
 export const getCampus = async (campusId: number) => {
   const [row] = await db.select().from(campus).where(eq(campus.id, campusId));
@@ -18,6 +18,20 @@ export const listProgrammes = (campusId: number) =>
   }).from(programme)
     .leftJoin(department, eq(programme.departmentId, department.id))
     .where(eq(programme.campusId, campusId)).orderBy(programme.code);
+
+/** Programmes with their default semester fee and any per-category fees (category -> paise). */
+export async function listFeeStructure(campusId: number) {
+  const progs = await db.select({ id: programme.id, code: programme.code, name: programme.name, defaultPaise: programme.semesterFeePaise })
+    .from(programme).where(eq(programme.campusId, campusId)).orderBy(programme.code);
+  const fees = await db.select({ programmeId: feeStructure.programmeId, category: feeStructure.category, paise: feeStructure.semesterFeePaise })
+    .from(feeStructure)
+    .innerJoin(programme, eq(feeStructure.programmeId, programme.id))
+    .where(eq(programme.campusId, campusId));
+  return progs.map((p) => ({
+    ...p,
+    fees: Object.fromEntries(fees.filter((f) => f.programmeId === p.id).map((f) => [f.category, f.paise])) as Record<string, number>,
+  }));
+}
 
 export const listRequiredDocuments = (campusId: number) =>
   db.select({

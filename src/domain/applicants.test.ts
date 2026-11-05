@@ -71,8 +71,19 @@ describe("parseApplicantsCsv", () => {
         guardianName: "Ramesh Sharma",
         guardianPhone: "9876543210",
         guardianEmail: null,
+        gender: null,
       },
     ]);
+  });
+
+  it("reads an optional gender column and rejects an unknown value with its line number", () => {
+    const ok = parseApplicantsCsv(`${HEADER},gender\nAsha,2007-04-12,general,Ramesh,9876543210,,Female\n`);
+    expect(ok.errors).toEqual([]);
+    expect(ok.rows[0].gender).toBe("female");
+
+    const bad = parseApplicantsCsv(`${HEADER},gender\nAsha,2007-04-12,general,Ramesh,9876543210,,x\n`);
+    expect(bad.rows).toEqual([]);
+    expect(bad.errors).toEqual([{ line: 2, message: expect.stringContaining("gender") }]);
   });
 
   it("handles quoted fields with commas and doubled quotes", () => {

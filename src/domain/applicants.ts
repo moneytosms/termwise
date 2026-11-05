@@ -9,6 +9,18 @@ export const CATEGORY_LABEL: Record<ApplicantCategory, string> = {
   ews: "EWS",
 };
 
+export const GENDERS = ["male", "female", "other"] as const;
+export type Gender = (typeof GENDERS)[number];
+
+export const GENDER_LABEL: Record<Gender, string> = {
+  male: "Male",
+  female: "Female",
+  other: "Other",
+};
+
+export const categoryLabel = (c: string) => CATEGORY_LABEL[c as ApplicantCategory] ?? c;
+export const genderLabel = (g: string | null) => (g ? GENDER_LABEL[g as Gender] ?? g : "Not recorded");
+
 export type DocStatus = "pending" | "received" | "verified";
 
 export type RequiredDoc = { name: string; categories: string[] | null };
@@ -39,8 +51,8 @@ export function checklistComplete(items: DocState[]): boolean {
 }
 
 export const APPLICANT_CSV_TEMPLATE =
-  "name,birth_date,category,guardian_name,guardian_phone,guardian_email\n" +
-  "Asha Sharma,2007-04-12,general,Ramesh Sharma,9876543210,ramesh.sharma@example.com\n";
+  "name,birth_date,category,guardian_name,guardian_phone,guardian_email,gender\n" +
+  "Asha Sharma,2007-04-12,general,Ramesh Sharma,9876543210,ramesh.sharma@example.com,female\n";
 
 export const APPLICANT_CSV_MAX_ROWS = 500;
 
@@ -51,6 +63,7 @@ export type ApplicantRow = {
   guardianName: string;
   guardianPhone: string;
   guardianEmail: string | null;
+  gender: Gender | null;
 };
 
 export type CsvIssue = { line: number; message: string };
@@ -157,6 +170,12 @@ export function parseApplicantsCsv(text: string): { rows: ApplicantRow[]; errors
       errors.push({ line: record.line, message: `category "${cell("category")}" must be one of general, obc, sc, st, ews` });
     }
 
+    const gender = cell("gender").toLowerCase();
+    const isKnownGender = (GENDERS as readonly string[]).includes(gender);
+    if (gender !== "" && !isKnownGender) {
+      errors.push({ line: record.line, message: `gender "${cell("gender")}" must be one of male, female, other` });
+    }
+
     if (errors.length === before) {
       rows.push({
         name: cell("name"),
@@ -165,6 +184,7 @@ export function parseApplicantsCsv(text: string): { rows: ApplicantRow[]; errors
         guardianName: cell("guardian_name"),
         guardianPhone: cell("guardian_phone"),
         guardianEmail: cell("guardian_email") || null,
+        gender: gender === "" ? null : (gender as Gender),
       });
     }
   }

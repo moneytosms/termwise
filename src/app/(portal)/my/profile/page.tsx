@@ -1,12 +1,13 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { PageHeader, Panel, SectionHeading, StatusPill, type Tone } from "@/components/page";
 import { EmptyState } from "@/components/states";
+import { categoryLabel, genderLabel } from "@/domain/applicants";
 import { istDate } from "@/domain/attendance";
 import { isMinor } from "@/domain/templates";
 import { db } from "@/server/db";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
-import { message, portalRequest, studentDocument } from "@/server/schema";
+import { message, portalRequest, student, studentDocument } from "@/server/schema";
 import { ConsentPanel } from "./consent-panel";
 import { CorrectionForm } from "./correction-form";
 
@@ -25,13 +26,14 @@ export default async function ProfilePage() {
   if (!s) return <EmptyState title="No student record found." />;
   const minor = isMinor(s.birthDate, istDate());
 
-  const [docs, requests, [held]] = await Promise.all([
+  const [docs, requests, [held], [profile]] = await Promise.all([
     db.select().from(studentDocument).where(eq(studentDocument.studentId, v.studentId)).orderBy(studentDocument.id),
     db.select().from(portalRequest)
       .where(and(eq(portalRequest.studentId, v.studentId), eq(portalRequest.kind, "profile_correction")))
       .orderBy(desc(portalRequest.createdAt)),
     db.select({ n: count() }).from(message)
       .where(and(eq(message.studentId, v.studentId), eq(message.status, "blocked_no_consent"))),
+    db.select({ category: student.category, gender: student.gender }).from(student).where(eq(student.id, v.studentId)),
   ]);
   const verified = docs.filter((d) => d.status === "verified").length;
 
@@ -43,6 +45,8 @@ export default async function ProfilePage() {
     ["Year / semester", `Year ${s.year}, semester ${s.semester}`],
     ["Campus", s.campus],
     ["Date of birth", dob(s.birthDate)],
+    ["Category", categoryLabel(profile.category)],
+    ["Gender", genderLabel(profile.gender)],
     ["Mentor", s.mentor ?? "Not assigned"],
     ["Guardian", s.guardianName ?? "Not recorded"],
     ["Guardian phone", s.guardianPhone ?? "Not recorded"],

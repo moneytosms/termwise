@@ -6,8 +6,9 @@ import { z } from "zod";
 import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db, type Tx } from "@/server/db";
-import { batch, calendarDay, campus, department, mark, markComponent, programme, staff, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, feeStructure, mark, markComponent, programme, staff, subject, timetableSlot } from "@/server/schema";
 import { sectionMax, sectionsFor, SECTION_LABEL, type Section } from "@/domain/marks";
+import { APPLICANT_CATEGORIES } from "@/domain/applicants";
 
 type Result = { error?: string };
 
@@ -74,6 +75,11 @@ const slotInput = z.object({
   .refine((x) => x.subjectId !== null || x.label !== "", { message: "Pick a subject or type a label.", path: ["label"] })
   .refine((x) => x.period + x.periodCount - 1 <= 9, { message: "Period count runs past period 9.", path: ["periodCount"] });
 const cellInput = z.object({ batchId: pick("Pick a batch."), dayOfWeek: range("Day", 0, 6), period: range("Period", 1, 9) });
+const feeInput = z.object({
+  programmeId: pick("Pick a programme."),
+  category: z.enum(APPLICANT_CATEGORIES, "Pick a category."),
+  fee: z.string().trim().refine((s) => s === "" || /^\d+$/.test(s), "Fee must be a whole number of rupees."),
+});
 const rulesInput = z.object({
   riskDropPoints: range("Drop points", 1, 100),
   riskMarksPercent: range("Marks percent", 1, 100),
@@ -283,6 +289,40 @@ export async function deleteSlot(input: { batchId: number; dayOfWeek: number; pe
     if (!old) return "Nothing in this cell to remove.";
     await tx.delete(timetableSlot).where(eq(timetableSlot.id, old.id));
     await audit(tx, v, { action: "setup.timetable_slot.delete", entity: "timetable_slot", entityId: old.id, oldValue: old });
+    return null;
+  });
+  if (error) return { error };
+  revalidatePath("/setup");
+  return {};
+}
+
+/** Sets or, when the fee is blank, removes the semester fee for one category of a programme. Never touches instalments. */
+export async function saveFeeStructure(fd: FormData): Promise<Result> {
+  const v = await requireCan("fees");
+  const p = parse(feeInput, fd);
+  if (!p.ok) return { error: p.error };
+  const { programmeId, category, fee } = p.data;
+  const paise = fee === "" ? null : Number(fee) * 100;
+  const error = await db.transaction(async (tx) => {
+    const [prog] = await tx.select({ id: programme.id }).from(programme)
+      .where(and(eq(programme.id, programmeId), eq(programme.campusId, v.campusId)));
+    if (!prog) return "Pick a programme from this campus.";
+    const [old] = await tx.select().from(feeStructure)
+      .where(and(eq(feeStructure.programmeId, programmeId), eq(feeStructure.category, category)));
+    if (paise === null) {
+      if (old) {
+        await tx.delete(feeStructure).where(eq(feeStructure.id, old.id));
+        await audit(tx, v, { action: "setup.fee_structure.delete", entity: "fee_structure", entityId: old.id, oldValue: old });
+      }
+      return null;
+    }
+    const [row] = await tx.insert(feeStructure).values({ programmeId, category, semesterFeePaise: paise })
+      .onConflictDoUpdate({ target: [feeStructure.programmeId, feeStructure.category], set: { semesterFeePaise: paise } })
+      .returning();
+    await audit(tx, v, {
+      action: old ? "setup.fee_structure.update" : "setup.fee_structure.create", entity: "fee_structure", entityId: row.id,
+      oldValue: old ?? null, newValue: row,
+    });
     return null;
   });
   if (error) return { error };

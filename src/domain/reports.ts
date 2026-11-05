@@ -1,4 +1,5 @@
 import { isShortage } from "./attendance";
+import { categoryLabel, genderLabel } from "./applicants";
 import { dues, type Instalment } from "./fees";
 import { finalScore, type MarksStatus, type Scheme, type Section } from "./marks";
 
@@ -11,7 +12,8 @@ export type ReportKey = (typeof REPORT_KEYS)[number];
 /** University, AICTE and NAAC returns. Column keys are row keys; labels go in the CSV header. */
 export const REPORTS: { key: ReportKey; title: string; columns: Column[] }[] = [
   { key: "strength", title: "Strength", columns: [
-    { key: "programme", label: "Programme" }, { key: "year", label: "Year" }, { key: "batch", label: "Batch" }, { key: "students", label: "Students" },
+    { key: "programme", label: "Programme" }, { key: "year", label: "Year" }, { key: "batch", label: "Batch" },
+    { key: "category", label: "Category" }, { key: "gender", label: "Gender" }, { key: "students", label: "Students" },
   ] },
   { key: "shortage", title: "Attendance shortage", columns: [
     { key: "roll", label: "Roll no" }, { key: "name", label: "Name" }, { key: "programme", label: "Programme" }, { key: "subject", label: "Subject" },
@@ -49,12 +51,14 @@ export function asOfDate(month: string, today: string): string {
   return month === today.slice(0, 7) ? today : lastDay(month);
 }
 
-/** One row per student: the batch's strength by programme and year. */
-export function strengthRows(students: { programme: string; year: number; batch: string }[]): Row[] {
-  const groups = new Map<string, { programme: string; year: number; batch: string; students: number }>();
+/** One row per student: the batch's strength by programme, year, category and gender. */
+export function strengthRows(students: { programme: string; year: number; batch: string; category: string; gender: string | null }[]): Row[] {
+  const groups = new Map<string, { programme: string; year: number; batch: string; category: string; gender: string; students: number }>();
   for (const s of students) {
-    const key = `${s.programme}|${s.year}|${s.batch}`;
-    const g = groups.get(key) ?? { programme: s.programme, year: s.year, batch: s.batch, students: 0 };
+    const category = categoryLabel(s.category);
+    const gender = genderLabel(s.gender);
+    const key = `${s.programme}|${s.year}|${s.batch}|${category}|${gender}`;
+    const g = groups.get(key) ?? { programme: s.programme, year: s.year, batch: s.batch, category, gender, students: 0 };
     g.students++;
     groups.set(key, g);
   }

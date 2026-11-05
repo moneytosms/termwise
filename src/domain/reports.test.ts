@@ -5,13 +5,16 @@ import type { Scheme } from "./marks";
 const scheme: Scheme = { kind: "theory", internalMax: 40, midMax: 20, endMax: 40, theoryScale: 100, labExamMax: 15, vivaMax: 10, ceMax: 5 };
 
 describe("strengthRows", () => {
-  it("counts students per programme, year and batch", () => {
+  it("counts students per programme, year, batch, category and gender", () => {
     expect(strengthRows([
-      { programme: "CSE", year: 2, batch: "CSE-24" }, { programme: "CSE", year: 2, batch: "CSE-24" },
-      { programme: "ME", year: 1, batch: "ME-25" },
+      { programme: "CSE", year: 2, batch: "CSE-24", category: "obc", gender: "female" },
+      { programme: "CSE", year: 2, batch: "CSE-24", category: "obc", gender: "female" },
+      { programme: "CSE", year: 2, batch: "CSE-24", category: "general", gender: "male" },
+      { programme: "ME", year: 1, batch: "ME-25", category: "general", gender: null },
     ])).toEqual([
-      { programme: "CSE", year: 2, batch: "CSE-24", students: 2 },
-      { programme: "ME", year: 1, batch: "ME-25", students: 1 },
+      { programme: "CSE", year: 2, batch: "CSE-24", category: "OBC", gender: "Female", students: 2 },
+      { programme: "CSE", year: 2, batch: "CSE-24", category: "General", gender: "Male", students: 1 },
+      { programme: "ME", year: 1, batch: "ME-25", category: "General", gender: "Not recorded", students: 1 },
     ]);
   });
 });
