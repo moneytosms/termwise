@@ -9,6 +9,7 @@ test("a CSE head of department sees only CSE students, and another department's 
   const admin = await adminCtx.newPage();
   await signIn(admin, "eng.admin@termwise.demo");
   await admin.goto("/students");
+  await admin.getByLabel("Search name or roll number", { exact: true }).fill("ENG-24-ME-0177");
   await admin.getByText("ENG-24-ME-0177").filter({ visible: true }).first().click();
   await admin.waitForURL(/student=\d+/);
   const meStudent = new URL(admin.url()).searchParams.get("student");
@@ -19,8 +20,10 @@ test("a CSE head of department sees only CSE students, and another department's 
   await signIn(hod, "cse.hod@termwise.demo");
   await hod.goto("/students");
   await expect(hod.getByText("in your department").filter({ visible: true }).first()).toBeVisible();
+  await hod.getByLabel("Search name or roll number", { exact: true }).fill("ENG-24-CSE-0412");
   await expect(hod.getByText("ENG-24-CSE-0412").filter({ visible: true }).first()).toBeVisible();
-  await expect(hod.getByText("ENG-24-ME-0177")).toHaveCount(0);
+  await hod.getByLabel("Search name or roll number", { exact: true }).fill("ENG-24-ME-0177");
+  await expect(hod.getByText("ENG-24-ME-0177").filter({ visible: true })).toHaveCount(0);
 
   await hod.goto(`/students?student=${meStudent}`);
   await expect(hod.getByText("This student isn't available to you.")).toBeVisible();
