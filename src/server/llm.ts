@@ -12,9 +12,11 @@ export type Effort = "low" | "medium" | "high";
 // through the other available models in this order.
 const CHOICES = [
   { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "Groq · strongest", provider: "groq", model: "openai/gpt-oss-120b" },
+  { id: "flash-3.6", label: "Gemini 3.6 Flash", hint: "Google · strong", provider: "google", model: "gemini-3.6-flash" },
   { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "Groq · fastest", provider: "groq", model: "openai/gpt-oss-20b" },
-  { id: "flash", label: "Gemini 3.8 Flash", hint: "Google · can be busy", provider: "google", model: "gemini-3.8-flash" },
+  { id: "flash", label: "Gemini 3.5 Flash", hint: "Google · balanced", provider: "google", model: "gemini-3.5-flash" },
   { id: "lite", label: "Gemini 3.5 Flash Lite", hint: "Google · quick", provider: "google", model: "gemini-3.5-flash-lite" },
+  { id: "gemma", label: "Gemma 4 26B", hint: "Google · open model", provider: "google", model: "gemma-4-26b-a4b-it" },
 ] as const;
 export type ModelId = (typeof CHOICES)[number]["id"];
 export const MODEL_IDS = CHOICES.map((c) => c.id) as [ModelId, ...ModelId[]];
@@ -31,6 +33,7 @@ export function availableModels() {
 type ProviderOptions = Parameters<typeof generateText>[0]["providerOptions"];
 
 function build(c: Choice, effort: Effort): { label: string; model: LanguageModel; providerOptions: ProviderOptions } {
+  if (c.id === "gemma") return { label: c.label, model: google(c.model), providerOptions: {} };
   if (c.provider === "google") return { label: c.label, model: google(c.model), providerOptions: { google: { thinkingConfig: { thinkingLevel: effort } } } };
   return { label: c.label, model: groq(c.model), providerOptions: { groq: { reasoningEffort: effort } } };
 }
@@ -46,7 +49,7 @@ export function chatModels(id: ModelId, effort: Effort) {
 export function llmModel() {
   const provider = process.env.LLM_PROVIDER ?? "google";
   if (provider === "groq") return process.env.GROQ_API_KEY ? groq("openai/gpt-oss-120b") : null;
-  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ? google("gemini-3.8-flash") : null;
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ? google("gemini-3.6-flash") : null;
 }
 
 /** Counts one call against the daily cap; false once the cap is reached. */

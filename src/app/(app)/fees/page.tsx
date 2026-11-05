@@ -10,9 +10,9 @@ import { collectedThisMonth, getFeeDetail, listFeeDues } from "./queries";
 
 const STATUSES = ["Clear", "Due", "Overdue"];
 
-export default async function FeesPage({ searchParams }: { searchParams: Promise<{ student?: string; status?: string }> }) {
+export default async function FeesPage({ searchParams }: { searchParams: Promise<{ student?: string; status?: string; batch?: string }> }) {
   const v = await requireAdmin();
-  const { student, status } = await searchParams;
+  const { student, status, batch } = await searchParams;
   const rows = await listFeeDues(v);
   const collected = await collectedThisMonth(v);
   const detail = student && /^\d+$/.test(student) ? await getFeeDetail(v, Number(student)).catch(() => null) : null;
@@ -35,7 +35,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         <StatCard label="Collected this month" value={rupees(collected)} tone="ok" />
       </StatStrip>
       <div className="mt-6">
-        <FeesTable rows={rows} initialFilters={status && STATUSES.includes(status) ? { Status: status } : {}} />
+        <FeesTable rows={rows} initialFilters={{ ...(batch && { Batch: batch }), ...(status && STATUSES.includes(status) && { Status: status }) }} />
       </div>
       {student && <FeePanel detail={detail} />}
     </>

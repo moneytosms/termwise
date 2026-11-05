@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.mts",
-    "db:seed": "tsx scripts/seed.mts"
+    "db:seed": "tsx scripts/seed.mts",
+    "eval:termy": "tsx scripts/termy-eval.mts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.109",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Code2, Copy, Download, History, RotateCcw, Square, SquarePen, Trash2 } from "lucide-react";
+import { ArrowRight, ArrowUp, Check, Code2, Copy, Download, History, RotateCcw, Square, SquarePen, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -334,6 +335,7 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
       )}
 
       <div className="flex flex-wrap gap-1">
+        {a.link && <Button variant="outline" size="sm" className="h-7 text-xs" nativeButton={false} render={<Link href={a.link.href} />}>{a.link.label}<ArrowRight className="size-3.5" aria-hidden /></Button>}
         <Button variant="ghost" size="sm" className="h-7 text-xs" aria-expanded={sql} onClick={() => setSql(!sql)}><Code2 className="size-3.5" aria-hidden />{sql ? "Hide query" : "Show query"}</Button>
         <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { void navigator.clipboard.writeText(a.sql); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
           {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}{copied ? "Copied" : "Copy SQL"}
