@@ -1,18 +1,15 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { SETTINGS_KEY } from "./settings-boot";
+import { PRESETS, SETTINGS_KEY } from "./settings-boot";
 
-// Per-device preferences. Light/dark/system lives in next-themes; everything else here.
-export const PRESETS = [
-  { id: "default", label: "Register" },
-  { id: "catppuccin", label: "Catppuccin" },
-  { id: "nord", label: "Nord" },
-  { id: "tokyo-night", label: "Tokyo Night" },
-  { id: "rose-pine", label: "Rosé Pine" },
-] as const;
+export { PRESETS };
+
+// Preferences: cached in localStorage for instant paint, synced to the account by <SettingsSync>.
+// `mode` mirrors next-themes (which applies it) so it syncs too.
 
 export type Settings = {
+  mode: "light" | "dark" | "system";
   preset: (typeof PRESETS)[number]["id"];
   reduceMotion: boolean;
   density: "comfortable" | "compact";
@@ -25,12 +22,19 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  preset: "default", reduceMotion: false, density: "comfortable", sidebarCollapsed: false,
+  mode: "light", preset: "default", reduceMotion: false, density: "comfortable", sidebarCollapsed: false,
   landing: "/home", pageSize: 20, confirmAttendance: true, shortcuts: true,
 };
 
 let cache: Settings | undefined;
 const listeners = new Set<() => void>();
+let onChange: ((s: Settings) => void) | undefined;
+
+/** Registers the account saver; called on every user change, not on merges from the server. */
+export function onSettingsChange(fn: (s: Settings) => void) {
+  onChange = fn;
+  return () => { if (onChange === fn) onChange = undefined; };
+}
 
 export function readSettings(): Settings {
   if (cache) return cache;
@@ -47,11 +51,21 @@ export function applySettings(s: Settings) {
   d.motion = s.reduceMotion ? "reduce" : "full";
 }
 
-export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
-  cache = { ...readSettings(), [key]: value };
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(cache)); } catch { /* private mode: keep for this tab only */ }
-  applySettings(cache);
+function store(next: Settings) {
+  cache = next;
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { /* private mode: keep for this tab only */ }
+  applySettings(next);
   listeners.forEach((l) => l());
+}
+
+export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+  store({ ...readSettings(), [key]: value });
+  onChange?.(cache!);
+}
+
+/** The account's saved settings win over this device's cache. */
+export function mergeSettings(saved: Partial<Settings>) {
+  store({ ...readSettings(), ...saved });
 }
 
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };

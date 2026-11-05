@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Specs like parent-link sign tokens and query the DB, so they need the same env as the server.
+try { process.loadEnvFile(".env"); } catch { /* CI provides env directly */ }
+
 export default defineConfig({
   testDir: "e2e",
   workers: 1,

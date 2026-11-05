@@ -8,6 +8,13 @@
       "when": 1793647629524,
       "tag": "0000_worried_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793878384233,
+      "tag": "0001_familiar_starhawk",
+      "breakpoints": true
     }
   ]
 }

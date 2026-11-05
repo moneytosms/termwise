@@ -239,3 +239,9 @@ export const auditLog = pgTable("audit_log", {
   reason: text("reason"),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("audit_entity_idx").on(t.entity, t.entityId)]);
+// Per-account UI preferences (theme, density, landing page...), synced across devices. Shape: Partial<Settings> in src/lib/settings.ts.
+export const userSetting = pgTable("user_setting", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
