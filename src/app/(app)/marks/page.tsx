@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Progress } from "@/components/charts";
 import { PageHeader, StatusPill } from "@/components/page";
@@ -12,6 +13,7 @@ import { can } from "@/domain/roles";
 
 export default async function MarksPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const v = await requireViewer();
+  if (!can(v.role, "teach") && !can(v.role, "moderate_marks")) redirect("/home");
   const { status } = await searchParams;
   const rows = await listSubjects(v);
 

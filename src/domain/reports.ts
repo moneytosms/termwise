@@ -1,6 +1,7 @@
 import { isShortage } from "./attendance";
 import { categoryLabel, genderLabel } from "./applicants";
 import { dues, type Instalment } from "./fees";
+import type { Capability } from "./roles";
 import { finalScore, type MarksStatus, type Scheme, type Section } from "./marks";
 
 export type Row = Record<string, string | number | null>;
@@ -8,6 +9,9 @@ export type Column = { key: string; label: string };
 
 export const REPORT_KEYS = ["strength", "shortage", "marks", "fees"] as const;
 export type ReportKey = (typeof REPORT_KEYS)[number];
+
+/** The capability that opens each report: the fees return is for accounts, the rest for exams. */
+export const REPORT_CAP: Record<ReportKey, Capability> = { strength: "reports", shortage: "reports", marks: "reports", fees: "fee_reports" };
 
 /** University, AICTE and NAAC returns. Column keys are row keys; labels go in the CSV header. */
 export const REPORTS: { key: ReportKey; title: string; columns: Column[] }[] = [

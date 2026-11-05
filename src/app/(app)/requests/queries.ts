@@ -71,6 +71,8 @@ export async function adminRequests(v: Viewer) {
  */
 export async function appealQueue(v: Viewer) {
   const teaching = can(v.role, "teach") ? eq(subject.facultyId, v.staffId) : undefined;
+  // Exams decide mark appeals only; attendance appeals stay with faculty and the office admin.
+  const marksOnly = !can(v.role, "teach") && !can(v.role, "office_requests") ? eq(appeal.kind, "mark") : undefined;
   const rows = (where: SQL | undefined) => db.select({
     id: appeal.id, kind: appeal.kind, reason: appeal.reason, status: appeal.status, response: appeal.response,
     createdAt: appeal.createdAt, resolvedAt: appeal.resolvedAt, studentId: appeal.studentId, componentId: appeal.componentId,
@@ -86,7 +88,7 @@ export async function appealQueue(v: Viewer) {
     .innerJoin(student, eq(appeal.studentId, student.id))
     .leftJoin(mark, and(eq(mark.componentId, appeal.componentId), eq(mark.studentId, appeal.studentId)))
     .leftJoin(attendanceEntry, and(eq(attendanceEntry.sessionId, appeal.sessionId), eq(attendanceEntry.studentId, appeal.studentId)))
-    .where(and(eq(programme.campusId, v.campusId), teaching, where));
+    .where(and(eq(programme.campusId, v.campusId), teaching, marksOnly, where));
   const [open, decided] = await Promise.all([
     rows(eq(appeal.status, "open")).orderBy(asc(appeal.createdAt)),
     rows(inArray(appeal.status, ["accepted", "rejected"])).orderBy(desc(appeal.resolvedAt)).limit(20),

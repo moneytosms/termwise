@@ -18,6 +18,11 @@ type Chat = { id: string; title: string; turns: Turn[]; at: number };
 type Effort = "low" | "medium" | "high";
 export type ModelOption = { id: string; label: string; hint: string };
 
+const ASKS = {
+  office_admin: "students, attendance, marks and fees", faculty: "students, attendance, marks",
+  admissions: "students", exams: "students and marks", accounts: "students and fees",
+};
+
 const EXAMPLES = {
   office_admin: [
     "How many second-year students are below 75% this month?",
@@ -31,6 +36,25 @@ const EXAMPLES = {
     "Which of my students are flagged at risk?",
     "My subjects' attendance this week",
   ],
+  admissions: [
+    "How many students are in each batch?",
+    "List the first-year students in CSE-2024",
+    "How many students per programme?",
+    "Find the student named Priya",
+  ],
+  exams: [
+    "Average internal marks by subject",
+    "Who scored under half in the latest test?",
+    "Which subjects still have draft marks?",
+    "Top five students by total marks in CSE-2024",
+  ],
+  accounts: [
+    "Which students have overdue fees?",
+    "How much is due in CSE-2024?",
+    "Total fee dues by programme",
+    "Students with more than 50000 due",
+  ],
+  hr: [] as string[],
   student: [
     "Which subjects am I below 75% in?",
     "My attendance this month by subject",
@@ -57,7 +81,7 @@ function save(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full or blocked: chat still works, just not kept */ }
 }
 
-export function AssistantChat({ role, userId, models, initial }: { role: "faculty" | "office_admin" | "student"; userId: string; models: ModelOption[]; initial?: string }) {
+export function AssistantChat({ role, userId, models, initial }: { role: keyof typeof EXAMPLES; userId: string; models: ModelOption[]; initial?: string }) {
   const CHATS = `termwise:termy-chats:${userId}`;
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -177,7 +201,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: "facult
         <div className="min-w-0 flex-1">
           <h1 className="font-semibold leading-tight">Termy</h1>
           <p className="truncate text-xs text-muted-foreground">
-            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : "Your whole campus"} · reads data, never changes it
+            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : role === "hr" ? "Nothing to query for HR yet" : "Your whole campus"} · reads data, never changes it
           </p>
         </div>
         <Popover>
@@ -192,7 +216,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: "facult
           <div className="mx-auto flex max-w-xl flex-col items-center pt-6 text-center md:pt-12">
             <Termy className="size-24 md:size-28" />
             <p className="mt-3 text-xl font-semibold">Hi, I&apos;m Termy.</p>
-            <p className="mt-1 text-sm text-muted-foreground">{role === "student" ? "Ask about your attendance, marks and fees" : <>Ask about students, attendance, marks{role === "office_admin" && " and fees"}</>} in plain words. I show the filters and query I used, so you can check them.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{role === "student" ? "Ask about your attendance, marks and fees" : role === "hr" ? "Termy has no data views for HR" : <>Ask about {ASKS[role as Exclude<typeof role, "student" | "hr">]}</>} in plain words. I show the filters and query I used, so you can check them.</p>
             <div className="mt-6 grid w-full gap-2 sm:grid-cols-2">
               {EXAMPLES[role].map((ex) => (
                 <button key={ex} type="button" disabled={busy} onClick={() => void ask(ex)}

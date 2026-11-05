@@ -4,8 +4,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { istDate } from "@/domain/attendance";
-import { REPORT_KEYS, REPORTS, type ReportKey, type Row } from "@/domain/reports";
-import { requireCan } from "@/server/access";
+import { REPORT_CAP, REPORTS, type ReportKey, type Row } from "@/domain/reports";
+import { redirect } from "next/navigation";
+import { can } from "@/domain/roles";
+import { requireViewer } from "@/server/access";
 import { cn } from "@/lib/utils";
 import { listProgrammes, runReport } from "./queries";
 
@@ -14,9 +16,11 @@ const PREVIEW_ROWS = 200;
 export default async function ReportsPage({ searchParams }: {
   searchParams: Promise<{ report?: string; month?: string; programme?: string }>;
 }) {
-  const v = await requireCan("reports");
+  const v = await requireViewer();
+  const allowed = REPORTS.filter((r) => can(v.role, REPORT_CAP[r.key]));
+  if (!allowed.length) redirect("/home");
   const sp = await searchParams;
-  const report: ReportKey = (REPORT_KEYS as readonly string[]).includes(sp.report ?? "") ? (sp.report as ReportKey) : "strength";
+  const report: ReportKey = allowed.find((r) => r.key === sp.report)?.key ?? allowed[0].key;
   const month = sp.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month) ? sp.month : istDate().slice(0, 7);
   const programmeId = sp.programme && /^\d+$/.test(sp.programme) ? Number(sp.programme) : null;
 
@@ -37,7 +41,7 @@ export default async function ReportsPage({ searchParams }: {
         <label className="flex flex-col gap-1 text-sm">
           Report
           <select name="report" defaultValue={report} className="h-8 rounded-md border border-border bg-card px-2 text-sm">
-            {REPORTS.map((r) => <option key={r.key} value={r.key}>{r.title}</option>)}
+            {allowed.map((r) => <option key={r.key} value={r.key}>{r.title}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">

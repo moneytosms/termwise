@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/page";
 import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { requireCan } from "@/server/access";
+import { redirect } from "next/navigation";
+import { can } from "@/domain/roles";
+import { requireViewer } from "@/server/access";
 import { BatchesTab } from "./batches-tab";
 import { CollegeTab } from "./college-tab";
 import { CalendarTab } from "./calendar-tab";
@@ -32,9 +34,13 @@ const TABS = [
 ] as const;
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<{ tab?: string; batch?: string }> }) {
-  const v = await requireCan("setup");
+  const v = await requireViewer();
+  // HR sees the faculty list only; every other tab and every setup action needs the full setup capability.
+  const full = can(v.role, "setup");
+  if (!full && !can(v.role, "setup_faculty")) redirect("/home");
   const { tab, batch: batchParam } = await searchParams;
-  const current = TABS.find((t) => t.key === tab)?.key ?? "programmes";
+  const tabs = full ? TABS : TABS.filter((t) => t.key === "faculty");
+  const current = tabs.find((t) => t.key === tab)?.key ?? tabs[0].key;
   const c = v.campusId;
 
   let body: React.ReactNode;
@@ -74,7 +80,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="College setup" description="Programmes, batches, subjects, faculty, calendar, timetable and rules for this campus." />
       <nav aria-label="Setup sections" className="mb-6 flex gap-1 overflow-x-auto border-b">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = t.key === current;
           return (
             <Link key={t.key} href={`/setup?tab=${t.key}`} aria-current={active ? "page" : undefined}

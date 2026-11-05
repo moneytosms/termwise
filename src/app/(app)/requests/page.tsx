@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/states";
 import { Panel, PageHeader, SectionHeading, StatCard, StatStrip, StatusPill, type Tone } from "@/components/page";
 import { APPEAL_LABEL, type AppealStatus } from "@/domain/appeals";
@@ -29,7 +30,20 @@ type Note = Awaited<ReturnType<typeof facultyRequests>>["openNotes"][number];
 
 export default async function RequestsPage() {
   const v = await requireViewer();
-  return can(v.role, "office_requests") ? <AdminView v={v} /> : <FacultyView v={v} />;
+  if (can(v.role, "office_requests")) return <AdminView v={v} />;
+  if (can(v.role, "teach")) return <FacultyView v={v} />;
+  if (can(v.role, "appeals")) return <MarkAppealsView v={v} />;
+  redirect("/home");
+}
+
+async function MarkAppealsView({ v }: { v: Viewer }) {
+  const appeals = await appealQueue(v);
+  return (
+    <>
+      <PageHeader title="Requests" description="Appeals on marks across the campus." />
+      <AppealsSection open={appeals.open} decided={appeals.decided} />
+    </>
+  );
 }
 
 async function FacultyView({ v }: { v: Viewer }) {
