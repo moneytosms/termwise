@@ -1,10 +1,26 @@
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { istDate } from "@/domain/attendance";
+import { shiftDays } from "@/domain/staff-leave";
 import type { Viewer } from "@/server/access";
 import { db } from "@/server/db";
-import { attendanceEntry, attendanceSession, batch, programme, student, subject, timetableSlot } from "@/server/schema";
+import { attendanceEntry, attendanceSession, batch, programme, staffLeave, student, subject, timetableSlot } from "@/server/schema";
 
 export type WeekSlot = { day: number; startTime: string; endTime: string; subject: string; batch: string };
+
+/** ISO dates of the 7 days from `weekStart` (a Monday) that fall inside the viewer's approved leave. */
+export async function approvedLeaveDays(v: Viewer, weekStart: string): Promise<Set<string>> {
+  const weekEnd = shiftDays(weekStart, 6);
+  const rows = await db.select({ fromDate: staffLeave.fromDate, toDate: staffLeave.toDate }).from(staffLeave)
+    .where(and(eq(staffLeave.staffId, v.staffId), eq(staffLeave.status, "approved"), lte(staffLeave.fromDate, weekEnd), gte(staffLeave.toDate, weekStart)));
+  const days = new Set<string>();
+  for (const r of rows) {
+    for (let i = 0; i < 7; i++) {
+      const iso = shiftDays(weekStart, i);
+      if (iso >= r.fromDate && iso <= r.toDate) days.add(iso);
+    }
+  }
+  return days;
+}
 
 /** This teacher's timetable slots that carry a subject. Club and sports slots have none, so they drop out. */
 export function getWeek(v: Viewer): Promise<WeekSlot[]> {

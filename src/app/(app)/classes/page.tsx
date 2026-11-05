@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { PageHeader, SectionHeading } from "@/components/page";
+import { PageHeader, SectionHeading, StatusPill } from "@/components/page";
 import { EmptyState } from "@/components/states";
-import { istDayOfWeek, istTime } from "@/domain/attendance";
+import { istDate, istDayOfWeek, istTime } from "@/domain/attendance";
+import { shiftDays } from "@/domain/staff-leave";
 import { cn } from "@/lib/utils";
 import { requireViewer } from "@/server/access";
-import { getPastSessions, getSessionDetail, getWeek, type WeekSlot } from "./queries";
+import { approvedLeaveDays, getPastSessions, getSessionDetail, getWeek, type WeekSlot } from "./queries";
 import { OnlineOnly } from "./online-only";
 import { PastSessions } from "./past-sessions";
 import { Today } from "./today";
@@ -17,10 +18,12 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
   const v = await requireViewer();
   if (v.role === "office_admin") redirect("/attendance");
   const { session } = await searchParams;
-  const [week, past, detail] = await Promise.all([
+  const weekStart = shiftDays(istDate(), -((istDayOfWeek() + 6) % 7));
+  const [week, past, detail, leaveDays] = await Promise.all([
     getWeek(v),
     getPastSessions(v),
     session && /^[0-9a-f-]{36}$/i.test(session) ? getSessionDetail(v, session) : null,
+    approvedLeaveDays(v, weekStart),
   ]);
   const today = istDayOfWeek();
   const now = istTime();
@@ -42,7 +45,10 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
                   <tr className="text-left text-xs text-muted-foreground">
                     <th scope="col" className="px-3 py-2.5 font-medium">Time</th>
                     {days.map((d) => (
-                      <th key={d} scope="col" className={cn("px-3 py-2.5 font-medium", d === today && "bg-data-soft/40 text-data")}>{d === today ? "Today" : SHORT[d]}</th>
+                      <th key={d} scope="col" className={cn("px-3 py-2.5 font-medium", d === today && "bg-data-soft/40 text-data")}>
+                        <span className="block">{d === today ? "Today" : SHORT[d]}</span>
+                        {leaveDays.has(shiftDays(weekStart, (d + 6) % 7)) && <StatusPill>On leave</StatusPill>}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -52,8 +58,9 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
                       <th scope="row" className="px-3 py-2 text-left font-normal whitespace-nowrap text-muted-foreground tabular-nums">{t}</th>
                       {days.map((d) => {
                         const slots = week.filter((s) => s.day === d && s.startTime === t);
+                        const onLeave = leaveDays.has(shiftDays(weekStart, (d + 6) % 7));
                         return (
-                          <td key={d} className={cn("p-1.5 align-top", d === today && "bg-data-soft/40")}>
+                          <td key={d} className={cn("p-1.5 align-top", d === today && "bg-data-soft/40", onLeave && "opacity-50")}>
                             {slots.length === 0 ? <span aria-hidden className="mx-auto mt-3 block size-1 rounded-full bg-border" /> : slots.map((s, i) => (
                               <div key={i} title={`${s.startTime}–${s.endTime} · ${s.subject} · ${s.batch}`}
                                 className={cn("rounded-lg px-2.5 py-2 transition-colors hover:bg-muted", d === today && isNow(s) && "ring-2 ring-data")}>
