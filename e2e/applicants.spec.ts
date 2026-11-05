@@ -59,7 +59,7 @@ test("admission: attach, view and verify every document, then confirm", async ({
 
   const dialog = page.getByRole("dialog");
   const pending = ["Transfer certificate", "Passport photo"];
-  const item = (doc: string) => dialog.getByRole("listitem").filter({ has: dialog.getByRole("group", { name: `Status of ${doc}`, exact: true }) });
+  const item = (doc: string) => dialog.getByRole("listitem").filter({ has: page.getByRole("group", { name: `Status of ${doc}`, exact: true }) });
   for (const doc of pending) {
     await dialog.getByLabel(`Attach file for ${doc}`, { exact: true }).setInputFiles({
       name: "doc.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test"),
