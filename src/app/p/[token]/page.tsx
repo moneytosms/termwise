@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { paidSql } from "@/app/(app)/fees/queries";
@@ -6,22 +7,26 @@ import { CountUp } from "@/components/count-up";
 import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
-import { attendancePercent, istDate, isShortage, type AttendanceStatus } from "@/domain/attendance";
+import { attendancePercent, classesToReach, istDate, isShortage, type AttendanceStatus } from "@/domain/attendance";
 import { dues, instalmentDue } from "@/domain/fees";
 import { rupees } from "@/lib/utils";
 import { db } from "@/server/db";
 import { readParentToken } from "@/server/parent-link";
-import { attendanceEntry, attendanceSession, batch, campus, feeInstalment, feePayment, programme, student, subject } from "@/server/schema";
+import { attendanceEntry, attendanceSession, batch, campus, feeInstalment, feePayment, mark, markComponent, programme, student, subject } from "@/server/schema";
 import { PayButton } from "./controls";
 
 const EXPIRED = "This link has expired or isn't valid. Ask the college office for a new one.";
 const ist = (d: Date) => d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" });
+const MARKS_STATUS: Record<string, string> = { draft: "Draft", submitted: "Submitted", locked: "Locked" };
 
 // The token is in the URL: keep it out of search engines and Referer headers.
 export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
-export default async function ParentPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function ParentPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ view?: string }> }) {
   const { token } = await params;
+  const { view } = await searchParams;
+  const me = view === "student";
+  const w = (parent: string, self: string) => (me ? self : parent);
   const studentId = readParentToken(token);
   if (!studentId) return <main className="mx-auto max-w-xl px-4 py-8"><EmptyState title={EXPIRED} /></main>;
 
@@ -43,9 +48,21 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
   for (const a of att) bySubject.set(a.subject, [...(bySubject.get(a.subject) ?? []), a]);
   const subjects = [...bySubject].flatMap(([name, rows]) => {
     const percent = attendancePercent(rows);
-    return percent === null ? [] : [{ name, percent }];
+    if (percent === null) return [];
+    const held = rows.reduce((n, r) => n + r.periods, 0);
+    const attended = rows.reduce((n, r) => n + (r.status === "absent" ? 0 : r.periods), 0);
+    return [{ name, percent, toReach: classesToReach(attended, held, s.cutoff) }];
   }).sort((a, b) => a.name.localeCompare(b.name));
   const overall = attendancePercent(att);
+
+  const marks = me ? await db.select({ subject: subject.name, status: subject.marksStatus, component: markComponent.name, max: markComponent.maxMarks, marks: mark.marks })
+    .from(mark)
+    .innerJoin(markComponent, eq(mark.componentId, markComponent.id))
+    .innerJoin(subject, eq(markComponent.subjectId, subject.id))
+    .where(eq(mark.studentId, studentId))
+    .orderBy(subject.name, markComponent.position) : [];
+  const markGroups = new Map<string, { status: string; rows: typeof marks }>();
+  for (const r of marks) markGroups.set(r.subject, { status: r.status, rows: [...(markGroups.get(r.subject)?.rows ?? []), r] });
 
   const instalments = await db.select({
     id: feeInstalment.id, label: feeInstalment.label, dueDate: feeInstalment.dueDate, amountPaise: feeInstalment.amountPaise,
@@ -68,7 +85,9 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
 
   return (
     <main className="mx-auto max-w-xl px-4 pt-5 pb-12 md:pt-10">
-      <p className="mb-8 flex items-center gap-2 text-sm text-muted-foreground"><Mark className="size-6" /><span className="font-semibold text-foreground">Termwise</span> · {s.campus}</p>
+      <p className="mb-8 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><Mark className="size-6" /><span className="font-semibold text-foreground">Termwise</span> · {s.campus}
+        <StatusPill>{w("Viewing as parent", "Student view")}</StatusPill>
+      </p>
       <header>
         <h1 className="text-2xl leading-tight font-semibold tracking-[-0.02em] md:text-[1.75rem]">{s.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{s.rollNo} · {s.programme} · Year {s.year}</p>
@@ -76,7 +95,7 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
 
       <section className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sheet" aria-label="Summary">
         <div className="p-5">
-          <p className="text-sm text-muted-foreground">Attendance, all subjects</p>
+          <p className="text-sm text-muted-foreground">{w("Attendance, all subjects", "Your attendance, all subjects")}</p>
           <p className={`mt-1 text-[2.5rem] leading-none font-medium tracking-[-0.03em] tabular-nums ${overall !== null && isShortage(overall, s.cutoff) ? "text-absent" : ""}`}>
             {overall === null ? "–" : <CountUp value={overall} decimals={1} suffix="%" />}
           </p>
@@ -90,7 +109,7 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
           <p className="mt-9 text-sm">{finding}</p>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/50 px-5 py-4">
-          <span className="text-sm text-muted-foreground">Fee due</span>
+          <span className="text-sm text-muted-foreground">{w("Fee due", "Your dues")}</span>
           <span className="flex items-center gap-2">
             {overdue > 0 && <StatusPill tone="absent">{overdue} overdue</StatusPill>}
             <span className="text-xl font-semibold tabular-nums">{rupees(totalDue)}</span>
@@ -98,14 +117,17 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
         </div>
       </section>
 
-      <SectionHeading title="Attendance by subject" count={subjects.length} />
+      <SectionHeading title={w("Attendance by subject", "Your attendance by subject")} count={subjects.length} />
       {subjects.length === 0 ? <p className="text-sm text-muted-foreground">No sessions marked yet.</p> : (
         <ul className="divide-y divide-rule rounded-xl bg-card px-4 text-sm shadow-sheet">
           {subjects.map((x) => {
             const short = isShortage(x.percent, s.cutoff);
             return (
               <li key={x.name} className="flex min-h-12 items-center justify-between gap-3 py-2.5">
-                <span className="flex min-w-0 items-center gap-2"><span className="truncate">{x.name}</span>{short && <StatusPill tone="absent">Shortage</StatusPill>}</span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2"><span className="truncate">{x.name}</span>{short && <StatusPill tone="absent">Shortage</StatusPill>}</span>
+                  <span className="block text-xs text-muted-foreground">{x.toReach > 0 ? `Attend next ${x.toReach} in a row to reach ${s.cutoff}%` : "On track"}</span>
+                </span>
                 <AttendanceMeter pct={x.percent} threshold={s.cutoff} />
               </li>
             );
@@ -113,7 +135,33 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
         </ul>
       )}
 
-      <SectionHeading title="Fees" count={instalments.length} />
+      {me && (
+        <>
+          <SectionHeading title="Internal marks" count={marks.length} />
+          {marks.length === 0 ? <p className="text-sm text-muted-foreground">No marks entered yet.</p> : (
+            <ul className="space-y-2">
+              {[...markGroups].map(([name, g]) => (
+                <li key={name} className="rounded-xl bg-card p-4 text-sm shadow-sheet">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{name}</span>
+                    <StatusPill tone={g.status === "locked" ? "ok" : "default"}>{MARKS_STATUS[g.status]}</StatusPill>
+                  </div>
+                  <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 tabular-nums">
+                    {g.rows.map((r) => (
+                      <Fragment key={r.component}>
+                        <dt className="text-muted-foreground">{r.component}</dt>
+                        <dd className="text-right">{r.marks === null ? "–" : `${r.marks} / ${r.max}`}</dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <SectionHeading title={w("Fees", "Your fees")} count={instalments.length} />
       {instalments.length === 0 ? <EmptyState title="No fee records yet." /> : (
         <>
           <ul className="space-y-2">
@@ -140,7 +188,7 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
         </>
       )}
 
-      <SectionHeading title="Payments" count={payments.length} />
+      <SectionHeading title={w("Payments", "Your payments")} count={payments.length} />
       {payments.length === 0 ? <p className="text-sm text-muted-foreground">No payments yet.</p> : (
         <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
           {payments.map((p) => (
