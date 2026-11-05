@@ -66,49 +66,64 @@ export function Progress({ filled, needed }: { filled: number; needed: number })
  * Weekly percentages as one line on a fixed scale, with a dashed reference line (the shortage line).
  * Each week is a dot carrying its value on hover; a week with no sessions leaves a gap in the line.
  */
-/** `className` can make it grow (e.g. flex-1) to fill a stretched panel. */
-export function TrendLine({ points, reference, label, className }: {
-  points: { label: string; pct: number | null; title: string }[]; reference: number; label: string; className?: string;
+/**
+ * Weekly values as one line per series on a shared scale. With `reference` it reads as percent: the scale
+ * zooms to the data under 100, the reference is a dashed line and dots under it turn red.
+ * A null value breaks the line (no sessions that week). A single series gets a soft area fill.
+ */
+export function TrendLine({ labels, series, reference, format, label, className }: {
+  labels: string[]; series: { name: string; values: (number | null)[]; stroke: string; dot: string }[];
+  reference?: number; format: (v: number) => string; label: string; className?: string;
 }) {
-  const vals = points.flatMap((p) => (p.pct === null ? [] : [p.pct]));
-  // Zoom to the data: a 5-point margin under the lowest of the line and the values, in steps of 5.
-  const lo = Math.max(0, Math.floor((Math.min(reference, ...vals) - 5) / 5) * 5);
-  const y = (v: number) => 100 - ((v - lo) / (100 - lo)) * 100;
-  const x = (i: number) => ((i + 0.5) / points.length) * 100;
-  const segments: string[] = [];
-  let cur = "";
-  points.forEach((p, i) => {
-    if (p.pct === null) { if (cur) segments.push(cur); cur = ""; return; }
-    cur += `${cur ? "L" : "M"}${x(i)} ${y(p.pct)} `;
+  const vals = series.flatMap((s) => s.values.flatMap((v) => (v === null ? [] : [v])));
+  const pct = reference !== undefined;
+  // Percent zooms to a 5-point margin under the lowest value or line; counts and money start at 0 with headroom.
+  const lo = pct ? Math.max(0, Math.floor((Math.min(reference, ...vals) - 5) / 5) * 5) : 0;
+  const hi = pct ? 100 : Math.max(1, Math.ceil(Math.max(0, ...vals) * 1.15));
+  const y = (v: number) => 100 - ((v - lo) / (hi - lo)) * 100;
+  const x = (i: number) => ((i + 0.5) / labels.length) * 100;
+  const paths = series.map((s) => {
+    const segments: string[] = [];
+    let cur = "";
+    s.values.forEach((v, i) => {
+      if (v === null) { if (cur) segments.push(cur); cur = ""; return; }
+      cur += `${cur ? "L" : "M"}${x(i)} ${y(v)} `;
+    });
+    if (cur) segments.push(cur);
+    return segments;
   });
-  if (cur) segments.push(cur);
-  const areas = segments.map((d) => {
+  const areas = series.length === 1 ? paths[0].map((d) => {
     const xs = [...d.matchAll(/[ML]([\d.]+) /g)].map((m) => m[1]);
     return `${d}L${xs[xs.length - 1]} 100 L${xs[0]} 100 Z`;
-  });
-  const summary = `${label}: ${points.map((p) => `${p.label} ${p.pct === null ? "no sessions" : `${p.pct}%`}`).join(", ")}`;
+  }) : [];
+  const summary = `${label}: ${series.map((s) => `${s.name} ${s.values.map((v, i) => `${labels[i]} ${v === null ? "no data" : format(v)}`).join(", ")}`).join("; ")}`;
+  const ticks = pct ? [100, reference, lo] : [hi, Math.round(hi / 2), 0];
   return (
-    <div className={cn("grid grid-cols-[2.25rem_1fr] grid-rows-[1fr_auto] gap-x-2", className)}>
-      <div className="relative h-full min-h-56 text-[11px] text-muted-foreground tabular-nums" aria-hidden>
-        {[100, reference, lo].map((t) => <span key={t} className="absolute right-0 -translate-y-1/2" style={{ top: `${y(t)}%` }}>{t}%</span>)}
+    <div className={cn("grid grid-cols-[3rem_1fr] grid-rows-[auto_auto] gap-x-2", className)}>
+      <div className="relative h-44 text-[11px] text-muted-foreground tabular-nums" aria-hidden>
+        {ticks.map((t) => <span key={t} className="absolute right-0 -translate-y-1/2 whitespace-nowrap" style={{ top: `${y(t)}%` }}>{format(t)}</span>)}
       </div>
-      <div role="img" aria-label={summary} className="relative h-full min-h-56">
-        <span className="absolute inset-x-0 h-px bg-rule" style={{ top: `${y(100)}%` }} aria-hidden />
-        <span className="absolute inset-x-0 border-t border-dashed border-foreground/45" style={{ top: `${y(reference)}%` }} aria-hidden />
+      <div role="img" aria-label={summary} className="relative h-44">
+        <span className="absolute inset-x-0 h-px bg-rule" style={{ top: `${y(hi)}%` }} aria-hidden />
+        <span className="absolute inset-x-0 h-px bg-rule" style={{ top: "100%" }} aria-hidden />
+        {pct && <span className="absolute inset-x-0 border-t border-dashed border-foreground/45" style={{ top: `${y(reference)}%` }} aria-hidden />}
         <svg className="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
           {areas.map((d, i) => <path key={`a${i}`} d={d} className="fill-data/10" />)}
-          {segments.map((d, i) => <path key={i} d={d} fill="none" className="stroke-data" strokeWidth={2} vectorEffect="non-scaling-stroke" />)}
+          {/* First series (the campus total) drawn last so it stays on top. */}
+          {paths.map((segs, si) => segs.map((d, i) => <path key={`${si}-${i}`} d={d} fill="none" className={series[si].stroke} strokeWidth={2} vectorEffect="non-scaling-stroke" />)).reverse()}
         </svg>
-        {points.map((p, i) => p.pct !== null && (
-          <span key={i} className="group absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center" style={{ left: `${x(i)}%`, top: `${y(p.pct)}%` }}>
-            <span className={cn("size-2 rounded-full", p.pct < reference ? "bg-absent" : "bg-data")} aria-hidden />
-            <span className="pointer-events-none absolute bottom-full mb-1 hidden rounded bg-foreground px-1.5 py-0.5 text-[11px] whitespace-nowrap text-background tabular-nums group-hover:block" aria-hidden>{p.title}</span>
+        {[...series].reverse().map((s) => s.values.map((v, i) => v !== null && (
+          <span key={`${s.name}-${i}`} className="group absolute flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center" style={{ left: `${x(i)}%`, top: `${y(v)}%` }}>
+            <span className={cn("size-2 rounded-full", pct && v < reference ? "bg-absent" : s.dot)} aria-hidden />
+            <span className="pointer-events-none absolute bottom-full z-10 mb-1 hidden rounded bg-foreground px-1.5 py-0.5 text-[11px] whitespace-nowrap text-background tabular-nums group-hover:block" aria-hidden>
+              {series.length > 1 && `${s.name} · `}{labels[i]}: {format(v)}
+            </span>
           </span>
-        ))}
+        )))}
       </div>
       <span />
-      <div className="mt-2 grid text-center text-[11px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${points.length}, 1fr)` }} aria-hidden>
-        {points.map((p, i) => <span key={i} className={cn(i === points.length - 1 && "font-medium text-foreground")}>{p.label}</span>)}
+      <div className="mt-2 grid text-center text-[11px] text-muted-foreground" style={{ gridTemplateColumns: `repeat(${labels.length}, 1fr)` }} aria-hidden>
+        {labels.map((l, i) => <span key={i} className={cn(i === labels.length - 1 && "font-medium text-foreground")}>{l}</span>)}
       </div>
     </div>
   );

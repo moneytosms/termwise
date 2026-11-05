@@ -4,7 +4,7 @@ import { instalmentDue, type Instalment } from "@/domain/fees";
 import type { Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import {
-  attendanceEntry, attendanceSession, batch, feeInstalment, programme, riskFlag, staff, student, subject, syncConflict,
+  attendanceEntry, attendanceSession, batch, feeInstalment, feePayment, programme, riskFlag, staff, student, subject, syncConflict,
 } from "@/server/schema";
 
 const DAY = 86_400_000;
@@ -35,6 +35,20 @@ export function weeklyTrend(days: DayTotals[], today: string, programmeId: numbe
     buckets[i].attended += d.attended;
   }
   return buckets.map((b, i) => ({ weekStart: addDays(today, -7 * (weeks - 1 - i) - 6), pct: percentOf(b.held, b.attended) }));
+}
+
+export type DayValue = { date: string; programmeId: number; value: number };
+
+/** Campus (or one programme's) sum per week, oldest first, the last week ending today. A quiet week is 0. */
+export function weeklySum(days: DayValue[], today: string, programmeId: number | null, weeks = 8) {
+  const out = Array<number>(weeks).fill(0);
+  for (const d of days) {
+    if (programmeId !== null && d.programmeId !== programmeId) continue;
+    const ago = daysBetween(d.date, today);
+    const i = weeks - 1 - Math.floor(ago / 7);
+    if (ago >= 0 && i >= 0) out[i] += d.value;
+  }
+  return out;
 }
 
 export type SubjectRow = { subjectId: number; subject: string; batch: string; cutoff: number; held: number; attended: number };
@@ -118,6 +132,32 @@ export function dailyTotals(v: Viewer, since: string) {
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, since)))
     .groupBy(attendanceSession.date, programme.id);
+}
+
+const istDay = (col: typeof feePayment.paidAt | typeof riskFlag.createdAt) => sql<string>`to_char(${col} at time zone 'Asia/Kolkata', 'YYYY-MM-DD')`;
+const istStart = (date: string) => new Date(`${date}T00:00:00+05:30`);
+
+/** Fee money collected per IST day and programme, in paise. */
+export function dailyCollections(v: Viewer, since: string): Promise<DayValue[]> {
+  const day = istDay(feePayment.paidAt);
+  return db.select({ date: day, programmeId: programme.id, value: sql<number>`sum(${feePayment.amountPaise})`.mapWith(Number) }).from(feePayment)
+    .innerJoin(feeInstalment, eq(feePayment.instalmentId, feeInstalment.id))
+    .innerJoin(student, eq(feeInstalment.studentId, student.id))
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, v.campusId), gte(feePayment.paidAt, istStart(since))))
+    .groupBy(day, programme.id);
+}
+
+/** At-risk flags raised per IST day and programme. */
+export function dailyFlags(v: Viewer, since: string): Promise<DayValue[]> {
+  const day = istDay(riskFlag.createdAt);
+  return db.select({ date: day, programmeId: programme.id, value: count() }).from(riskFlag)
+    .innerJoin(student, eq(riskFlag.studentId, student.id))
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, v.campusId), gte(riskFlag.createdAt, istStart(since))))
+    .groupBy(day, programme.id);
 }
 
 export function campusProgrammes(v: Viewer) {

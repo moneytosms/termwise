@@ -7,8 +7,8 @@ import { dues } from "@/domain/fees";
 import type { Viewer } from "@/server/access";
 import { cn, rupees } from "@/lib/utils";
 import {
-  activeFlags, addDays, aging, campusProgrammes, countShort, dailyTotals, feeRows, feesToDate, flagsCreated, marksByStatus,
-  openConflicts, shortageByGroup, studentAttendance, subjectAttendance, weeklyTrend,
+  activeFlags, addDays, aging, campusProgrammes, countShort, dailyCollections, dailyFlags, dailyTotals, feeRows, feesToDate, flagsCreated, marksByStatus,
+  openConflicts, shortageByGroup, studentAttendance, subjectAttendance, weeklySum, weeklyTrend,
 } from "./queries";
 
 const DAY = 86_400_000;
@@ -21,23 +21,32 @@ const RED_SHARE = 25;
 const vsLastWeek = (now: number, then: number, fmt: (n: number) => string = String) =>
   now === then ? "same as last week" : `${now > then ? "+" : "−"}${fmt(Math.abs(now - then))} vs last week`;
 
+export const CHARTS = { attendance: "Attendance", fees: "Fees collected", flags: "New flags" } as const;
+export type ChartKey = keyof typeof CHARTS;
+// One colour per line when comparing; red stays for "below the line".
+const TONES = [["stroke-data", "bg-data"], ["stroke-ok", "bg-ok"], ["stroke-late", "bg-late"], ["stroke-foreground/50", "bg-foreground/50"]] as const;
+const compactRupees = (paise: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", notation: "compact", maximumFractionDigits: 1 }).format(paise / 100);
+
 const weekLabel = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">{children}</p>;
 }
 
-export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; programmeId?: number }) {
+/** `programme` is a programme id, "compare" for one line per programme, or absent for the whole campus. */
+export async function AdminHome({ viewer, programme: programmeParam, chart }: { viewer: Viewer; programme?: string; chart: ChartKey }) {
   const today = istDate();
   const lastWeek = addDays(today, -7);
   const weekAgo = daysAgo(7);
   const twoWeeksAgo = daysAgo(14);
 
-  const [nowRows, thenRows, subjects, days, fees, active, flagsNew, flagsPrior, conflicts, conflictsThen, marks, stats, programmes] = await Promise.all([
+  const [nowRows, thenRows, subjects, days, collections, flagDays, fees, active, flagsNew, flagsPrior, conflicts, conflictsThen, marks, stats, programmes] = await Promise.all([
     studentAttendance(viewer, today),
     studentAttendance(viewer, lastWeek),
     subjectAttendance(viewer),
     dailyTotals(viewer, addDays(today, -55)),
+    dailyCollections(viewer, addDays(today, -55)),
+    dailyFlags(viewer, addDays(today, -55)),
     feeRows(viewer, weekAgo),
     activeFlags(viewer),
     flagsCreated(viewer, weekAgo),
@@ -57,20 +66,45 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
   const agingRows = aging(fees, today);
   const agingTotal = agingRows.reduce((t, b) => t + b.paise, 0);
 
-  const programme = programmes.find((p) => p.id === programmeId) ?? null;
-  const trend = weeklyTrend(days, today, programme?.id ?? null).map((w) => ({
-    label: weekLabel(w.weekStart), pct: w.pct,
-    title: `Week of ${weekLabel(w.weekStart)}: ${w.pct === null ? "no sessions" : `${w.pct}%`}`,
-  }));
-  // Drop weeks before the term's first session so the line uses the full width.
-  const first = trend.findIndex((w) => w.pct !== null);
-  if (first > 0) trend.splice(0, Math.min(first, trend.length - 2));
-  const trendNow = trend[trend.length - 1].pct;
-  const hasTrend = first >= 0;
-  const held = trend.flatMap((w) => (w.pct === null ? [] : [w.pct]));
+  const compare = programmeParam === "compare" && programmes.length > 1;
+  const programme = programmes.find((p) => String(p.id) === programmeParam) ?? null;
   const line = programme?.cutoff ?? LINE;
-  const prev = trend.length > 1 ? trend[trend.length - 2].pct : null;
-  const toggles = [{ code: "All", href: "/home", on: !programme }, ...programmes.map((p) => ({ code: p.code, href: `/home?programme=${p.id}`, on: programme?.id === p.id }))];
+  const weekly = (pid: number | null) => chart === "attendance" ? weeklyTrend(days, today, pid).map((w) => w.pct)
+    : weeklySum(chart === "fees" ? collections : flagDays, today, pid);
+  const picked = compare ? [{ name: "All", id: null }, ...programmes.map((p) => ({ name: p.code, id: p.id }))] : [{ name: programme?.code ?? "All", id: programme?.id ?? null }];
+  // Drop weeks before the term's first session so the lines use the full width.
+  const campus = weeklyTrend(days, today, null);
+  const first = campus.findIndex((w) => w.pct !== null);
+  const skip = first > 0 ? Math.min(first, campus.length - 2) : 0;
+  const labels = campus.slice(skip).map((w) => weekLabel(w.weekStart));
+  const series = picked.map((p, i) => ({ name: p.name, values: weekly(p.id).slice(skip), stroke: TONES[i % TONES.length][0], dot: TONES[i % TONES.length][1] }));
+  const main = series[0].values;
+  const nowV = main[main.length - 1];
+  const prev = main.length > 1 ? main[main.length - 2] : null;
+  const held = main.flatMap((v) => (v === null ? [] : [v]));
+  const hasTrend = first >= 0;
+  const fmt = chart === "attendance" ? (v: number) => `${v}%` : chart === "fees" ? compactRupees : String;
+  const href = (q: { chart?: ChartKey; programme?: string }) => {
+    const u = new URLSearchParams();
+    const c = q.chart ?? chart;
+    const pr = "programme" in q ? q.programme : programmeParam;
+    if (c !== "attendance") u.set("chart", c);
+    if (pr) u.set("programme", pr);
+    return u.size ? `/home?${u}` : "/home";
+  };
+  const toggles = [{ code: "All", value: undefined, on: !programme && !compare }, ...programmes.map((p) => ({ code: p.code, value: String(p.id), on: programme?.id === p.id })),
+    ...(programmes.length > 1 ? [{ code: "Compare", value: "compare", on: compare }] : [])];
+  const stats4: [string, string, string][] = chart === "attendance" ? [
+    ["This week", nowV === null ? "–" : `${nowV}%`, nowV !== null && prev !== null ? `${nowV >= prev ? "+" : ""}${Math.round((nowV - prev) * 10) / 10} pts vs last week` : "No previous week"],
+    ["Best week", held.length ? `${Math.max(...held)}%` : "–", `${held.length} ${held.length === 1 ? "week" : "weeks"} with classes`],
+    ["Lowest week", held.length ? `${Math.min(...held)}%` : "–", held.length ? `${Math.round((Math.min(...held) - line) * 10) / 10} pts from the line` : ""],
+    ["Weeks below line", String(held.filter((v) => v < line).length), held.some((v) => v < line) ? "Check the subjects panel" : "All weeks above the line"],
+  ] : [
+    ["This week", nowV === null ? "–" : chart === "fees" ? rupees(nowV) : String(nowV), prev === null ? "No previous week" : `${chart === "fees" ? rupees(prev) : prev} last week`],
+    ["Best week", held.length ? (chart === "fees" ? rupees(Math.max(...held)) : String(Math.max(...held))) : "–", `of the last ${held.length} weeks`],
+    [`${held.length}-week total`, chart === "fees" ? rupees(held.reduce((a, b) => a + b, 0)) : String(held.reduce((a, b) => a + b, 0)), series[0].name === "All" ? "Whole campus" : series[0].name],
+    ["Weekly average", held.length ? (chart === "fees" ? rupees(Math.round(held.reduce((a, b) => a + b, 0) / held.length)) : String(Math.round((held.reduce((a, b) => a + b, 0) / held.length) * 10) / 10)) : "–", "Per week"],
+  ];
 
   const subjectGroups = shortageByGroup(subjects);
   const unmarked = stats.unmarked.length;
@@ -95,38 +129,51 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
       </StatStrip>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        <Panel className="lg:col-span-2" title={`Attendance by week, last ${trend.length}`}
-          figure={trendNow === null ? "–" : <>{trendNow}<span className="text-base text-muted-foreground">%</span></>}
-          action={programmes.length > 1 && (
-            <nav aria-label="Trend by programme" className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
-              {toggles.map((t) => (
-                <Link key={t.code} href={t.href} aria-current={t.on ? "page" : undefined}
-                  className={cn(t.on ? "font-medium text-foreground underline underline-offset-4" : "text-muted-foreground hover:text-foreground")}>{t.code}</Link>
-              ))}
-            </nav>
-          )}>
+        <Panel className="lg:col-span-2" title={`${CHARTS[chart]} by week, last ${labels.length}`}
+          figure={nowV === null ? "–" : chart === "attendance" ? <>{nowV}<span className="text-base text-muted-foreground">%</span></> : chart === "fees" ? rupees(nowV) : nowV}
+          action={
+            <div className="flex flex-col items-end gap-1.5">
+              <nav aria-label="Chart" className="flex rounded-md bg-muted p-0.5 text-xs">
+                {(Object.keys(CHARTS) as ChartKey[]).map((c) => (
+                  <Link key={c} href={href({ chart: c })} aria-current={c === chart ? "page" : undefined}
+                    className={cn("rounded px-2 py-1", c === chart ? "bg-card font-medium text-foreground shadow-sheet" : "text-muted-foreground hover:text-foreground")}>{CHARTS[c]}</Link>
+                ))}
+              </nav>
+              {programmes.length > 1 && (
+                <nav aria-label="Programme" className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+                  {toggles.map((t) => (
+                    <Link key={t.code} href={href({ programme: t.value })} aria-current={t.on ? "page" : undefined}
+                      className={cn(t.on ? "font-medium text-foreground underline underline-offset-4" : "text-muted-foreground hover:text-foreground")}>{t.code}</Link>
+                  ))}
+                </nav>
+              )}
+            </div>
+          }>
           {hasTrend ? (
             <>
-              <TrendLine className="flex-1" points={trend} reference={line} label={`${programme?.code ?? "Campus"} attendance by week`} />
+              <TrendLine labels={labels} series={series} reference={chart === "attendance" ? line : undefined} format={fmt}
+                label={`${CHARTS[chart]} by week, ${series.map((x) => x.name).join(", ")}`} />
+              {compare && (
+                <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-hidden>
+                  {series.map((x) => <span key={x.name} className="inline-flex items-center gap-1.5"><span className={cn("size-2 rounded-full", x.dot)} />{x.name}</span>)}
+                </p>
+              )}
               <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-rule text-sm sm:grid-cols-4">
-                {[
-                  ["This week", trendNow === null ? "–" : `${trendNow}%`, trendNow !== null && prev !== null ? `${trendNow >= prev ? "+" : ""}${Math.round((trendNow - prev) * 10) / 10} pts vs last week` : "No previous week"],
-                  ["Best week", `${Math.max(...held)}%`, `${held.length} ${held.length === 1 ? "week" : "weeks"} with classes`],
-                  ["Lowest week", `${Math.min(...held)}%`, `${Math.round((Math.min(...held) - line) * 10) / 10} pts from the line`],
-                  ["Weeks below line", String(held.filter((v) => v < line).length), held.some((v) => v < line) ? "Check the subjects panel" : "All weeks above the line"],
-                ].map(([k, v, hint]) => (
-                  <div key={k} className="bg-card px-3 py-2.5">
+                {stats4.map(([k, v, hint]) => (
+                  <div key={k} className="bg-card px-3 py-2">
                     <dt className="text-xs text-muted-foreground">{k}</dt>
-                    <dd className="mt-0.5 text-lg font-medium tabular-nums">{v}</dd>
+                    <dd className="mt-0.5 text-base font-medium tabular-nums">{v}</dd>
                     <dd className="text-xs text-muted-foreground">{hint}</dd>
                   </div>
                 ))}
               </dl>
-              <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-foreground/60" aria-hidden />{programme?.cutoff ?? LINE}% shortage line</span>
-                <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-absent" aria-hidden />Week below the line</span>
-                <span>Late counts as present</span>
-              </p>
+              {chart === "attendance" && (
+                <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-foreground/60" aria-hidden />{line}% shortage line</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-absent" aria-hidden />Week below the line</span>
+                  <span>Late counts as present</span>
+                </p>
+              )}
             </>
           ) : <Empty>No sessions in the last 8 weeks.</Empty>}
         </Panel>
@@ -134,12 +181,12 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
         <Panel title="Students below the line" figure={short} action={<PanelLink href="/students?attendance=Shortage">All students</PanelLink>}>
           <p className="-mt-2 mb-3 text-xs text-muted-foreground">Share of each subject&apos;s students under the line. Red at {RED_SHARE}% or more.</p>
           {subjectGroups.length === 0 ? <Empty>No attendance sessions yet.</Empty> : (
-            <HBars max={100} rows={subjectGroups.slice(0, 8).map((g) => ({
+            <HBars max={100} rows={subjectGroups.slice(0, 6).map((g) => ({
               key: g.key, label: g.label, sub: `${g.short} of ${g.students} students`, value: g.share, valueLabel: `${g.share}%`,
               alert: g.share >= RED_SHARE, title: `${g.label}: ${g.short} of ${g.students} students below the line`,
             }))} />
           )}
-          {subjectGroups.length > 8 && <p className="mt-3 text-xs text-muted-foreground">Top 8 of {subjectGroups.length} subjects.</p>}
+          {subjectGroups.length > 6 && <p className="mt-3 text-xs text-muted-foreground">Top 6 of {subjectGroups.length} subjects.</p>}
         </Panel>
       </div>
 
