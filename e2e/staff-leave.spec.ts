@@ -13,7 +13,7 @@ test("faculty applies, office approves with a note, faculty sees it approved", a
   await faculty.goto("/leave");
   await faculty.getByLabel("From", { exact: true }).fill(`${year}-03-02`);
   await faculty.getByLabel("To", { exact: true }).fill(`${year}-03-03`);
-  await faculty.getByLabel("Reason").fill(reason);
+  await faculty.getByLabel("Reason", { exact: true }).fill(reason);
   await faculty.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(faculty.getByText("Leave applied. The office will decide.")).toBeVisible();
   await expect(faculty.getByText("Pending").filter({ visible: true }).first()).toBeVisible();
@@ -24,7 +24,7 @@ test("faculty applies, office approves with a note, faculty sees it approved", a
   await signIn(admin, "admin@termwise.demo");
   await admin.goto("/leave");
   const request = admin.locator("li").filter({ hasText: reason });
-  await request.getByLabel("Note to staff (required to reject)").fill(note);
+  await request.getByLabel("Note to staff (required to reject)", { exact: true }).fill(note);
   await request.getByRole("button", { name: "Approve", exact: true }).click();
   await expect(admin.getByText("Leave approved.")).toBeVisible();
   await adminCtx.close();
@@ -53,7 +53,7 @@ for (const email of ["faculty@termwise.demo", "admin@termwise.demo"]) {
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, email);
     await page.goto("/leave");
-    await expect(page.getByRole("heading", { name: "Leave" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Leave", exact: true })).toBeVisible();
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(scrollWidth).toBeLessThanOrEqual(375);
   });
