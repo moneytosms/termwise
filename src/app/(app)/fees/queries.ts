@@ -1,9 +1,9 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { istDate } from "@/domain/attendance";
 import { dues, instalmentDue } from "@/domain/fees";
 import { assertStudentAccess, studentScope, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
-import { batch, feeInstalment, feePayment, programme, student } from "@/server/schema";
+import { batch, feeInstalment, feePayment, programme, scholarshipAward, scholarshipScheme, student } from "@/server/schema";
 
 /** Paid so far on the instalment of the enclosing query (`fee_instalment`). */
 export const paidSql = sql<number>`(select coalesce(sum(p.amount_paise),0) from ${feePayment} p where p.instalment_id=fee_instalment.id)`.mapWith(Number);
@@ -53,7 +53,7 @@ export async function collectedThisMonth(v: Viewer): Promise<number> {
 /** Side panel data. Throws if the viewer may not see this student. */
 export async function getFeeDetail(v: Viewer, id: number) {
   await assertStudentAccess(v, id);
-  const [s] = await db.select({ id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code })
+  const [s] = await db.select({ id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code, category: student.category, semester: batch.semester })
     .from(student).innerJoin(batch, eq(student.batchId, batch.id)).where(eq(student.id, id));
   const instalments = await db.select({
     id: feeInstalment.id, label: feeInstalment.label, dueDate: feeInstalment.dueDate,
@@ -66,6 +66,18 @@ export async function getFeeDetail(v: Viewer, id: number) {
     .innerJoin(feeInstalment, eq(feePayment.instalmentId, feeInstalment.id))
     .where(eq(feeInstalment.studentId, id))
     .orderBy(desc(feePayment.paidAt));
-  return { student: s, instalments, payments };
+  const awards = await db.select({
+    id: scholarshipAward.id, scheme: scholarshipScheme.name, semester: scholarshipAward.semester, amountPaise: scholarshipAward.amountPaise,
+  }).from(scholarshipAward)
+    .innerJoin(scholarshipScheme, eq(scholarshipAward.schemeId, scholarshipScheme.id))
+    .where(and(eq(scholarshipAward.studentId, id), isNull(scholarshipAward.withdrawnAt)))
+    .orderBy(scholarshipAward.semester, scholarshipAward.id);
+  const schemes = await db.select({
+    id: scholarshipScheme.id, name: scholarshipScheme.name, kind: scholarshipScheme.kind, value: scholarshipScheme.value,
+    categories: scholarshipScheme.categories,
+  }).from(scholarshipScheme)
+    .where(and(eq(scholarshipScheme.campusId, v.campusId), eq(scholarshipScheme.active, true)))
+    .orderBy(scholarshipScheme.name);
+  return { student: s, instalments, payments, awards, schemes };
 }
 export type FeeDetail = Awaited<ReturnType<typeof getFeeDetail>>;

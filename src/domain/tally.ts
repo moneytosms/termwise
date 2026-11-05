@@ -2,7 +2,7 @@ import { istDate } from "./attendance";
 
 export type TallyRow = {
   receiptNo: string; paidAt: Date; rollNo: string; studentName: string; instalmentLabel: string;
-  reference: string; amountPaise: number; mode: "bank_counter" | "mock_link"; programmeCode: string;
+  reference: string; amountPaise: number; scholarshipPaise: number; mode: "bank_counter" | "mock_link"; programmeCode: string;
 };
 
 const BANK_LEDGER = { bank_counter: "Bank Counter", mock_link: "Payment Gateway (Test)" } as const;
@@ -15,7 +15,8 @@ export const rupeeAmount = (paise: number) => `${Math.floor(paise / 100)}.${Stri
 
 function voucher(r: TallyRow): string {
   const amount = rupeeAmount(r.amountPaise);
-  const narration = `${r.rollNo} ${r.studentName} ${r.instalmentLabel} ref ${r.reference}`;
+  const scholarship = r.scholarshipPaise > 0 ? ` scholarship ${rupeeAmount(r.scholarshipPaise)}` : "";
+  const narration = `${r.rollNo} ${r.studentName} ${r.instalmentLabel} ref ${r.reference}${scholarship}`;
   return `  <TALLYMESSAGE xmlns:UDF="TallyUDF"><VOUCHER VCHTYPE="Receipt" ACTION="Create">
     <DATE>${istDate(r.paidAt).replaceAll("-", "")}</DATE><VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME><VOUCHERNUMBER>${xmlEscape(r.receiptNo)}</VOUCHERNUMBER>
     <NARRATION>${xmlEscape(narration)}</NARRATION>

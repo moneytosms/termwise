@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db";
-import { batch, calendarDay, campus, department, feeStructure, programme, requiredDocument, staff, student, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, feeStructure, programme, requiredDocument, scholarshipScheme, staff, student, subject, timetableSlot } from "@/server/schema";
 
 export const getCampus = async (campusId: number) => {
   const [row] = await db.select().from(campus).where(eq(campus.id, campusId));
@@ -32,6 +32,13 @@ export async function listFeeStructure(campusId: number) {
     fees: Object.fromEntries(fees.filter((f) => f.programmeId === p.id).map((f) => [f.category, f.paise])) as Record<string, number>,
   }));
 }
+
+export const listSchemes = (campusId: number) =>
+  db.select({
+    id: scholarshipScheme.id, name: scholarshipScheme.name, fundingSource: scholarshipScheme.fundingSource,
+    kind: scholarshipScheme.kind, value: scholarshipScheme.value, categories: scholarshipScheme.categories, active: scholarshipScheme.active,
+  }).from(scholarshipScheme)
+    .where(eq(scholarshipScheme.campusId, campusId)).orderBy(scholarshipScheme.name);
 
 export const listRequiredDocuments = (campusId: number) =>
   db.select({

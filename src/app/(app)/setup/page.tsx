@@ -12,7 +12,8 @@ import { FacultyTab } from "./faculty-tab";
 import { FeeStructureTab } from "./fee-structure-tab";
 import { ProgrammesTab } from "./programmes-tab";
 import { RulesTab } from "./rules-tab";
-import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listFeeStructure, listProgrammes, listRequiredDocuments, listSlots, listStaff, listSubjects } from "./queries";
+import { SchemesTab } from "./schemes-tab";
+import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listFeeStructure, listProgrammes, listRequiredDocuments, listSchemes, listSlots, listStaff, listSubjects } from "./queries";
 import { SubjectsTab } from "./subjects-tab";
 import { TimetableTab } from "./timetable-tab";
 
@@ -26,6 +27,7 @@ const TABS = [
   { key: "calendar", label: "Calendar" },
   { key: "timetable", label: "Timetable" },
   { key: "rules", label: "Rules" },
+  { key: "scholarships", label: "Scholarships" },
   { key: "college", label: "College" },
 ] as const;
 
@@ -62,6 +64,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     );
   } else if (current === "rules") {
     body = <RulesTab rules={await getRules(c)} />;
+  } else if (current === "scholarships") {
+    body = <SchemesTab rows={await listSchemes(c)} />;
   } else {
     body = <CollegeTab campus={await getCampus(c)} />;
   }

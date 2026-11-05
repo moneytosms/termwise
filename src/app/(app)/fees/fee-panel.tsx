@@ -13,6 +13,7 @@ import { istDate } from "@/domain/attendance";
 import { instalmentDue } from "@/domain/fees";
 import { rupees } from "@/lib/utils";
 import { recordPayment } from "./actions";
+import { ScholarshipPanel } from "./scholarship-panel";
 import type { FeeDetail } from "./queries";
 
 export function FeePanel({ detail }: { detail: FeeDetail | null }) {
@@ -73,6 +74,9 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
                   ))}
                 </ul>
               )}
+
+              <SectionHeading title="Scholarships" count={detail.awards.length} />
+              <ScholarshipPanel detail={detail} />
       </div>
     </RecordModal>
   );
