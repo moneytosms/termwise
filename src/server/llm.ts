@@ -12,8 +12,7 @@ export type Effort = "low" | "medium" | "high";
 // through the other available models in this order.
 const CHOICES = [
   { id: "gpt-oss-120b", label: "GPT-OSS 120B", hint: "Groq · strongest", provider: "groq", model: "openai/gpt-oss-120b" },
-  { id: "qwen", label: "Qwen3.8 27B", hint: "Groq · fastest", provider: "groq", model: "qwen/qwen3.8-27b" },
-  { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "Groq · light", provider: "groq", model: "openai/gpt-oss-20b" },
+  { id: "gpt-oss-20b", label: "GPT-OSS 20B", hint: "Groq · fastest", provider: "groq", model: "openai/gpt-oss-20b" },
   { id: "flash", label: "Gemini 3.8 Flash", hint: "Google · can be busy", provider: "google", model: "gemini-3.8-flash" },
   { id: "lite", label: "Gemini 3.5 Flash Lite", hint: "Google · quick", provider: "google", model: "gemini-3.5-flash-lite" },
 ] as const;
@@ -28,13 +27,12 @@ export function availableModels() {
   return CHOICES.filter((c) => hasKey(c.provider)).map(({ id, label, hint }) => ({ id, label, hint }));
 }
 
-// Effort maps to each family's reasoning knob: Gemini thinking level, GPT-OSS reasoning effort, Qwen thinking on/off.
+// Effort maps to each family's reasoning knob: Gemini thinking level, GPT-OSS reasoning effort.
 type ProviderOptions = Parameters<typeof generateText>[0]["providerOptions"];
 
 function build(c: Choice, effort: Effort): { label: string; model: LanguageModel; providerOptions: ProviderOptions } {
   if (c.provider === "google") return { label: c.label, model: google(c.model), providerOptions: { google: { thinkingConfig: { thinkingLevel: effort } } } };
-  const reasoningEffort = c.id === "qwen" ? (effort === "low" ? "none" : "default") : effort;
-  return { label: c.label, model: groq(c.model), providerOptions: { groq: { reasoningEffort } } };
+  return { label: c.label, model: groq(c.model), providerOptions: { groq: { reasoningEffort: effort } } };
 }
 
 /** The picked model first, then the other available ones to fall back to. Empty when the pick's key is missing. */
