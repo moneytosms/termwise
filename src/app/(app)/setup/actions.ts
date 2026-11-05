@@ -77,7 +77,7 @@ const slotInput = z.object({
 const cellInput = z.object({ batchId: pick("Pick a batch."), dayOfWeek: range("Day", 0, 6), period: range("Period", 1, 9) });
 const feeInput = z.object({
   programmeId: pick("Pick a programme."),
-  category: z.enum(APPLICANT_CATEGORIES, "Pick a category."),
+  category: z.enum(["default", ...APPLICANT_CATEGORIES] as const, "Pick a category."),
   fee: z.string().trim().refine((s) => s === "" || /^\d+$/.test(s), "Fee must be a whole number of rupees."),
 });
 const rulesInput = z.object({
@@ -296,13 +296,30 @@ export async function deleteSlot(input: { batchId: number; dayOfWeek: number; pe
   return {};
 }
 
-/** Sets or, when the fee is blank, removes the semester fee for one category of a programme. Never touches instalments. */
+/** Sets or, when the fee is blank, removes the semester fee for one category of a programme. "default" sets the programme's default fee instead. Never touches instalments. */
 export async function saveFeeStructure(fd: FormData): Promise<Result> {
   const v = await requireCan("fees");
   const p = parse(feeInput, fd);
   if (!p.ok) return { error: p.error };
   const { programmeId, category, fee } = p.data;
   const paise = fee === "" ? null : Number(fee) * 100;
+  if (category === "default") {
+    if (paise === null) return { error: "Enter the programme's default fee." };
+    const error = await db.transaction(async (tx) => {
+      const [old] = await tx.select({ id: programme.id, semesterFeePaise: programme.semesterFeePaise }).from(programme)
+        .where(and(eq(programme.id, programmeId), eq(programme.campusId, v.campusId)));
+      if (!old) return "Pick a programme from this campus.";
+      await tx.update(programme).set({ semesterFeePaise: paise }).where(eq(programme.id, programmeId));
+      await audit(tx, v, {
+        action: "setup.programme_fee.update", entity: "programme", entityId: programmeId,
+        oldValue: old, newValue: { id: programmeId, semesterFeePaise: paise },
+      });
+      return null;
+    });
+    if (error) return { error };
+    revalidatePath("/setup");
+    return {};
+  }
   const error = await db.transaction(async (tx) => {
     const [prog] = await tx.select({ id: programme.id }).from(programme)
       .where(and(eq(programme.id, programmeId), eq(programme.campusId, v.campusId)));

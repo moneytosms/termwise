@@ -45,9 +45,9 @@ export function FeeStructureTab({ rows }: { rows: Row[] }) {
         </Field>
         <Field label="Category">
           <SelectField name="category" aria-label="Category" defaultValue="general"
-            options={APPLICANT_CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c) }))} />
+            options={[{ value: "default", label: "Programme default" }, ...APPLICANT_CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c) }))]} />
         </Field>
-        <Field label="Semester fee (₹)" hint="Leave blank to remove this category's fee, so it pays the programme default.">
+        <Field label="Semester fee (₹)" hint="Leave blank to remove this category's fee, so it pays the programme default. The programme default itself can't be blank.">
           <Input name="fee" type="number" min={0} step={1} inputMode="numeric" />
         </Field>
       </FormDialog>
