@@ -1,6 +1,7 @@
 import {
-  pgTable, text, integer, boolean, timestamp, date, uuid, jsonb, primaryKey, unique, index, numeric, serial,
+  pgTable, text, integer, boolean, timestamp, date, uuid, jsonb, primaryKey, unique, uniqueIndex, index, numeric, serial,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Better Auth tables
 export const user = pgTable("user", {
@@ -76,6 +77,7 @@ export const department = pgTable("department", {
   id: serial("id").primaryKey(),
   campusId: integer("campus_id").notNull().references(() => campus.id),
   name: text("name").notNull(),
+  sanctionedPosts: integer("sanctioned_posts").notNull().default(0),
 });
 export const staff = pgTable("staff", {
   id: serial("id").primaryKey(),
@@ -84,6 +86,8 @@ export const staff = pgTable("staff", {
   departmentId: integer("department_id").references(() => department.id),
   name: text("name").notNull(),
   role: text("role", { enum: ["faculty", "office_admin", "trust"] }).notNull(),
+  designation: text("designation", { enum: ["professor", "associate_professor", "assistant_professor"] }),
+  qualification: text("qualification"),
 });
 export const programme = pgTable("programme", {
   id: serial("id").primaryKey(),
@@ -93,6 +97,7 @@ export const programme = pgTable("programme", {
   name: text("name").notNull(),
   attendanceCutoff: integer("attendance_cutoff").notNull().default(75),
   semesterFeePaise: integer("semester_fee_paise").notNull().default(0),
+  sanctionedIntake: integer("sanctioned_intake").notNull().default(60),
 });
 export const batch = pgTable("batch", {
   id: serial("id").primaryKey(),
@@ -150,6 +155,9 @@ export const student = pgTable("student", {
   guardianPhone: text("guardian_phone"),
   parentConsentAt: timestamp("parent_consent_at"),
   userId: text("user_id").unique().references(() => user.id), // student's own login
+  category: text("category", { enum: ["general", "obc", "sc", "st", "ews"] }).notNull().default("general"),
+  gender: text("gender", { enum: ["male", "female", "other"] }),
+  graduatedOn: date("graduated_on"), // set = alumni
 }, (t) => [index("student_batch_idx").on(t.batchId)]);
 
 // Parent logins; one guardian can have several children
@@ -252,6 +260,7 @@ export const applicant = pgTable("applicant", {
   name: text("name").notNull(),
   birthDate: date("birth_date").notNull(),
   category: text("category", { enum: ["general", "obc", "sc", "st", "ews"] }).notNull().default("general"),
+  gender: text("gender", { enum: ["male", "female", "other"] }),
   guardianName: text("guardian_name").notNull(),
   guardianPhone: text("guardian_phone").notNull(),
   guardianEmail: text("guardian_email"),
@@ -348,6 +357,7 @@ export const feeInstalment = pgTable("fee_instalment", {
   dueDate: date("due_date").notNull(),
   amountPaise: integer("amount_paise").notNull(),
   scholarshipPaise: integer("scholarship_paise").notNull().default(0),
+  semester: integer("semester"), // null = the batch's current semester
 }, (t) => [index("fee_instalment_student_idx").on(t.studentId)]);
 export const feePayment = pgTable("fee_payment", {
   id: serial("id").primaryKey(),
@@ -357,6 +367,31 @@ export const feePayment = pgTable("fee_payment", {
   reference: text("reference").notNull(),
   paidAt: timestamp("paid_at", { withTimezone: true }).notNull().defaultNow(),
 });
+export const feeStructure = pgTable("fee_structure", {
+  id: serial("id").primaryKey(),
+  programmeId: integer("programme_id").notNull().references(() => programme.id),
+  category: text("category", { enum: ["general", "obc", "sc", "st", "ews"] }).notNull(),
+  semesterFeePaise: integer("semester_fee_paise").notNull(),
+}, (t) => [uniqueIndex("fee_structure_programme_category_idx").on(t.programmeId, t.category)]);
+export const scholarshipScheme = pgTable("scholarship_scheme", {
+  id: serial("id").primaryKey(),
+  campusId: integer("campus_id").notNull().references(() => campus.id),
+  name: text("name").notNull(),
+  fundingSource: text("funding_source", { enum: ["government", "institution", "non_government"] }).notNull(),
+  kind: text("kind", { enum: ["fixed", "percent"] }).notNull(),
+  value: integer("value").notNull(), // paise when fixed; whole percent 1-100 when percent
+  categories: text("categories").array().notNull().default(sql`'{}'::text[]`), // empty = all categories
+  active: boolean("active").notNull().default(true),
+});
+export const scholarshipAward = pgTable("scholarship_award", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  schemeId: integer("scheme_id").notNull().references(() => scholarshipScheme.id),
+  semester: integer("semester").notNull(),
+  amountPaise: integer("amount_paise").notNull(),
+  awardedAt: timestamp("awarded_at").notNull().defaultNow(),
+  withdrawnAt: timestamp("withdrawn_at"),
+}, (t) => [index("scholarship_award_student_idx").on(t.studentId)]);
 
 // Automation
 export const riskFlag = pgTable("risk_flag", {
