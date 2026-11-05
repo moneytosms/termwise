@@ -12,7 +12,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ who: str
   if (process.env.DEMO_LINKS === "0" || (who !== "parent" && who !== "student")) return new Response("Not found", { status: 404 });
   const id = await demoStudentId();
   if (id === null) return new Response("Not found", { status: 404 });
-  return Response.redirect(new URL(`/p/${parentToken(id)}${who === "student" ? "?view=student" : ""}`, req.url), 302);
+  // Relative Location: behind Render's proxy req.url is the container's localhost address.
+  return new Response(null, { status: 302, headers: { Location: `/p/${parentToken(id)}${who === "student" ? "?view=student" : ""}` } });
 }
 
 /** First student by roll no with a subject under the cutoff and fees due; else the first student. */
