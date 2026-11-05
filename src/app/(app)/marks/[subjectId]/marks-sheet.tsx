@@ -3,10 +3,11 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { canEditMarks, INTERNAL_TOTAL, validateComponents, validateMark, type MarksAction, type Role } from "@/domain/marks";
@@ -17,6 +18,15 @@ import { STATUS } from "../shared";
 
 const key = (componentId: number, studentId: number) => `${componentId}:${studentId}`;
 const parse = (s: string) => (s.trim() === "" ? null : Number(s));
+type Student = SheetData["students"][number];
+type Filter = "all" | "missing" | "below" | "full";
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "missing", label: "Missing marks" },
+  { value: "below", label: "Below pass" },
+  { value: "full", label: "Full marks" },
+];
+const PASS_SHARE = 0.4;
 
 export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
   const { subject: s, components, students } = data;
@@ -27,6 +37,9 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
   const [reasonFor, setReasonFor] = useState<MarksAction | null>(null);
   const [why, setWhy] = useState("");
   const [editOpen, setEditOpen] = useState(false);
+  const [sort, setSort] = useState("roll:asc");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
 
   const saved = useMemo(() => new Map(data.marks.map((m) => [key(m.componentId, m.studentId), m.marks])), [data.marks]);
   const maxOf = new Map(components.map((c) => [c.id, c.maxMarks]));
@@ -55,6 +68,40 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
   const changedKeys = new Set(changes.map((c) => key(c.componentId, c.studentId)));
   const phoneComponent = components.find((c) => c.id === part) ?? components[0];
 
+  // Sort and filter read saved marks, not drafts, so rows don't jump while typing.
+  const [by, dir] = sort.split(":");
+  const savedTotal = (id: number) => components.reduce((n, c) => n + Number(saved.get(key(c.id, id)) ?? 0), 0);
+  const rank = (st: Student) => (by === "roll" ? st.rollNo : by === "name" ? st.name : by === "total" ? savedTotal(st.id) : Number(saved.get(key(Number(by), st.id)) ?? -1));
+  const q = query.trim().toLowerCase();
+  const keep = (st: Student) => {
+    const t = savedTotal(st.id);
+    const ok = filter === "all" || (filter === "missing" ? components.some((c) => saved.get(key(c.id, st.id)) == null)
+      : filter === "below" ? t < PASS_SHARE * INTERNAL_TOTAL : t === INTERNAL_TOTAL);
+    return ok && (!q || st.name.toLowerCase().includes(q) || st.rollNo.toLowerCase().includes(q));
+  };
+  const visible = students.filter(keep).sort((a, b) => {
+    const x = rank(a);
+    const y = rank(b);
+    const d = typeof x === "string" ? x.localeCompare(String(y), undefined, { numeric: true }) : Number(x) - Number(y);
+    return dir === "desc" ? -d : d;
+  });
+  const sortItems = [
+    { value: "roll:asc", label: "Roll no" },
+    { value: "name:asc", label: "Name" },
+    { value: "total:desc", label: "Total high to low" },
+    { value: "total:asc", label: "Total low to high" },
+    ...components.map((c) => ({ value: `${c.id}:desc`, label: `${c.name} high to low` })),
+  ];
+  const sortBy = (k: string, first: "asc" | "desc") => setSort(by === k ? `${k}:${dir === "asc" ? "desc" : "asc"}` : `${k}:${first}`);
+  const ariaSort = (k: string) => (by === k ? (dir === "asc" ? "ascending" : "descending") : undefined);
+  const sortHead = (k: string, label: React.ReactNode, first: "asc" | "desc") => (
+    <button type="button" onClick={() => sortBy(k, first)} className="inline-flex items-center gap-1 hover:text-foreground">
+      {label}
+      {by === k && (dir === "asc" ? <ArrowUp className="size-3.5" aria-hidden /> : <ArrowDown className="size-3.5" aria-hidden />)}
+    </button>
+  );
+  const blankHint = (c: number, st: number) => (filter === "missing" && shown(c, st) === "" ? "bg-late-soft" : "");
+
   const save = () => start(async () => {
     const r = await saveMarks(s.id, changes);
     if (r.error) { toast.error(r.error); return; }
@@ -80,21 +127,41 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
         <EmptyState title="No components yet. Faculty add them in Draft." />
       ) : (
         <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Input type="search" aria-label="Search students" placeholder="Name or roll no" value={query}
+              onChange={(e) => setQuery(e.target.value)} className="h-8 w-48" />
+            <Select items={sortItems} value={sort} onValueChange={(v) => { if (v) setSort(v); }}>
+              <SelectTrigger size="sm" aria-label="Sort"><SelectValue /></SelectTrigger>
+              <SelectContent>{sortItems.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select items={FILTERS} value={filter} onValueChange={(v) => { if (v) setFilter(v as Filter); }}>
+              <SelectTrigger size="sm" aria-label="Filter"><SelectValue /></SelectTrigger>
+              <SelectContent>{FILTERS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="ml-auto text-sm text-muted-foreground tabular-nums">Showing {visible.length} of {students.length}</span>
+          </div>
+
           <div className="hidden overflow-x-auto rounded-xl bg-card shadow-sheet md:block">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student</TableHead>
-                  {components.map((c) => <TableHead key={c.id} className="text-right">{c.name} <span className="text-muted-foreground/70">/{c.maxMarks}</span></TableHead>)}
-                  <TableHead className="text-right">Total <span className="text-muted-foreground/70">/{INTERNAL_TOTAL}</span></TableHead>
+                  <TableHead aria-sort={ariaSort("roll")}>{sortHead("roll", "Student", "asc")}</TableHead>
+                  {components.map((c) => (
+                    <TableHead key={c.id} className="text-right" aria-sort={ariaSort(String(c.id))}>
+                      {sortHead(String(c.id), <>{c.name} <span className="text-muted-foreground/70">/{c.maxMarks}</span></>, "desc")}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-right" aria-sort={ariaSort("total")}>
+                    {sortHead("total", <>Total <span className="text-muted-foreground/70">/{INTERNAL_TOTAL}</span></>, "desc")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((st) => (
-                  <TableRow key={st.id}>
+                {visible.map((st) => (
+                  <TableRow key={st.id} className="hover:bg-muted/40">
                     <TableCell><span className="block font-medium">{st.name}</span><span className="block text-xs text-muted-foreground">{st.rollNo}</span></TableCell>
                     {components.map((c) => (
-                      <TableCell key={c.id} className="text-right">
+                      <TableCell key={c.id} className={`text-right ${blankHint(c.id, st.id)}`}>
                         <MarkInput editable={editable} value={shown(c.id, st.id)} error={errors.get(key(c.id, st.id))} max={c.maxMarks}
                           changed={changedKeys.has(key(c.id, st.id))} label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
                       </TableCell>
@@ -102,6 +169,9 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
                     <TableCell className="text-right font-medium">{total(st.id)}</TableCell>
                   </TableRow>
                 ))}
+                {visible.length === 0 && (
+                  <TableRow><TableCell colSpan={components.length + 2} className="text-center text-muted-foreground">No students match.</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
@@ -116,10 +186,10 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
               ))}
             </div>
             <ul className="divide-y divide-rule rounded-xl bg-card shadow-sheet">
-              {students.map((st) => {
+              {visible.map((st) => {
                 const c = phoneComponent;
                 return (
-                  <li key={st.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <li key={st.id} className={`flex items-center gap-3 px-4 py-2.5 ${blankHint(c.id, st.id)}`}>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{st.name}</p>
                       <p className="text-[13px] text-muted-foreground">{st.rollNo} · total {total(st.id)}/{INTERNAL_TOTAL}</p>
@@ -129,6 +199,7 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
                   </li>
                 );
               })}
+              {visible.length === 0 && <li className="px-4 py-3 text-sm text-muted-foreground">No students match.</li>}
             </ul>
           </div>
         </>

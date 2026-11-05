@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function PageHeader({ title, description, actions }: { title: string; description?: React.ReactNode; actions?: React.ReactNode }) {
+export function PageHeader({ title, description, actions, back }: {
+  title: string; description?: React.ReactNode; actions?: React.ReactNode; back?: { href: string; label: string };
+}) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 md:mb-8">
       <div className="min-w-0">
+        {back && (
+          <Link href={back.href} className="mb-1.5 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <ArrowLeft className="size-3.5" aria-hidden />{back.label}
+          </Link>
+        )}
         <h1 className="text-[1.375rem] leading-tight font-semibold tracking-[-0.015em] text-balance md:text-2xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>

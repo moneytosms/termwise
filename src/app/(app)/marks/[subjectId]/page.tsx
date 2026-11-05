@@ -24,6 +24,7 @@ export default async function MarksSubjectPage({ params }: { params: Promise<{ s
     <>
       <PageHeader
         title={`${s.code} ${s.name}`}
+        back={{ href: "/marks", label: "Marks" }}
         description={`Batch ${s.batch} · ${s.faculty ?? "No faculty assigned"}`}
         actions={<>
           <StatusPill tone={STATUS[s.status].tone}>{STATUS[s.status].label}</StatusPill>

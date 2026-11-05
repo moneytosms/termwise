@@ -15,13 +15,25 @@ export default async function MarksPage({ searchParams }: { searchParams: Promis
   const rows = await listSubjects(v);
 
   if (v.role === "faculty") {
+    const mine = status && status in STATUS ? rows.filter((r) => r.status === status) : rows;
     return (
       <>
         <PageHeader title="Marks" description={`${rows.length} subjects · ${rows.filter((r) => r.status === "draft").length} still in draft`} />
-        {rows.length === 0 ? <EmptyState title="No subjects are assigned to you yet." /> : (
+        <div role="group" aria-label="Filter by status" className="mb-4 flex flex-wrap gap-1.5">
+          {[["", "All"], ...Object.entries(STATUS).map(([value, s]) => [value, s.label])].map(([value, label]) => {
+            const active = (status ?? "") === value;
+            return (
+              <Link key={value} href={value ? `/marks?status=${value}` : "/marks"} aria-current={active ? "page" : undefined}
+                className={`inline-flex h-8 items-center rounded-full px-3 text-sm transition-colors ${active ? "bg-foreground font-medium text-background" : "bg-card text-muted-foreground shadow-sheet hover:text-foreground"}`}>
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+        {rows.length === 0 ? <EmptyState title="No subjects are assigned to you yet." /> : mine.length === 0 ? <EmptyState title="No subjects in this status." /> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {rows.map((r) => (
-              <Link key={r.id} href={`/marks/${r.id}`} className="group flex flex-col rounded-xl bg-card p-4 shadow-sheet transition-colors duration-150 hover:bg-muted/40 active:bg-muted md:p-5">
+            {mine.map((r) => (
+              <Link key={r.id} href={`/marks/${r.id}`} className="group flex flex-col rounded-xl bg-card p-4 shadow-sheet transition-[background-color,box-shadow] duration-150 hover:bg-muted/40 hover:shadow-float active:bg-muted md:p-5">
                 <div className="flex items-start justify-between gap-2">
                   <span className="min-w-0"><span className="block font-medium">{r.name}</span><span className="block text-sm text-muted-foreground">{r.code} · {r.batch}</span></span>
                   <StatusPill tone={STATUS[r.status].tone}>{STATUS[r.status].label}</StatusPill>
