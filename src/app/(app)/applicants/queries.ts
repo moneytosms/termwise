@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { applicableDocs, checklist, checklistComplete, checklistProgress, type DocState } from "@/domain/applicants";
 import { db } from "@/server/db";
-import { applicant, applicantDocument, batch, programme, requiredDocument } from "@/server/schema";
+import { applicant, applicantDocument, batch, programme, requiredDocument, student } from "@/server/schema";
 
 export type ApplicantRow = {
   id: number; name: string; programmeId: number; programme: string; batch: string; category: string;
@@ -12,6 +12,7 @@ export type ApplicantDetail = {
   id: number; name: string; programme: string; batch: string; category: string; birthDate: string;
   status: "applied" | "confirmed" | "rejected"; rejectReason: string | null; parentConsentAt: Date | null;
   guardianName: string; guardianPhone: string; guardianEmail: string | null;
+  studentId: number | null; rollNo: string | null;
   checklist: DocState[];
 };
 
@@ -41,10 +42,12 @@ export async function getApplicantDetail(campusId: number, id: number): Promise<
     id: applicant.id, name: applicant.name, category: applicant.category, status: applicant.status,
     birthDate: applicant.birthDate, rejectReason: applicant.rejectReason, parentConsentAt: applicant.parentConsentAt,
     guardianName: applicant.guardianName, guardianPhone: applicant.guardianPhone, guardianEmail: applicant.guardianEmail,
+    studentId: applicant.studentId, rollNo: student.rollNo,
     programmeId: applicant.programmeId, programme: programme.code, batch: batch.code,
   }).from(applicant)
     .innerJoin(programme, eq(applicant.programmeId, programme.id))
     .innerJoin(batch, eq(applicant.batchId, batch.id))
+    .leftJoin(student, eq(applicant.studentId, student.id))
     .where(and(eq(applicant.id, id), eq(programme.campusId, campusId)));
   if (!row) return null;
 
@@ -54,6 +57,7 @@ export async function getApplicantDetail(campusId: number, id: number): Promise<
     id: row.id, name: row.name, programme: row.programme, batch: row.batch, category: row.category,
     birthDate: row.birthDate, status: row.status, rejectReason: row.rejectReason, parentConsentAt: row.parentConsentAt,
     guardianName: row.guardianName, guardianPhone: row.guardianPhone, guardianEmail: row.guardianEmail,
+    studentId: row.studentId, rollNo: row.rollNo,
     checklist: checklist(applicableDocs(docs, row.category), statuses),
   };
 }
