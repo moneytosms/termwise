@@ -23,7 +23,7 @@ test("document checklist: verifying the last document completes it, and the chan
 
   await page.goto("/audit");
   await page.getByLabel("Search").fill("applicant.document");
-  await expect(page.getByText("applicant.document").first()).toBeVisible();
+  await expect(page.getByText("applicant.document").filter({ visible: true }).first()).toBeVisible();
 });
 
 test("import: a valid CSV adds applicants, a bad one lists its line errors and imports nothing", async ({ page }) => {
