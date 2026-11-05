@@ -123,14 +123,14 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
         {d.marks.length === 0 ? <p className="text-sm text-muted-foreground">No marks entered yet.</p> : (
           <ul className="space-y-1 text-sm">
             {[...new Set(d.marks.map((m) => m.subject))].map((name) => {
-              const rows = d.marks.filter((m) => m.subject === name);
+              const rows = d.marks.filter((m) => m.subject === name && m.section === "internal");
               const total = rows.reduce((n, m) => n + (m.marks ?? 0), 0);
               return (
                 <li key={name} className="flex items-center justify-between gap-2">
                   <span className="truncate">{name}</span>
                   <span className="flex items-center gap-2">
                     {rows[0].status === "locked" && <StatusPill>Locked</StatusPill>}
-                    <span className="tabular-nums">{total}<span className="text-muted-foreground">/40</span></span>
+                    <span className="tabular-nums">{total}<span className="text-muted-foreground">/{rows[0]?.internalMax ?? 40}</span></span>
                   </span>
                 </li>
               );

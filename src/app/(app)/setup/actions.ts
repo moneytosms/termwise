@@ -6,7 +6,8 @@ import { z } from "zod";
 import { requireAdmin } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db, type Tx } from "@/server/db";
-import { batch, calendarDay, campus, department, programme, staff, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, mark, markComponent, programme, staff, subject, timetableSlot } from "@/server/schema";
+import { sectionMax, sectionsFor, SECTION_LABEL, type Section } from "@/domain/marks";
 
 type Result = { error?: string };
 
@@ -44,6 +45,14 @@ const subjectInput = z.object({
   facultyId: optId,
   code: text("Code", 20),
   name: text("Name", 120),
+  kind: z.enum(["theory", "lab"], "Pick a kind."),
+  internalMax: range("Internal max", 1, 100),
+  midMax: range("Mid-term max", 1, 100),
+  endMax: range("End-term max", 1, 100),
+  theoryScale: range("Theory scale", 1, 100),
+  labExamMax: range("Lab exam max", 1, 100),
+  vivaMax: range("Viva max", 1, 100),
+  ceMax: range("CE max", 1, 100),
 });
 const dayInput = z.object({
   id: optId,
@@ -160,14 +169,31 @@ export async function saveSubject(fd: FormData): Promise<Result> {
         .where(and(eq(staff.id, facultyId), eq(staff.campusId, v.campusId), eq(staff.role, "faculty")));
       if (!f) return "Pick a faculty member from this campus.";
     }
+    let rowId: number;
     if (id) {
       const old = await campusSubject(tx, v.campusId, id);
       if (!old) return "Subject not found on this campus.";
+      // Caps may not cut marks already entered; the marks are never deleted or clamped.
+      const entered = await tx.select({ section: markComponent.section, marks: mark.marks }).from(mark)
+        .innerJoin(markComponent, eq(mark.componentId, markComponent.id)).where(eq(markComponent.subjectId, id));
+      const cut = entered.find((m) => m.marks !== null && sectionsFor(values.kind).includes(m.section as Section) && m.section !== "internal"
+        && m.marks > sectionMax(values, m.section as Section));
+      if (cut) return `Marks already entered for ${SECTION_LABEL[cut.section as Section]} are above the new maximum.`;
       const [row] = await tx.update(subject).set(values).where(eq(subject.id, id)).returning();
       await audit(tx, v, { action: "setup.subject.update", entity: "subject", entityId: id, oldValue: old, newValue: row });
+      rowId = id;
     } else {
       const [row] = await tx.insert(subject).values(values).returning();
       await audit(tx, v, { action: "setup.subject.create", entity: "subject", entityId: row.id, newValue: row });
+      rowId = row.id;
+    }
+    // Fixed sections follow the scheme: caps are synced and missing ones created. Switching lab to theory keeps lab components, which are ignored.
+    const comps = await tx.select({ id: markComponent.id, section: markComponent.section }).from(markComponent).where(eq(markComponent.subjectId, rowId));
+    for (const sec of sectionsFor(values.kind)) {
+      if (sec === "internal") continue;
+      const c = comps.find((x) => x.section === sec);
+      if (c) await tx.update(markComponent).set({ maxMarks: sectionMax(values, sec) }).where(eq(markComponent.id, c.id));
+      else await tx.insert(markComponent).values({ subjectId: rowId, name: SECTION_LABEL[sec], maxMarks: sectionMax(values, sec), section: sec });
     }
     return null;
   });

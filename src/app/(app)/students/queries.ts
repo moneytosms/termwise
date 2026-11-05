@@ -19,7 +19,7 @@ export async function listStudents(v: Viewer): Promise<StudentRow[]> {
     id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code, programme: programme.name, year: batch.year, cutoff: programme.attendanceCutoff,
     held: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id)`.mapWith(Number),
     attended: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id and e.status<>'absent')`.mapWith(Number),
-    marksAvg: sql<number | null>`(select avg(t.total) from (select sum(m.marks) total from mark m join mark_component c on c.id=m.component_id where m.student_id=student.id and m.marks is not null group by c.subject_id having count(*)=(select count(*) from mark_component c2 where c2.subject_id=c.subject_id)) t)`.mapWith((x) => (x === null ? null : Number(x))),
+    marksAvg: sql<number | null>`(select avg(t.total) from (select sum(m.marks) total from mark m join mark_component c on c.id=m.component_id where m.student_id=student.id and m.marks is not null and c.section='internal' group by c.subject_id having count(*)=(select count(*) from mark_component c2 where c2.subject_id=c.subject_id and c2.section='internal')) t)`.mapWith((x) => (x === null ? null : Number(x))),
     flagged: sql<boolean>`exists(select 1 from risk_flag r where r.student_id=student.id and r.active)`,
   }).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id))
@@ -70,7 +70,7 @@ export async function getStudentDetail(v: Viewer, id: number) {
     held: rows.reduce((n, r) => n + r.periods, 0), attended: rows.reduce((n, r) => n + (r.status === "absent" ? 0 : r.periods), 0),
   })).sort((a, b) => a.name.localeCompare(b.name));
 
-  const marks = await db.select({ subject: subject.name, status: subject.marksStatus, component: markComponent.name, max: markComponent.maxMarks, marks: mark.marks })
+  const marks = await db.select({ subject: subject.name, status: subject.marksStatus, internalMax: subject.internalMax, component: markComponent.name, section: markComponent.section, max: markComponent.maxMarks, marks: mark.marks })
     .from(mark).innerJoin(markComponent, eq(mark.componentId, markComponent.id)).innerJoin(subject, eq(markComponent.subjectId, subject.id))
     .where(eq(mark.studentId, id));
 

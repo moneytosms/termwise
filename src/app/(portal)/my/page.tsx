@@ -49,7 +49,7 @@ export default async function PortalHome() {
 
   const markRows = await db.select({ marks: mark.marks, max: markComponent.maxMarks }).from(mark)
     .innerJoin(markComponent, eq(mark.componentId, markComponent.id))
-    .where(eq(mark.studentId, v.studentId));
+    .where(and(eq(mark.studentId, v.studentId), eq(markComponent.section, "internal")));
   const entered = markRows.filter((r) => r.marks !== null);
   const obtained = round(entered.reduce((n, r) => n + (r.marks ?? 0), 0));
   const possible = entered.reduce((n, r) => n + r.max, 0);

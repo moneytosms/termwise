@@ -36,7 +36,7 @@ GROUP BY student_id, roll_no, name, batch, year, programme, subject_code, subjec
 
 CREATE OR REPLACE VIEW v_marks WITH (security_barrier = true) AS
 SELECT s.id AS student_id, s.roll_no, s.name, b.code AS batch, b.year, p.code AS programme, sub.code AS subject_code, sub.name AS subject_name,
-       sub.marks_status, c.name AS component, c.max_marks, m.marks
+       sub.marks_status, c.name AS component, c.max_marks, m.marks, c.section, sub.kind AS subject_kind
 FROM mark m
 JOIN mark_component c ON c.id = m.component_id
 JOIN subject sub ON sub.id = c.subject_id

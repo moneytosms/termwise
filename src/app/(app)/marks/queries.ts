@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import type { MarksStatus } from "@/domain/marks";
+import { sectionsFor, type MarksStatus, type Section } from "@/domain/marks";
 import { assertSubjectAccess, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import { auditLog, batch, mark, markComponent, programme, staff, student, subject } from "@/server/schema";
@@ -32,12 +32,17 @@ export async function getSheet(v: Viewer, subjectId: number) {
   await assertSubjectAccess(v, subjectId);
   const [s] = await db.select({
     id: subject.id, code: subject.code, name: subject.name, batchId: subject.batchId, batch: batch.code, status: subject.marksStatus, faculty: staff.name,
+    kind: subject.kind, internalMax: subject.internalMax, midMax: subject.midMax, endMax: subject.endMax, theoryScale: subject.theoryScale,
+    labExamMax: subject.labExamMax, vivaMax: subject.vivaMax, ceMax: subject.ceMax,
   }).from(subject)
     .innerJoin(batch, eq(subject.batchId, batch.id))
     .leftJoin(staff, eq(subject.facultyId, staff.id))
     .where(eq(subject.id, subjectId));
-  const components = await db.select({ id: markComponent.id, name: markComponent.name, maxMarks: markComponent.maxMarks })
+  // Lab sections left over from a lab-to-theory switch are kept in the database but hidden here.
+  const allComponents = await db.select({ id: markComponent.id, name: markComponent.name, maxMarks: markComponent.maxMarks, section: markComponent.section })
     .from(markComponent).where(eq(markComponent.subjectId, subjectId)).orderBy(asc(markComponent.position), asc(markComponent.id));
+  const applies = sectionsFor(s.kind);
+  const components = allComponents.filter((c) => applies.includes(c.section as Section));
   const students = await db.select({ id: student.id, rollNo: student.rollNo, name: student.name })
     .from(student).where(eq(student.batchId, s.batchId)).orderBy(asc(student.rollNo));
   const marks = await db.select({ componentId: mark.componentId, studentId: mark.studentId, marks: mark.marks })

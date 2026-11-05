@@ -3,7 +3,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { canEditMarks, canSubmit, transition, validateComponents, validateMark, type MarksAction } from "@/domain/marks";
+import { canEditMarks, canSubmit, SECTIONS, transition, validateComponents, validateMark, type MarksAction } from "@/domain/marks";
 import { AccessError, assertSubjectAccess, requireViewer, type Viewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
@@ -76,6 +76,11 @@ const Transition = z.object({
   reason: z.string().max(500).optional(),
 });
 
+const schemeColumns = {
+  kind: subject.kind, internalMax: subject.internalMax, midMax: subject.midMax, endMax: subject.endMax, theoryScale: subject.theoryScale,
+  labExamMax: subject.labExamMax, vivaMax: subject.vivaMax, ceMax: subject.ceMax,
+};
+
 /** Submit (faculty), send back, lock, reopen (office admin). The role and status rules live in `transition`. */
 export async function transitionMarks(subjectId: number, action: MarksAction, reason?: string): Promise<{ error?: string }> {
   const v = await requireViewer();
@@ -117,11 +122,11 @@ export async function transitionMarks(subjectId: number, action: MarksAction, re
 const Components = z.object({
   subjectId: z.number().int(),
   components: z.array(z.object({
-    id: z.number().int().optional(), name: z.string().max(60), maxMarks: z.number().int(),
+    id: z.number().int().optional(), name: z.string().max(60), maxMarks: z.number().int(), section: z.enum(SECTIONS),
   })).max(20),
 });
 
-/** Faculty edit names and max marks of a Draft subject. Removing a component is blocked once it has marks. */
+/** Faculty edit internal components of a Draft subject; fixed sections are checked against the scheme. Removing a component is blocked once it has marks. */
 export async function saveComponents(subjectId: number, components: unknown): Promise<{ error?: string }> {
   const v = await requireViewer();
   const input = Components.safeParse({ subjectId, components });
@@ -131,14 +136,14 @@ export async function saveComponents(subjectId: number, components: unknown): Pr
   const denied = await guard(v, id);
   if (denied) return denied;
 
-  const [s] = await db.select({ status: subject.marksStatus }).from(subject).where(eq(subject.id, id));
+  const [s] = await db.select({ status: subject.marksStatus, ...schemeColumns }).from(subject).where(eq(subject.id, id));
   if (v.role !== "faculty" || !canEditMarks(s.status, v.role)) {
     return { error: "Components can only be changed by faculty while the subject is in Draft." };
   }
-  const err = validateComponents(next);
+  const err = validateComponents(next, s);
   if (err) return { error: err };
 
-  const old = await db.select({ id: markComponent.id, name: markComponent.name, maxMarks: markComponent.maxMarks })
+  const old = await db.select({ id: markComponent.id, name: markComponent.name, maxMarks: markComponent.maxMarks, section: markComponent.section })
     .from(markComponent).where(eq(markComponent.subjectId, id));
   if (next.some((c) => c.id !== undefined && !old.some((o) => o.id === c.id))) return { error: "Components changed. Refresh and try again." };
 
@@ -155,13 +160,13 @@ export async function saveComponents(subjectId: number, components: unknown): Pr
       await tx.delete(markComponent).where(inArray(markComponent.id, removed));
     }
     for (const [position, c] of next.entries()) {
-      if (c.id === undefined) await tx.insert(markComponent).values({ subjectId: id, name: c.name.trim(), maxMarks: c.maxMarks, position });
+      if (c.id === undefined) await tx.insert(markComponent).values({ subjectId: id, name: c.name.trim(), maxMarks: c.maxMarks, position, section: c.section });
       else await tx.update(markComponent).set({ name: c.name.trim(), maxMarks: c.maxMarks, position }).where(eq(markComponent.id, c.id));
     }
     await audit(tx, v, {
       action: "marks.components", entity: "subject", entityId: id,
-      oldValue: old.map((o) => ({ name: o.name, maxMarks: o.maxMarks })),
-      newValue: next.map((c) => ({ name: c.name.trim(), maxMarks: c.maxMarks })),
+      oldValue: old.map((o) => ({ name: o.name, maxMarks: o.maxMarks, section: o.section })),
+      newValue: next.map((c) => ({ name: c.name.trim(), maxMarks: c.maxMarks, section: c.section })),
     });
   });
   revalidatePath(`/marks/${id}`);

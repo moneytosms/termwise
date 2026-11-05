@@ -41,7 +41,7 @@ export async function runDailyJob(campusId: number, trigger: "schedule" | "manua
   const att = await db.select({ studentId: attendanceEntry.studentId, status: attendanceEntry.status, periods: attendanceSession.periodCount, date: attendanceSession.date, subject: subject.name, sessionId: attendanceSession.id })
     .from(attendanceEntry).innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id)).innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
     .where(inArray(attendanceEntry.studentId, ids));
-  const marks = await db.select({ studentId: mark.studentId, marks: mark.marks, max: markComponent.maxMarks }).from(mark).innerJoin(markComponent, eq(mark.componentId, markComponent.id)).where(inArray(mark.studentId, ids));
+  const marks = await db.select({ studentId: mark.studentId, marks: mark.marks, max: markComponent.maxMarks }).from(mark).innerJoin(markComponent, eq(mark.componentId, markComponent.id)).where(and(inArray(mark.studentId, ids), eq(markComponent.section, "internal")));
   const instalments = await db.select({
     studentId: feeInstalment.studentId, id: feeInstalment.id, dueDate: feeInstalment.dueDate, amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise,
     paidPaise: sql<number>`(select coalesce(sum(p.amount_paise),0) from fee_payment p where p.instalment_id=fee_instalment.id)`.mapWith(Number),

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { canEditMarks, INTERNAL_TOTAL, validateComponents, validateMark, type MarksAction, type Role } from "@/domain/marks";
+import { canEditMarks, finalScore, sectionMax, sectionsFor, SECTION_LABEL, validateComponents, validateMark, type Kind, type MarksAction, type Role, type Section } from "@/domain/marks";
 import { EmptyState } from "@/components/states";
 import type { SheetData } from "../queries";
 import { saveComponents, saveMarks, transitionMarks } from "../actions";
@@ -27,9 +27,15 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "full", label: "Full marks" },
 ];
 const PASS_SHARE = 0.4;
+type Col = SheetData["components"][number];
+
+/** Components grouped in section order (internal, mid, end, then lab sections for lab subjects). */
+const bySection = (cs: Col[], kind: Kind) => sectionsFor(kind).flatMap((sec) => cs.filter((c) => c.section === sec));
 
 export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
-  const { subject: s, components, students } = data;
+  const { subject: s, students } = data;
+  const components = bySection(data.components, s.kind);
+  const groups = sectionsFor(s.kind).map((sec) => ({ sec, cols: components.filter((c) => c.section === sec) })).filter((g) => g.cols.length > 0);
   const router = useRouter();
   const [busy, start] = useTransition();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -43,6 +49,20 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
 
   const saved = useMemo(() => new Map(data.marks.map((m) => [key(m.componentId, m.studentId), m.marks])), [data.marks]);
   const maxOf = new Map(components.map((c) => [c.id, c.maxMarks]));
+  const sectionSums = (st: number, read: (c: Col) => number | null) => {
+    const out: Partial<Record<Section, number>> = {};
+    for (const c of components) {
+      const v = read(c);
+      if (v !== null && Number.isFinite(v)) out[c.section] = (out[c.section] ?? 0) + v;
+    }
+    return out;
+  };
+  const savedOf = (st: number) => sectionSums(st, (c) => saved.get(key(c.id, st)) ?? null);
+  const draftOf = (st: number) => sectionSums(st, (c) => {
+    const k = key(c.id, st);
+    return k in drafts ? parse(drafts[k]) : (saved.get(k) ?? null);
+  });
+  const finalOf = (sums: Partial<Record<Section, number>>) => finalScore(s, sums).total;
   const editable = canEditMarks(s.status, role);
 
   const shown = (c: number, st: number) => {
@@ -59,24 +79,21 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
     const value = parse(str);
     return value === (saved.get(k) ?? null) ? [] : [{ componentId, studentId, value }];
   });
-  const total = (st: number) => components.reduce((n, c) => {
-    const k = key(c.id, st);
-    const v = k in drafts ? parse(drafts[k]) : (saved.get(k) ?? null);
-    return v !== null && Number.isFinite(v) ? n + v : n;
-  }, 0);
+  const total = (st: number) => draftOf(st).internal ?? 0;
   const edit = (k: string, v: string) => setDrafts((d) => ({ ...d, [k]: v }));
   const changedKeys = new Set(changes.map((c) => key(c.componentId, c.studentId)));
   const phoneComponent = components.find((c) => c.id === part) ?? components[0];
 
   // Sort and filter read saved marks, not drafts, so rows don't jump while typing.
   const [by, dir] = sort.split(":");
-  const savedTotal = (id: number) => components.reduce((n, c) => n + Number(saved.get(key(c.id, id)) ?? 0), 0);
-  const rank = (st: Student) => (by === "roll" ? st.rollNo : by === "name" ? st.name : by === "total" ? savedTotal(st.id) : Number(saved.get(key(Number(by), st.id)) ?? -1));
+  const savedTotal = (id: number) => savedOf(id).internal ?? 0;
+  const rank = (st: Student) => (by === "roll" ? st.rollNo : by === "name" ? st.name : by === "total" ? savedTotal(st.id)
+    : by === "final" ? finalOf(savedOf(st.id)) : Number(saved.get(key(Number(by), st.id)) ?? -1));
   const q = query.trim().toLowerCase();
   const keep = (st: Student) => {
     const t = savedTotal(st.id);
     const ok = filter === "all" || (filter === "missing" ? components.some((c) => saved.get(key(c.id, st.id)) == null)
-      : filter === "below" ? t < PASS_SHARE * INTERNAL_TOTAL : t === INTERNAL_TOTAL);
+      : filter === "below" ? t < PASS_SHARE * s.internalMax : t === s.internalMax);
     return ok && (!q || st.name.toLowerCase().includes(q) || st.rollNo.toLowerCase().includes(q));
   };
   const visible = students.filter(keep).sort((a, b) => {
@@ -88,8 +105,9 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
   const sortItems = [
     { value: "roll:asc", label: "Roll no" },
     { value: "name:asc", label: "Name" },
-    { value: "total:desc", label: "Total high to low" },
-    { value: "total:asc", label: "Total low to high" },
+    { value: "total:desc", label: "Internal high to low" },
+    { value: "total:asc", label: "Internal low to high" },
+    { value: "final:desc", label: "Final high to low" },
     ...components.map((c) => ({ value: `${c.id}:desc`, label: `${c.name} high to low` })),
   ];
   const sortBy = (k: string, first: "asc" | "desc") => setSort(by === k ? `${k}:${dir === "asc" ? "desc" : "asc"}` : `${k}:${first}`);
@@ -144,6 +162,15 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
           <div className="hidden overflow-x-auto rounded-xl bg-card shadow-sheet md:block">
             <Table>
               <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead />
+                  {groups.map((g) => (
+                    <TableHead key={g.sec} colSpan={g.cols.length} className="border-l border-rule text-center text-xs uppercase tracking-wide">
+                      {SECTION_LABEL[g.sec]} <span className="text-muted-foreground/70">/{sectionMax(s, g.sec)}</span>
+                    </TableHead>
+                  ))}
+                  <TableHead colSpan={2} />
+                </TableRow>
                 <TableRow>
                   <TableHead aria-sort={ariaSort("roll")}>{sortHead("roll", "Student", "asc")}</TableHead>
                   {components.map((c) => (
@@ -152,7 +179,10 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
                     </TableHead>
                   ))}
                   <TableHead className="text-right" aria-sort={ariaSort("total")}>
-                    {sortHead("total", <>Total <span className="text-muted-foreground/70">/{INTERNAL_TOTAL}</span></>, "desc")}
+                    {sortHead("total", <>Internal <span className="text-muted-foreground/70">/{s.internalMax}</span></>, "desc")}
+                  </TableHead>
+                  <TableHead className="text-right" aria-sort={ariaSort("final")}>
+                    {sortHead("final", <>Final <span className="text-muted-foreground/70">/100</span></>, "desc")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -167,10 +197,11 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
                       </TableCell>
                     ))}
                     <TableCell className="text-right font-medium">{total(st.id)}</TableCell>
+                    <TableCell className="text-right font-medium">{finalOf(draftOf(st.id))}</TableCell>
                   </TableRow>
                 ))}
                 {visible.length === 0 && (
-                  <TableRow><TableCell colSpan={components.length + 2} className="text-center text-muted-foreground">No students match.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={components.length + 3} className="text-center text-muted-foreground">No students match.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -192,7 +223,7 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
                   <li key={st.id} className={`flex items-center gap-3 px-4 py-2.5 ${blankHint(c.id, st.id)}`}>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{st.name}</p>
-                      <p className="text-[13px] text-muted-foreground">{st.rollNo} · total {total(st.id)}/{INTERNAL_TOTAL}</p>
+                      <p className="text-[13px] text-muted-foreground">{st.rollNo} · internal {total(st.id)}/{s.internalMax} · final {finalOf(draftOf(st.id))}/100</p>
                     </div>
                     <MarkInput editable={editable} value={shown(c.id, st.id)} error={errors.get(key(c.id, st.id))} max={c.maxMarks}
                       changed={changedKeys.has(key(c.id, st.id))} large label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
@@ -243,7 +274,7 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
         </DialogContent>
       </Dialog>
 
-      {editOpen && <ComponentsDialog subjectId={s.id} components={components} onClose={() => setEditOpen(false)} />}
+      {editOpen && <ComponentsDialog subject={s} components={components} onClose={() => setEditOpen(false)} />}
     </>
   );
 }
@@ -262,21 +293,31 @@ function MarkInput({ editable, value, error, max, label, onChange, changed, larg
   );
 }
 
-type Row = { id?: number; name: string; max: string };
+type Row = { id?: number; name: string; max: string; section: Section };
 
-function ComponentsDialog({ subjectId, components, onClose }: {
-  subjectId: number; components: SheetData["components"]; onClose: () => void;
+/** Internal rows are editable. Mid, end and lab sections are fixed by the scheme; a missing one is added on save. */
+function ComponentsDialog({ subject: s, components, onClose }: {
+  subject: SheetData["subject"]; components: SheetData["components"]; onClose: () => void;
 }) {
   const router = useRouter();
   const [busy, start] = useTransition();
-  const [rows, setRows] = useState<Row[]>(() => components.map((c) => ({ id: c.id, name: c.name, max: String(c.maxMarks) })));
-  const input = rows.map((r) => ({ id: r.id, name: r.name, maxMarks: Number(r.max) }));
-  const err = validateComponents(input);
-  const sum = input.reduce((n, c) => n + c.maxMarks, 0);
+  const [rows, setRows] = useState<Row[]>(() => [
+    ...components.filter((c) => c.section === "internal").map((c) => ({ id: c.id, name: c.name, max: String(c.maxMarks), section: c.section })),
+    ...sectionsFor(s.kind).filter((sec) => sec !== "internal").map((sec): Row => {
+      const c = components.find((x) => x.section === sec);
+      return c ? { id: c.id, name: c.name, max: String(c.maxMarks), section: sec } : { name: SECTION_LABEL[sec], max: String(sectionMax(s, sec)), section: sec };
+    }),
+  ]);
+  const fixed = (r: Row) => r.section !== "internal";
+  const input = rows.map((r) => (fixed(r)
+    ? { id: r.id, name: r.name, maxMarks: sectionMax(s, r.section), section: r.section }
+    : { id: r.id, name: r.name, maxMarks: Number(r.max), section: r.section }));
+  const err = validateComponents(input, s);
+  const internal = input.filter((c) => c.section === "internal").reduce((n, c) => n + c.maxMarks, 0);
   const update = (i: number, patch: Partial<Row>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const save = () => start(async () => {
-    const r = await saveComponents(subjectId, input);
+    const r = await saveComponents(s.id, input);
     if (r.error) { toast.error(r.error); return; }
     onClose();
     router.refresh();
@@ -287,10 +328,16 @@ function ComponentsDialog({ subjectId, components, onClose }: {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit components</DialogTitle>
-          <DialogDescription>Components must total {INTERNAL_TOTAL}. A component with marks entered can&apos;t be removed.</DialogDescription>
+          <DialogDescription>Internal components must total {s.internalMax}. Other sections come from the subject&apos;s scheme. A component with marks entered can&apos;t be removed.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          {rows.map((r, i) => (
+          {rows.map((r, i) => (fixed(r) ? (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <span className="flex-1">{r.name} <span className="text-muted-foreground">({SECTION_LABEL[r.section]}, fixed)</span></span>
+              <span className="w-24 text-right tabular-nums">{sectionMax(s, r.section)}</span>
+              <span className="size-9" aria-hidden />
+            </div>
+          ) : (
             <div key={i} className="flex items-center gap-2">
               <Input aria-label={`Component ${i + 1} name`} value={r.name} maxLength={60} placeholder="Name"
                 onChange={(e) => update(i, { name: e.target.value })} className="flex-1" />
@@ -299,10 +346,10 @@ function ComponentsDialog({ subjectId, components, onClose }: {
               <Button variant="ghost" size="icon" aria-label={`Remove component ${i + 1}`}
                 onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}><Trash2 aria-hidden /></Button>
             </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => setRows((rs) => [...rs, { name: "", max: "" }])}><Plus aria-hidden />Add component</Button>
+          )))}
+          <Button variant="outline" size="sm" onClick={() => setRows((rs) => [...rs, { name: "", max: "", section: "internal" }])}><Plus aria-hidden />Add internal component</Button>
           <p className={`text-sm ${err ? "text-absent" : "text-muted-foreground"}`}>
-            {err ?? `Total ${sum} of ${INTERNAL_TOTAL}.`}
+            {err ?? `Internal total ${internal} of ${s.internalMax}.`}
           </p>
         </div>
         <DialogFooter>

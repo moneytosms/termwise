@@ -2,6 +2,11 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { batch, calendarDay, campus, department, programme, staff, student, subject, timetableSlot } from "@/server/schema";
 
+export const getCampus = async (campusId: number) => {
+  const [row] = await db.select().from(campus).where(eq(campus.id, campusId));
+  return row;
+};
+
 export const listDepartments = (campusId: number) =>
   db.select({ id: department.id, name: department.name }).from(department)
     .where(eq(department.campusId, campusId)).orderBy(department.name);
@@ -27,6 +32,8 @@ export const listSubjects = (campusId: number) =>
   db.select({
     id: subject.id, batchId: subject.batchId, batch: batch.code, code: subject.code, name: subject.name,
     facultyId: subject.facultyId, faculty: staff.name, marksStatus: subject.marksStatus,
+    kind: subject.kind, internalMax: subject.internalMax, midMax: subject.midMax, endMax: subject.endMax, theoryScale: subject.theoryScale,
+    labExamMax: subject.labExamMax, vivaMax: subject.vivaMax, ceMax: subject.ceMax,
   }).from(subject)
     .innerJoin(batch, eq(subject.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))

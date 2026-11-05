@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
-import { SUBJECT_MAX, studentMarks } from "../queries";
+import { studentMarks } from "../queries";
 import { PrintButton } from "./print-button";
 
 export default async function MarkSheetPage() {
@@ -46,7 +46,8 @@ export default async function MarkSheetPage() {
                   <th className="py-2 pr-4 font-medium">Code</th>
                   <th className="py-2 pr-4 font-medium">Subject</th>
                   {columns.map((c) => <th key={c} className="py-2 pr-4 text-right font-medium">{c}</th>)}
-                  <th className="py-2 text-right font-medium">Total /{SUBJECT_MAX}</th>
+                  <th className="py-2 pr-4 text-right font-medium">Internal</th>
+                  <th className="py-2 text-right font-medium">Final /100</th>
                 </tr>
               </thead>
               <tbody>
@@ -58,7 +59,8 @@ export default async function MarkSheetPage() {
                       const c = x.comps.find((k) => k.name === n);
                       return <td key={n} className="py-2 pr-4 text-right">{c?.marks == null ? "–" : `${c.marks} / ${c.max}`}</td>;
                     })}
-                    <td className="py-2 text-right font-medium">{x.obtained}</td>
+                    <td className="py-2 pr-4 text-right">{x.internal === null ? "–" : `${x.internal} / ${x.scheme.internalMax}`}</td>
+                    <td className="py-2 text-right font-medium">{x.final === null ? "–" : x.final.total}</td>
                   </tr>
                 ))}
               </tbody>
