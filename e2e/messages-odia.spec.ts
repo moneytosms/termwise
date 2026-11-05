@@ -6,7 +6,7 @@ const ODIA_PHRASE = "ଦୟାକରି ବ୍ୟାଙ୍କ କାଉଣ୍ଟ
 
 test("admin sends a fee reminder; the Odia guardian's message is logged in Odia and visible to the guardian", async ({ page, browser }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/messages");
   await expect(page.getByRole("heading", { name: "Templates" })).toBeVisible();
   await expect(page.getByText("Odia text needs native-speaker review.")).toBeVisible();

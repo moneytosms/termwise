@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
 });
 
 test("office admin opens reports from the nav and switches the report", async ({ page }) => {

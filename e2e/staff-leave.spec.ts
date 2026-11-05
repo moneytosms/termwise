@@ -9,7 +9,7 @@ const note = `E2E approved ${year}`;
 test("faculty applies, office approves with a note, faculty sees it approved", async ({ browser }) => {
   const facultyCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const faculty = await facultyCtx.newPage();
-  await signIn(faculty, "faculty2@termwise.demo");
+  await signIn(faculty, "cse.faculty2@termwise.demo");
   await faculty.goto("/leave");
   await faculty.getByLabel("From", { exact: true }).fill(`${year}-03-02`);
   await faculty.getByLabel("To", { exact: true }).fill(`${year}-03-03`);
@@ -21,7 +21,7 @@ test("faculty applies, office approves with a note, faculty sees it approved", a
 
   const adminCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const admin = await adminCtx.newPage();
-  await signIn(admin, "admin@termwise.demo");
+  await signIn(admin, "eng.admin@termwise.demo");
   await admin.goto("/leave");
   const request = admin.locator("li").filter({ hasText: reason });
   await request.getByLabel("Note to staff (required to reject)", { exact: true }).fill(note);
@@ -31,7 +31,7 @@ test("faculty applies, office approves with a note, faculty sees it approved", a
 
   const again = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await again.newPage();
-  await signIn(page, "faculty2@termwise.demo");
+  await signIn(page, "cse.faculty2@termwise.demo");
   await page.goto("/leave");
   await expect(page.getByText("Approved").filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText(note).filter({ visible: true }).first()).toBeVisible();
@@ -40,7 +40,7 @@ test("faculty applies, office approves with a note, faculty sees it approved", a
 
 test("faculty sees casual, medical and on-duty balances", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   await page.goto("/leave");
   await expect(page.getByText("Casual").filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByText("Medical").filter({ visible: true }).first()).toBeVisible();
@@ -48,7 +48,7 @@ test("faculty sees casual, medical and on-duty balances", async ({ page }) => {
   await expect(page.getByText(/left of 12/).first()).toBeVisible();
 });
 
-for (const email of ["faculty@termwise.demo", "admin@termwise.demo"]) {
+for (const email of ["cse.faculty@termwise.demo", "eng.admin@termwise.demo"]) {
   test(`leave page has no horizontal scroll at 375x800 for ${email}`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await signIn(page, email);

@@ -12,7 +12,7 @@ async function saveRules(page: Page, value: number) {
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
 });
 
 test("rules: minimum sessions persists across reload and is restored", async ({ page }) => {

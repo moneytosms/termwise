@@ -12,11 +12,27 @@ import { seedResults } from "./seed-results.mjs";
 import { seedLanguage } from "./seed-language.mjs";
 import { seedApplicants } from "./seed-applicants.mjs";
 import { seedStaffLeave } from "./seed-staff-leave.mjs";
+import { seedFees } from "./seed-fees.mjs";
+import { seedScholarships } from "./seed-scholarships.mjs";
+import { seedAlumni } from "./seed-alumni.mjs";
+import { seedAccreditation } from "./seed-accreditation.mjs";
+import { seedCampusRoles } from "./seed-campus-roles.mjs";
+import { seedOfficeRoles } from "./seed-office-roles.mjs";
+import { seedHod } from "./seed-hod.mjs";
 
 // Synthetic data only. Re-run on an empty database; skipped if campuses already exist.
 const PASSWORD = "termwise-demo";
+
+// Demo logins renamed in #33. Databases seeded before that keep the old emails until this runs.
+async function renameLogins() {
+  const renames: [string, string][] = [["admin", "eng.admin"], ["faculty", "cse.faculty"], ["faculty2", "cse.faculty2"], ["mba.admin", "mgt.admin"]];
+  for (const [from, to] of renames) {
+    await db.update(t.user).set({ email: `${to}@termwise.demo` }).where(eq(t.user.email, `${from}@termwise.demo`));
+  }
+}
+
 const [{ n }] = await db.select({ n: count() }).from(t.campus);
-if (n > 0) { await seedPortal(PASSWORD); await seedScheme(); await seedTrust(PASSWORD); await seedResults(); await seedLanguage(); await seedApplicants(PASSWORD); await seedStaffLeave(); console.log("already seeded"); await pool.end(); process.exit(0); }
+if (n > 0) { await renameLogins(); await seedPortal(PASSWORD); await seedScheme(); await seedTrust(PASSWORD); await seedResults(); await seedLanguage(); await seedApplicants(PASSWORD); await seedStaffLeave(); await seedFees(PASSWORD); await seedScholarships(PASSWORD); await seedAlumni(PASSWORD); await seedAccreditation(PASSWORD); await seedCampusRoles(PASSWORD); await seedOfficeRoles(PASSWORD); await seedHod(PASSWORD); console.log("already seeded"); await pool.end(); process.exit(0); }
 
 let seed = 42;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
@@ -45,11 +61,11 @@ const [cseDept, meDept] = await db.insert(t.department).values([
 const [mbaDept] = await db.insert(t.department).values([{ campusId: mgmt.id, name: "Management" }]).returning();
 const [phrDept] = await db.insert(t.department).values([{ campusId: phr.id, name: "Pharmaceutical Sciences" }]).returning();
 
-const admin = await person(eng.id, null, "Sunita Rath", "admin@termwise.demo", "office_admin");
-const faculty = await person(eng.id, cseDept.id, "Bibhu Prasad Sahoo", "faculty@termwise.demo", "faculty");
-const faculty2 = await person(eng.id, cseDept.id, "Madhusmita Nayak", "faculty2@termwise.demo", "faculty");
+const admin = await person(eng.id, null, "Sunita Rath", "eng.admin@termwise.demo", "office_admin");
+const faculty = await person(eng.id, cseDept.id, "Bibhu Prasad Sahoo", "cse.faculty@termwise.demo", "faculty");
+const faculty2 = await person(eng.id, cseDept.id, "Madhusmita Nayak", "cse.faculty2@termwise.demo", "faculty");
 const meFaculty = await person(eng.id, meDept.id, "Ranjan Kumar Jena", "me.faculty@termwise.demo", "faculty");
-const mbaAdmin = await person(mgmt.id, null, "Lopamudra Das", "mba.admin@termwise.demo", "office_admin");
+const mbaAdmin = await person(mgmt.id, null, "Lopamudra Das", "mgt.admin@termwise.demo", "office_admin");
 const mbaFaculty = await person(mgmt.id, mbaDept.id, "Sandeep Mishra", "mba.faculty@termwise.demo", "faculty");
 const phrAdmin = await person(phr.id, null, "Sasmita Behera", "phr.admin@termwise.demo", "office_admin");
 const phrFaculty = await person(phr.id, phrDept.id, "Debasis Mohapatra", "phr.faculty@termwise.demo", "faculty");
@@ -270,6 +286,13 @@ await seedResults();
 await seedLanguage();
 await seedApplicants(PASSWORD);
 await seedStaffLeave();
+await seedFees(PASSWORD);
+await seedScholarships(PASSWORD);
+await seedAlumni(PASSWORD);
+await seedAccreditation(PASSWORD);
+await seedCampusRoles(PASSWORD);
+await seedOfficeRoles(PASSWORD);
+await seedHod(PASSWORD);
 
 await pool.end();
 console.log("seeded");

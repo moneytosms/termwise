@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test("office admin runs the at-risk check, opens a flag, and Termy reports no AI provider", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
 
   await page.goto("/risk");
   await expect(page.getByRole("heading", { level: 1, name: "Risk" })).toBeVisible();
@@ -32,7 +32,7 @@ test("office admin runs the at-risk check, opens a flag, and Termy reports no AI
 });
 
 test("faculty can ask Termy but the risk page sends them home", async ({ page }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   await page.goto("/assistant");
   await expect(page.getByRole("heading", { level: 1, name: "Termy" })).toBeVisible();
   await expect(page.getByText("subjects you teach")).toBeVisible();

@@ -28,8 +28,8 @@ describe.skipIf(!owner || !assistant)("assistant views scope by role in the data
   }
 
   it("faculty see only their subjects and no fees; admin sees the campus", async () => {
-    const f = await staffOf("faculty@termwise.demo");
-    const a = await staffOf("admin@termwise.demo");
+    const f = await staffOf("cse.faculty@termwise.demo");
+    const a = await staffOf("eng.admin@termwise.demo");
     const { rows: taught } = await admin.query("SELECT code FROM subject WHERE faculty_id = $1", [f.id]);
     const mine = new Set(taught.map((r) => r.code));
 

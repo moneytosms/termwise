@@ -9,15 +9,15 @@ export async function seedStaffLeave() {
   const [any] = await db.select({ id: t.staffLeave.id }).from(t.staffLeave).limit(1);
   if (any) return;
 
-  const emails = ["faculty@termwise.demo", "faculty2@termwise.demo", "me.faculty@termwise.demo", "admin@termwise.demo"];
+  const emails = ["cse.faculty@termwise.demo", "cse.faculty2@termwise.demo", "me.faculty@termwise.demo", "eng.admin@termwise.demo"];
   const people = await db.select({ id: t.staff.id, email: t.user.email }).from(t.staff)
     .innerJoin(t.user, eq(t.staff.userId, t.user.id))
     .where(inArray(t.user.email, emails));
   const id = (email: string) => people.find((p) => p.email === email)?.id;
-  const faculty = id("faculty@termwise.demo");
-  const faculty2 = id("faculty2@termwise.demo");
+  const faculty = id("cse.faculty@termwise.demo");
+  const faculty2 = id("cse.faculty2@termwise.demo");
   const meFaculty = id("me.faculty@termwise.demo");
-  const admin = id("admin@termwise.demo");
+  const admin = id("eng.admin@termwise.demo");
   if (!faculty || !faculty2 || !meFaculty || !admin) {
     console.log("staff leave: demo staff not found, skipped");
     return;

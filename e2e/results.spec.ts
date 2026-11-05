@@ -4,7 +4,7 @@ import { signIn } from "./helpers";
 // CS302 is a submitted CSE subject (seed), and Subhashree Mohanty (ENG-24-CSE-0412) is in that CSE batch.
 test("locking marks publishes final results to a student of the batch", async ({ page, browser }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/marks?status=submitted");
   await page.getByRole("row", { name: /CS302/ }).click();
   await page.waitForURL(/\/marks\/\d+/);

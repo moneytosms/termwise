@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test("office admin corrects a past session with a reason, and the change is audited", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/attendance?tab=sessions");
   await page.getByLabel("Date").click();
   await page.getByRole("option", { name: "Last 7 days" }).click();
@@ -40,7 +40,7 @@ test("admin keeps the saved session on a sync conflict and it leaves the open li
 
   // A second teacher's sheet for a saved class creates the conflict this test resolves.
   const first = await playwright.request.newContext(base);
-  await signInApi(first, "faculty@termwise.demo");
+  await signInApi(first, "cse.faculty@termwise.demo");
   const { classes } = await (await first.get("/api/today")).json();
   const cls = classes[classes.length - 1];
   const item = {
@@ -51,14 +51,14 @@ test("admin keeps the saved session on a sync conflict and it leaves the open li
   expect((await (await send(first, item)).json()).results[0].outcome).toMatch(/saved|stale/);
 
   const second = await playwright.request.newContext(base);
-  await signInApi(second, "faculty2@termwise.demo");
+  await signInApi(second, "cse.faculty2@termwise.demo");
   const otherId = (await (await second.get("/api/today")).json()).staffId;
   const r = await send(second, { ...item, sessionId: crypto.randomUUID(), markedBy: otherId });
   expect((await r.json()).results[0].outcome).toBe("conflict");
   await first.dispose();
   await second.dispose();
 
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/attendance?tab=conflicts");
   await page.getByRole("row").filter({ hasText: "Open" }).first().click();
   await page.waitForURL(/conflict=/);
