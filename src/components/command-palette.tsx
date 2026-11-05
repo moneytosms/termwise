@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, IndianRupee, LogOut, Moon, Palette, PanelLeft, Rows3, Search, Settings, ShieldAlert, ClipboardCheck, Sun, Users } from "lucide-react";
-import type { NavIcon } from "@/components/termy";
+import { TermyIcon, type NavIcon } from "@/components/termy";
 import { useTheme } from "next-themes";
 import { searchStudents } from "@/app/(app)/palette-actions";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -98,7 +98,11 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const personRows: Row[] = people.rows.map((p) => ({ key: String(p.id), label: p.name, icon: Users, hint: `${p.rollNo} · ${p.programme}`, run: () => go(`/students?student=${p.id}`) }));
 
   const byTerm = (rows: Row[]) => rows.filter((r) => r.label.toLowerCase().includes(term));
-  const rows = m === "go" ? byTerm(navRows) : m === "actions" ? byTerm(actions) : m === "settings" ? byTerm(settingRows) : people.term === term ? personRows : [];
+  // Anything typed in Go to or Actions can also be asked of Termy, last in the list.
+  const raw = (prefix ? q.slice(1) : q).trim();
+  const askRow: Row[] = (m === "go" || m === "actions") && raw.length >= 3
+    ? [{ key: "ask", label: `Ask Termy: ${raw}`, icon: TermyIcon, run: () => go(`/assistant?q=${encodeURIComponent(raw)}`) }] : [];
+  const rows = m === "go" ? [...byTerm(navRows), ...askRow] : m === "actions" ? [...byTerm(actions), ...askRow] : m === "settings" ? byTerm(settingRows) : people.term === term ? personRows : [];
   const searching = m === "students" && !!term && people.term !== term;
   const at = Math.min(pick, rows.length - 1);
 

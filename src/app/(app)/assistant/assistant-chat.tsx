@@ -1,169 +1,273 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUp, Check, Code2, Copy, Download, RotateCcw, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ErrorState } from "@/components/states";
+import { SelectField } from "@/components/select-field";
 import { Termy, type TermyPose } from "@/components/termy";
+import { cn } from "@/lib/utils";
 import type { AssistantAnswer } from "@/server/assistant/ask";
 import { askAction } from "./actions";
 
-type Turn = { id: number; question: string; result: AssistantAnswer | { kind: "error" } | null };
+type Result = AssistantAnswer | { kind: "error"; model?: string };
+type Turn = { id: number; question: string; result: Result | null };
+type Effort = "low" | "medium" | "high";
+export type ModelOption = { id: string; label: string; hint: string };
 
 const EXAMPLES = {
   office_admin: [
     "How many second-year students are below 75% this month?",
     "Which students have overdue fees?",
     "Who is flagged at risk in CSE-2024?",
+    "Average internal marks by subject",
   ],
   faculty: [
     "Which of my students are below 75% this month?",
     "Who scored under half in my latest test?",
     "Which of my students are flagged at risk?",
+    "My subjects' attendance this week",
   ],
 };
-const CHECK_FILTERS = "Check the filters. If they're not what you meant, reword the question.";
+const EFFORTS: { id: Effort; label: string; hint: string }[] = [
+  { id: "low", label: "Quick", hint: "Fast answers for simple lookups" },
+  { id: "medium", label: "Balanced", hint: "More thought for multi-step questions" },
+  { id: "high", label: "Deep", hint: "Slowest; for tricky comparisons" },
+];
+const POSE: Record<Result["kind"], TermyPose> = { answer: "answer", clarify: "idle", refused: "refused", unavailable: "error", error: "error" };
+const PREFS = "termwise:termy";
 const FIGURE = /^[-+]?[\d,.]+%?$/;
+const cell = (v: unknown) => (v === null || v === undefined ? "–" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
-const cell = (v: unknown) => (v === null || v === undefined ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
+function loadPrefs(models: ModelOption[]): { model: string; effort: Effort } {
+  const fallback = { model: models[0]?.id ?? "lite", effort: "low" as Effort };
+  try {
+    const p = JSON.parse(localStorage.getItem(PREFS) ?? "{}");
+    return { model: models.some((m) => m.id === p.model) ? p.model : fallback.model, effort: EFFORTS.some((e) => e.id === p.effort) ? p.effort : "low" };
+  } catch { return fallback; }
+}
 
-const POSE: Record<string, TermyPose> = { answer: "answer", clarify: "idle", refused: "refused", unavailable: "error", error: "error" };
-
-export function AssistantChat({ role }: { role: "faculty" | "office_admin" }) {
+export function AssistantChat({ role, models, initial }: { role: "faculty" | "office_admin"; models: ModelOption[]; initial?: string }) {
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
+  const [prefs, setPrefs] = useState({ model: models[0]?.id ?? "lite", effort: "low" as Effort });
   const seq = useRef(0);
-  const box = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const end = useRef<HTMLDivElement>(null);
+  const asked = useRef(false);
 
-  async function ask(question: string, id?: number) {
-    if (busy) return;
-    const turnId = id ?? ++seq.current;
+  useEffect(() => { setPrefs(loadPrefs(models)); }, [models]); // eslint-disable-line react-hooks/set-state-in-effect -- localStorage is client-only
+  useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns]);
+  // "Ask Termy" links elsewhere arrive as /assistant?q=...
+  useEffect(() => { if (initial && !asked.current) { asked.current = true; void ask(initial); } }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function pick(next: Partial<typeof prefs>) {
+    const p = { ...prefs, ...next };
+    setPrefs(p);
+    try { localStorage.setItem(PREFS, JSON.stringify(p)); } catch { /* storage blocked */ }
+  }
+
+  async function ask(question: string, retryId?: number) {
+    const q = question.trim();
+    if (busy || q.length < 3) return;
+    const id = retryId ?? ++seq.current;
+    // Earlier answered turns give follow-ups ("only CSE") their context.
+    const history = turns.filter((t) => t.id !== id && t.result?.kind === "answer").map((t) => {
+      const a = t.result as Extract<AssistantAnswer, { kind: "answer" }>;
+      return { question: t.question, summary: a.summary, sql: a.sql };
+    });
     setBusy(true);
-    setTurns((t) => id === undefined ? [...t, { id: turnId, question, result: null }] : t.map((x) => (x.id === id ? { ...x, result: null } : x)));
-    const drop = () => setTurns((t) => t.filter((x) => x.id !== turnId));
+    setTurns((ts) => (retryId === undefined ? [...ts, { id, question: q, result: null }] : ts.map((t) => (t.id === id ? { ...t, result: null } : t))));
+    if (retryId === undefined) setText("");
     try {
-      const r = await askAction(question);
+      const r = await askAction(q, { ...prefs, history });
       if (r.error || !r.answer) {
         toast.error(r.error ?? "Couldn't reach Termy.");
-        if (id === undefined) drop();
-        else setTurns((t) => t.map((x) => (x.id === id ? { ...x, result: { kind: "error" } } : x)));
+        setTurns((ts) => ts.filter((t) => t.id !== id));
+        if (retryId === undefined) setText(q);
         return;
       }
       const answer = r.answer;
-      setTurns((t) => t.map((x) => (x.id === turnId ? { ...x, result: answer } : x)));
-      if (answer.kind === "answer" || answer.kind === "refused") setText("");
-      if (answer.kind === "clarify") box.current?.focus();
+      setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, result: answer } : t)));
     } catch {
-      setTurns((t) => t.map((x) => (x.id === turnId ? { ...x, result: { kind: "error" } } : x)));
+      setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, result: { kind: "error" } } : t)));
     } finally {
       setBusy(false);
+      box.current?.focus();
     }
   }
 
+  const current = models.find((m) => m.id === prefs.model);
+
   return (
-    <>
-      <form onSubmit={(e) => { e.preventDefault(); void ask(text); }} className="flex gap-2">
-        <Input ref={box} value={text} onChange={(e) => setText(e.target.value)} maxLength={500}
-          aria-label="Question" placeholder="Ask a question" className="h-9" />
-        <Button type="submit" disabled={busy}>Ask</Button>
-      </form>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {EXAMPLES[role].map((ex) => (
-          <Button key={ex} variant="outline" size="sm" disabled={busy} className="h-auto whitespace-normal py-1.5 text-left"
-            onClick={() => { setText(ex); void ask(ex); }}>{ex}</Button>
-        ))}
-      </div>
-
-      <div className="mt-6 space-y-8">
-        {turns.length === 0 && (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-input px-6 py-8 text-center">
-            <Termy className="size-24" />
-            <p className="font-medium">Hi, I&apos;m Termy.</p>
-            <p className="text-sm text-muted-foreground">Ask a question in plain words above, or try an example.</p>
-          </div>
-        )}
-        {turns.map((t) => (
-          <section key={t.id} aria-label={`Question: ${t.question}`} aria-busy={t.result === null} className="flex gap-3">
-            <Termy pose={t.result === null ? "thinking" : POSE[t.result.kind]} className="size-11 shrink-0" />
-            <div className="min-w-0 flex-1 space-y-3">
-              <p className="text-sm text-muted-foreground">You asked: {t.question}</p>
-              {t.result === null && <Skeleton className="h-40 w-full rounded-xl" />}
-              {t.result?.kind === "answer" && <Answer a={t.result} />}
-              {t.result?.kind === "clarify" && <Note label="Needs more detail" message={t.result.message} />}
-              {t.result?.kind === "refused" && <Note label="Can't answer this" message={t.result.message} />}
-              {t.result?.kind === "unavailable" && <ErrorState message={t.result.message} onRetry={() => void ask(t.question, t.id)} />}
-              {t.result?.kind === "error" && <ErrorState message="Couldn't reach Termy." onRetry={() => void ask(t.question, t.id)} />}
-            </div>
-          </section>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
-  return (
-    <div className="space-y-5 rounded-xl bg-card p-4 shadow-sheet">
-      <p className="text-lg font-medium leading-snug">{a.summary}</p>
-
-      <div>
-        <p className="mb-2 text-xs text-muted-foreground">Filters used</p>
-        {a.filters.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {a.filters.map((f) => <span key={f} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">{f}</span>)}
-          </div>
-        ) : <p className="text-sm text-muted-foreground">No filters.</p>}
-      </div>
-
-      <div>
-        <p className="text-xs text-muted-foreground">Row count</p>
-        <p className="tabular-nums text-2xl">
-          {a.rowCount}
-          {a.truncated && <span className="ml-2 font-sans text-sm text-muted-foreground">showing first {a.rows.length}</span>}
-        </p>
-      </div>
-
-      {a.rowCount === 0 ? (
-        <p className="text-sm text-muted-foreground">No rows match these filters.</p>
-      ) : (
-        <div className="rounded-lg bg-muted/60">
-          <Table>
-            <TableHeader>
-              <TableRow>{a.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow>
-            </TableHeader>
-            <TableBody>
-              {a.rows.map((r, i) => (
-                <TableRow key={i}>
-                  {a.columns.map((c) => {
-                    const v = cell(r[c]);
-                    return <TableCell key={c} className={typeof r[c] === "number" || FIGURE.test(v) ? "tabular-nums" : undefined}>{v}</TableCell>;
-                  })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+    <div className="flex h-[calc(100dvh-10rem-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-2xl bg-card shadow-sheet md:h-[calc(100dvh-4rem)]">
+      <header className="flex shrink-0 items-center gap-3 border-b border-rule px-4 py-3">
+        <Termy pose={busy ? "thinking" : "idle"} className="size-9" />
+        <div className="min-w-0 flex-1">
+          <h1 className="font-semibold leading-tight">Termy</h1>
+          <p className="truncate text-xs text-muted-foreground">
+            {role === "faculty" ? "Only the subjects you teach" : "Your whole campus"} · reads data, never changes it
+          </p>
         </div>
-      )}
+        {turns.length > 0 && (
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setTurns([])}><SquarePen className="size-4" aria-hidden />New chat</Button>
+        )}
+      </header>
 
-      <details className="rounded-lg bg-muted/60 px-4 py-3 text-sm">
-        <summary className="cursor-pointer font-medium">Query</summary>
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap tabular-nums text-xs">{a.sql}</pre>
-      </details>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5" aria-live="polite">
+        {turns.length === 0 ? (
+          <div className="mx-auto flex max-w-xl flex-col items-center pt-6 text-center md:pt-12">
+            <Termy className="size-24 md:size-28" />
+            <p className="mt-3 text-xl font-semibold">Hi, I&apos;m Termy.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Ask about students, attendance, marks{role === "office_admin" && " and fees"} in plain words. I show the filters and query I used, so you can check them.</p>
+            <div className="mt-6 grid w-full gap-2 sm:grid-cols-2">
+              {EXAMPLES[role].map((ex) => (
+                <button key={ex} type="button" disabled={busy} onClick={() => void ask(ex)}
+                  className="rounded-xl bg-muted/60 px-3.5 py-3 text-left text-sm transition-colors hover:bg-muted active:bg-secondary">{ex}</button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ol className="mx-auto max-w-3xl space-y-6">
+            {turns.map((t) => (
+              <li key={t.id} className="space-y-3">
+                <div className="flex justify-end">
+                  <p className="max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-3.5 py-2 text-sm whitespace-pre-wrap text-background">{t.question}</p>
+                </div>
+                <div className="flex items-start gap-2.5" aria-busy={t.result === null}>
+                  <Termy pose={t.result === null ? "thinking" : POSE[t.result.kind]} className="mt-0.5 size-8 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    {t.result === null ? <Typing /> : <Reply r={t.result} onRetry={() => void ask(t.question, t.id)} />}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <div ref={end} />
+      </div>
 
-      <p className="text-xs text-muted-foreground">{CHECK_FILTERS}</p>
+      <form onSubmit={(e) => { e.preventDefault(); void ask(text); }} className="shrink-0 border-t border-rule p-3">
+        <div className="mx-auto max-w-3xl rounded-xl bg-background p-2 shadow-field focus-within:ring-3 focus-within:ring-ring/30">
+          <textarea ref={box} value={text} onChange={(e) => setText(e.target.value)} rows={1} maxLength={500}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void ask(text); } }}
+            aria-label="Ask Termy" placeholder={turns.length ? "Ask a follow-up, like “only CSE-2024”" : "Ask Termy a question"}
+            className="field-sizing-content max-h-40 min-h-10 w-full resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground" />
+          <div className="flex flex-wrap items-center gap-2">
+            {models.length > 1 && (
+              <SelectField aria-label="Model" size="sm" className="h-8 min-w-0 text-xs" value={prefs.model}
+                options={models.map((m) => ({ value: m.id, label: m.label }))} onValueChange={(v) => pick({ model: v })} />
+            )}
+            <div role="radiogroup" aria-label="Effort" className="inline-flex rounded-lg bg-secondary p-0.5 text-xs font-medium">
+              {EFFORTS.map((e) => (
+                <button key={e.id} type="button" role="radio" aria-checked={prefs.effort === e.id} title={e.hint} onClick={() => pick({ effort: e.id })}
+                  className={cn("h-7 rounded-md px-2.5 transition-colors", prefs.effort === e.id ? "bg-card text-foreground shadow-sheet" : "text-muted-foreground hover:text-foreground")}>{e.label}</button>
+              ))}
+            </div>
+            <span className="hidden flex-1 truncate text-xs text-muted-foreground sm:block">{current?.hint}{current && " · "}Enter to send, Shift+Enter for a new line</span>
+            <span className="flex-1 sm:hidden" />
+            <Button type="submit" size="icon-sm" disabled={busy || text.trim().length < 3} aria-label="Send"><ArrowUp /></Button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
 
-function Note({ label, message }: { label: string; message: string }) {
+function Typing() {
   return (
-    <div className="rounded-xl bg-card p-4 shadow-sheet">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1">{message}</p>
+    <div className="inline-flex items-center gap-1 rounded-2xl rounded-tl-md bg-muted/70 px-3.5 py-3" aria-label="Termy is thinking">
+      {[0, 150, 300].map((d) => <span key={d} className="termy-dot size-1.5 rounded-full bg-muted-foreground" style={{ animationDelay: `${d}ms` }} />)}
+    </div>
+  );
+}
+
+function Bubble({ children, tone, alert }: { children: React.ReactNode; tone?: "warn"; alert?: boolean }) {
+  return <div role={alert ? "alert" : undefined} className={cn("rounded-2xl rounded-tl-md px-3.5 py-2.5 text-sm", tone === "warn" ? "bg-late-soft" : "bg-muted/70")}>{children}</div>;
+}
+
+function Reply({ r, onRetry }: { r: Result; onRetry: () => void }) {
+  const meta = r.model && <p className="mt-1.5 text-[11px] text-muted-foreground">{r.model}</p>;
+  if (r.kind === "answer") return <><Answer a={r} />{meta}</>;
+  if (r.kind === "clarify") return <><Bubble>{r.message}</Bubble>{meta}</>;
+  if (r.kind === "refused") return <><Bubble tone="warn">{r.message}</Bubble>{meta}</>;
+  return (
+    <Bubble tone="warn" alert>
+      <p>{r.kind === "unavailable" ? r.message : "Couldn't reach Termy."}</p>
+      <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}><RotateCcw className="size-3.5" aria-hidden />Try again</Button>
+    </Bubble>
+  );
+}
+
+function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
+  const [sql, setSql] = useState(false);
+  const [copied, setCopied] = useState(false);
+  // One number (a count or an average) reads better as a figure than as a one-cell table.
+  const single = a.rowCount === 1 && a.columns.length === 1 ? cell(a.rows[0][a.columns[0]]) : null;
+
+  function csv() {
+    const q = (v: unknown) => `"${cell(v).replaceAll('"', '""')}"`;
+    const body = [a.columns.map(q).join(","), ...a.rows.map((r) => a.columns.map((c) => q(r[c])).join(","))].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([body], { type: "text/csv" }));
+    link.download = "termy-answer.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <Bubble>
+        <p className="leading-relaxed">{a.summary}</p>
+        {a.filters.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Filters used">
+            {a.filters.map((f) => <span key={f} className="rounded-full bg-card px-2 py-0.5 text-xs shadow-sheet">{f}</span>)}
+          </div>
+        )}
+      </Bubble>
+
+      {single !== null ? (
+        <div className="inline-block rounded-xl bg-card px-4 py-3 shadow-sheet">
+          <p className="text-xs text-muted-foreground">{a.columns[0]}</p>
+          <p className="text-3xl font-medium tabular-nums">{single}</p>
+        </div>
+      ) : a.rowCount === 0 ? (
+        <p className="text-sm text-muted-foreground">No rows match these filters.</p>
+      ) : (
+        <div className="overflow-hidden rounded-xl bg-card shadow-sheet">
+          <div className="max-h-80 overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow>{a.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow>
+              </TableHeader>
+              <TableBody>
+                {a.rows.map((r, i) => (
+                  <TableRow key={i}>
+                    {a.columns.map((c) => {
+                      const v = cell(r[c]);
+                      return <TableCell key={c} className={cn("whitespace-nowrap", (typeof r[c] === "number" || FIGURE.test(v)) && "text-right tabular-nums")}>{v}</TableCell>;
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="border-t border-rule px-3 py-2 text-xs text-muted-foreground tabular-nums">
+            {a.rowCount} {a.rowCount === 1 ? "row" : "rows"}{a.truncated && `, showing first ${a.rows.length}`}
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1">
+        <Button variant="ghost" size="sm" className="h-7 text-xs" aria-expanded={sql} onClick={() => setSql(!sql)}><Code2 className="size-3.5" aria-hidden />{sql ? "Hide query" : "Show query"}</Button>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { void navigator.clipboard.writeText(a.sql); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
+          {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}{copied ? "Copied" : "Copy SQL"}
+        </Button>
+        {a.rowCount > 0 && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={csv}><Download className="size-3.5" aria-hidden />CSV</Button>}
+      </div>
+      {sql && <pre className="overflow-x-auto rounded-xl bg-muted/70 p-3 font-code text-xs whitespace-pre-wrap">{a.sql}</pre>}
     </div>
   );
 }

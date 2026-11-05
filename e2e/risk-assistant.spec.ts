@@ -25,8 +25,8 @@ test("office admin runs the at-risk check, opens a flag, and Termy reports no AI
 
   await page.goto("/assistant");
   await expect(page.getByRole("heading", { level: 1, name: "Termy" })).toBeVisible();
-  await page.getByLabel("Question").fill("how many second-year students are below 75% this month");
-  await page.getByRole("button", { name: "Ask" }).click();
+  await page.getByLabel("Ask Termy").fill("how many second-year students are below 75% this month");
+  await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "no AI provider configured" })).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: "Something went wrong" })).toHaveCount(0);
 });
@@ -36,8 +36,8 @@ test("faculty can ask Termy but the risk page sends them home", async ({ page })
   await page.goto("/assistant");
   await expect(page.getByRole("heading", { level: 1, name: "Termy" })).toBeVisible();
   await expect(page.getByText("subjects you teach")).toBeVisible();
-  await page.getByLabel("Question").fill("which of my students are below 75% this month");
-  await page.getByRole("button", { name: "Ask" }).click();
+  await page.getByLabel("Ask Termy").fill("which of my students are below 75% this month");
+  await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "no AI provider configured" })).toBeVisible();
   await page.goto("/risk");
   await page.waitForURL("**/home");

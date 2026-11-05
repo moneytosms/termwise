@@ -1,18 +1,13 @@
-import { PageHeader } from "@/components/page";
 import { requireViewer } from "@/server/access";
+import { availableModels } from "@/server/llm";
 import { AssistantChat } from "./assistant-chat";
 
-const DESCRIPTION = {
-  office_admin: "Ask Termy about students, attendance, marks and fees on your campus. It only reads data, and can't change records.",
-  faculty: "Ask Termy about the subjects you teach: your students, their attendance and marks. It only reads data, and can't change records.",
-};
-
-export default async function AssistantPage() {
+export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const v = await requireViewer();
+  const { q } = await searchParams;
   return (
-    <div className="mx-auto max-w-3xl">
-      <PageHeader title="Termy" description={DESCRIPTION[v.role]} />
-      <AssistantChat role={v.role} />
+    <div className="mx-auto max-w-5xl md:-my-4">
+      <AssistantChat key={q} role={v.role} models={availableModels()} initial={q?.slice(0, 500)} />
     </div>
   );
 }
