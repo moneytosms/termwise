@@ -3,11 +3,11 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { attendancePercent, istDate, type AttendanceStatus } from "@/domain/attendance";
 import { dues } from "@/domain/fees";
 import { evaluateRisk } from "@/domain/risk";
-import { feeMessage, isMinor, shortageMessage } from "@/domain/templates";
+import { feeMessage, guardianLanguages, isMinor, shortageMessage } from "@/domain/templates";
 import { rupees } from "@/lib/utils";
 import { db } from "../db";
 import { llmModel, takeLlmQuota } from "../llm";
-import { attendanceEntry, attendanceSession, batch, campus, feeInstalment, jobRun, mark, markComponent, mentorTask, message, programme, riskFlag, student, subject } from "../schema";
+import { attendanceEntry, attendanceSession, batch, campus, feeInstalment, guardian, guardianStudent, jobRun, mark, markComponent, mentorTask, message, programme, riskFlag, student, subject } from "../schema";
 
 /** The rule has already decided. The LLM only rewords why; the rule's own text stands if it fails. */
 async function writeReason(ruleReason: string): Promise<{ text: string; source: "llm" | "rule" }> {
@@ -49,13 +49,17 @@ export async function runDailyJob(campusId: number, trigger: "schedule" | "manua
   const active = await db.select({ id: riskFlag.id, studentId: riskFlag.studentId, codes: riskFlag.reasonCodes }).from(riskFlag).where(and(eq(riskFlag.active, true), inArray(riskFlag.studentId, ids)));
   const sentToday = await db.select({ studentId: message.studentId, kind: message.kind }).from(message).where(and(inArray(message.studentId, ids), sql`(${message.createdAt} at time zone 'Asia/Kolkata')::date = ${today}`));
 
+  const guardians = await db.select({ studentId: guardianStudent.studentId, language: guardian.language }).from(guardianStudent)
+    .innerJoin(guardian, eq(guardianStudent.guardianId, guardian.id)).where(inArray(guardianStudent.studentId, ids));
+
   const msgs: (typeof message.$inferInsert)[] = [];
-  const addMessages = (s: (typeof students)[number], kind: "shortage" | "fee_reminder", en: string, or: string) => {
+  const addMessages = (s: (typeof students)[number], kind: "shortage" | "fee_reminder", text: (lang: "en" | "or") => string) => {
     if (sentToday.some((m) => m.studentId === s.id && m.kind === kind)) return; // a second run the same day doesn't repeat
     const status = isMinor(s.birthDate, today) && !s.consent ? "blocked_no_consent" as const : "logged" as const;
-    summary[status === "logged" ? "messagesLogged" : "messagesBlocked"] += 2;
+    const langs = guardianLanguages(guardians.filter((g) => g.studentId === s.id).map((g) => g.language));
+    summary[status === "logged" ? "messagesLogged" : "messagesBlocked"] += langs.length;
     const link = `\n${process.env.BETTER_AUTH_URL ?? ""}/sign-in`;
-    msgs.push({ studentId: s.id, kind, language: "en", body: en + link, status }, { studentId: s.id, kind, language: "or", body: or + link, status });
+    msgs.push(...langs.map((language) => ({ studentId: s.id, kind, language, body: text(language) + link, status })));
   };
 
   for (const s of students) {
@@ -91,9 +95,9 @@ export async function runDailyJob(campusId: number, trigger: "schedule" | "manua
     }
 
     const short = subjectPercents.filter((x) => x.percent !== null && x.percent < x.cutoff).sort((a, b) => a.percent! - b.percent!)[0];
-    if (short) addMessages(s, "shortage", shortageMessage("en", s.name, short.subject, short.percent!), shortageMessage("or", s.name, short.subject, short.percent!));
+    if (short) addMessages(s, "shortage", (lang) => shortageMessage(lang, s.name, short.subject, short.percent!));
     const { overduePaise } = dues(instalments.filter((i) => i.studentId === s.id), today);
-    if (overduePaise > 0) addMessages(s, "fee_reminder", feeMessage("en", s.name, rupees(overduePaise)), feeMessage("or", s.name, rupees(overduePaise)));
+    if (overduePaise > 0) addMessages(s, "fee_reminder", (lang) => feeMessage(lang, s.name, rupees(overduePaise)));
   }
   for (let i = 0; i < msgs.length; i += 1000) await db.insert(message).values(msgs.slice(i, i + 1000));
   await db.insert(jobRun).values({ campusId, trigger, summary });

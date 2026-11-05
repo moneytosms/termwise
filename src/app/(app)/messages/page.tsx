@@ -1,8 +1,9 @@
 import { EmptyState } from "@/components/states";
-import { PageHeader, StatCard, StatStrip } from "@/components/page";
+import { Panel, PageHeader, StatCard, StatStrip } from "@/components/page";
 import { istDate } from "@/domain/attendance";
+import { previews } from "@/domain/templates";
 import { requireAdmin } from "@/server/access";
-import { KIND, STATUS } from "./labels";
+import { KIND, LANGUAGE, STATUS } from "./labels";
 import { listMessages } from "./queries";
 import { MessagePanel } from "./message-panel";
 import { MessagesTable } from "./messages-table";
@@ -28,6 +29,24 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           ? <EmptyState title="No messages yet. They appear after the daily check runs." />
           : <MessagesTable rows={rows} />}
       </div>
+      <Panel title="Templates" className="mt-6">
+        <p className="mb-4 text-sm text-muted-foreground">Odia text needs native-speaker review.</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {previews().map((p) => (
+            <div key={p.kind} className="flex flex-col gap-3">
+              <h3 className="text-sm font-medium">{KIND[p.kind]}</h3>
+              <div>
+                <p className="text-xs text-muted-foreground">{LANGUAGE.en}</p>
+                <p className="text-sm">{p.en}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{LANGUAGE.or}</p>
+                <p className="text-sm">{p.or}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
       {open && <MessagePanel message={open} />}
     </>
   );
