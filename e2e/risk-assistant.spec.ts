@@ -7,13 +7,17 @@ test("office admin runs the at-risk check, opens a flag, and Termy reports no AI
 
   await page.goto("/risk");
   await expect(page.getByRole("heading", { level: 1, name: "Risk" })).toBeVisible();
+  const search = page.getByLabel("Search name or roll number", { exact: true });
+  await search.fill("Ankit Panda");
   const ankit = page.getByRole("row", { name: /Ankit Panda/ });
   await expect(ankit).toBeVisible();
   await expect(ankit).toContainText(/Attendance below cutoff in .+\(\d+(\.\d+)?%\)/);
+  await search.fill("Subhashree");
   await expect(page.getByRole("row", { name: /Subhashree Mohanty/ })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Run now" }).click();
   await expect(page.getByText(/Flagged \d+, cleared \d+/)).toBeVisible();
+  await search.fill("Ankit Panda");
   await expect(page.getByRole("row", { name: /Ankit Panda/ })).toBeVisible();
 
   await page.getByRole("row", { name: /Ankit Panda/ }).click();
