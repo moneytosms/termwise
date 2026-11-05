@@ -85,7 +85,7 @@ export const staff = pgTable("staff", {
   campusId: integer("campus_id").notNull().references(() => campus.id),
   departmentId: integer("department_id").references(() => department.id),
   name: text("name").notNull(),
-  role: text("role", { enum: ["faculty", "office_admin", "trust"] }).notNull(),
+  role: text("role", { enum: ["faculty", "office_admin", "admissions", "exams", "accounts", "hr", "trust"] }).notNull(),
   designation: text("designation", { enum: ["professor", "associate_professor", "assistant_professor"] }),
   qualification: text("qualification"),
 });

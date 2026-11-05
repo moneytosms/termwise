@@ -6,6 +6,7 @@ import { z } from "zod";
 import { decide } from "@/domain/appeals";
 import type { AttendanceStatus } from "@/domain/attendance";
 import { validateMark } from "@/domain/marks";
+import { can } from "@/domain/roles";
 import { AccessError, assertSubjectAccess, requireViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
@@ -27,6 +28,7 @@ export async function decideAppeal(
   id: number, action: "accept" | "reject", response: string, newValue?: number | AttendanceStatus,
 ): Promise<{ error?: string }> {
   const v = await requireViewer();
+  if (!can(v.role, "teach") && !can(v.role, "appeals")) return { error: "Your role cannot decide appeals." };
   const parsed = input.safeParse({ id, action, response, newValue });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -39,6 +41,9 @@ export async function decideAppeal(
     .leftJoin(attendanceSession, eq(appeal.sessionId, attendanceSession.id))
     .where(eq(appeal.id, d.id));
   if (!row) return { error: "Appeal not found." };
+  if (row.kind !== "mark" && !can(v.role, "teach") && !can(v.role, "office_requests")) {
+    return { error: "Your role can decide mark appeals only." };
+  }
   try {
     await assertSubjectAccess(v, row.subjectId);
   } catch (e) {

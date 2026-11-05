@@ -2,9 +2,12 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
+import type { StaffRole } from "@/domain/roles";
+
+const ROLE_LABEL: Record<StaffRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR" };
 
 type Row = {
-  id: number; name: string; department: string | null; role: "faculty" | "office_admin";
+  id: number; name: string; department: string | null; role: StaffRole;
   hasAccount: boolean; subjects: number; mentees: number;
 };
 
@@ -12,7 +15,7 @@ export function FacultyTab({ rows }: { rows: Row[] }) {
   const columns: ColumnDef<Row>[] = [
     { accessorKey: "name", header: "Name" },
     { accessorKey: "department", header: "Department", cell: ({ row }) => row.original.department ?? "–" },
-    { accessorKey: "role", header: "Role", cell: ({ row }) => (row.original.role === "office_admin" ? "Office admin" : "Faculty") },
+    { accessorKey: "role", header: "Role", cell: ({ row }) => ROLE_LABEL[row.original.role] },
     { accessorKey: "hasAccount", header: "Signed-in account", cell: ({ row }) => (row.original.hasAccount ? "Yes" : "No") },
     { accessorKey: "subjects", header: "Subjects taught", cell: ({ row }) => <span className="tabular-nums">{row.original.subjects}</span> },
     { accessorKey: "mentees", header: "Mentees", cell: ({ row }) => <span className="tabular-nums">{row.original.mentees}</span> },

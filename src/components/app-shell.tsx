@@ -15,12 +15,12 @@ import { Mark } from "@/components/mark";
 import { TermyIcon, type NavIcon } from "@/components/termy";
 import { readSettings, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
-import { can, isStaffRole, type Capability } from "@/domain/roles";
+import { canAny, isStaffRole, type Capability, type StaffRole } from "@/domain/roles";
 import { clearOfflineData } from "@/offline/db";
 import { setCampus } from "@/app/(app)/campus-actions";
 import { setChild } from "@/app/(portal)/my/child-actions";
 
-type Item = { href: string; label: string; icon: NavIcon; short?: string; cap?: Capability };
+type Item = { href: string; label: string; icon: NavIcon; short?: string; cap?: Capability | Capability[] };
 type Group = { label?: string; items: Item[] };
 
 const FACULTY: Group[] = [{ items: [
@@ -44,13 +44,13 @@ const ADMIN: Group[] = [
   { label: "Follow-up", items: [
     { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk", cap: "risk" },
     { href: "/messages", label: "Messages", icon: MessageSquare, cap: "messages" },
-    { href: "/requests", label: "Requests", icon: Inbox, cap: "office_requests" },
+    { href: "/requests", label: "Requests", icon: Inbox, cap: ["office_requests", "appeals"] },
     { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave", cap: "staff_leave" },
     { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
-    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: "setup" },
-    { href: "/reports", label: "Reports", icon: FileText, cap: "reports" },
+    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: ["setup", "setup_faculty"] },
+    { href: "/reports", label: "Reports", icon: FileText, cap: ["reports", "fee_reports"] },
     { href: "/audit", label: "Audit log", icon: History, short: "Audit", cap: "audit" },
   ] },
 ];
@@ -85,12 +85,12 @@ const PARENT: Group[] = [
 const TRUST: Group[] = [{ label: "Trust", items: [
   { href: "/trust", label: "Campuses", icon: Home },
 ] }];
-const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, student: STUDENT, parent: PARENT, trust: TRUST };
-const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", student: "Student", parent: "Parent", trust: "Trust" };
+const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, admissions: ADMIN, exams: ADMIN, accounts: ADMIN, hr: ADMIN, student: STUDENT, parent: PARENT, trust: TRUST };
+const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", student: "Student", parent: "Parent", trust: "Trust" };
 // Exact match only: every other page sits under these.
 const ROOTS = new Set(["/home", "/my"]);
 
-export type ShellRole = "faculty" | "office_admin" | "student" | "parent" | "trust";
+export type ShellRole = StaffRole | "student" | "parent" | "trust";
 type Kid = { id: number; name: string };
 
 const client = createAuthClient();
@@ -138,7 +138,7 @@ export function AppShell({ role, name, campus, campuses = [], activeCampus, kids
   // Staff see only the items their capabilities allow, so the menu and the server checks agree.
   const groups = useMemo<Group[]>(() => {
     if (!isStaffRole(role)) return GROUPS[role];
-    return GROUPS[role].map((g) => ({ ...g, items: g.items.filter((i) => !i.cap || can(role, i.cap)) })).filter((g) => g.items.length > 0);
+    return GROUPS[role].map((g) => ({ ...g, items: g.items.filter((i) => !i.cap || canAny(role, [i.cap].flat())) })).filter((g) => g.items.length > 0);
   }, [role]);
   const all = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const active = (href: string) => pathname === href || (!ROOTS.has(href) && pathname.startsWith(href + "/"));
@@ -146,7 +146,7 @@ export function AppShell({ role, name, campus, campuses = [], activeCampus, kids
   const [palette, setPalette] = useState(false);
   const [settings, setSettings] = useState(false);
   // Phone tab bar: faculty get all five; everyone else gets the daily four plus a menu holding the rest.
-  const few = isStaffRole(role) && can(role, "teach");
+  const few = isStaffRole(role) && canAny(role, ["teach"]);
   const tabs = few ? all : all.slice(0, 4);
   const current = all.find((i) => active(i.href));
   const collapsed = s.sidebarCollapsed;

@@ -1,3 +1,4 @@
+import type { StaffRole } from "@/domain/roles";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { batch, calendarDay, campus, department, feeStructure, programme, requiredDocument, scholarshipScheme, staff, student, subject, timetableSlot } from "@/server/schema";
@@ -76,7 +77,7 @@ export const listFaculty = (campusId: number) =>
 
 export const listStaff = (campusId: number) =>
   db.select({
-    id: staff.id, name: staff.name, department: department.name, role: sql<"faculty" | "office_admin">`${staff.role}`,
+    id: staff.id, name: staff.name, department: department.name, role: sql<StaffRole>`${staff.role}`,
     hasAccount: sql<boolean>`${staff.userId} is not null`,
     subjects: sql<number>`(select count(*) from ${subject} where ${subject.facultyId} = ${staff.id})`.mapWith(Number),
     mentees: sql<number>`(select count(*) from ${student} where ${student.mentorId} = ${staff.id})`.mapWith(Number),

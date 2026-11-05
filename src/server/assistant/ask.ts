@@ -23,20 +23,26 @@ const MAX_ROWS = 200;
 
 const FEES = "v_fee_dues(student_id, roll_no, name, batch, year, programme, instalment, due_date, due_rupees) -- overdue means due_rupees > 0 and due_date < current_date\n";
 
-// Faculty never see fees; the views enforce the same scope in the database.
+const NO_FEES = "Fees are not available to you: call refuse for any question about fees or dues.\n";
+const only = (...names: string[]) => ALLOWED_VIEWS.filter((v) => names.includes(v));
+
+// Each role sees only its own views; the views enforce the same scope in the database.
+// Exams reads students and marks, accounts reads students and fees, admissions reads students, HR reads nothing.
 const ROLE = {
   office_admin: { who: "an office staff member", scope: "the user's campus", fees: FEES, views: ALLOWED_VIEWS },
   faculty: { who: "a teacher", scope: "the subjects this teacher teaches and their students", fees: "Teachers cannot see fees: call refuse for any question about fees or dues.\n", views: ALLOWED_VIEWS.filter((v) => v !== "v_fee_dues") },
   student: { who: "a student asking about their own records", scope: "this one student's own records (\"my\", \"I\" and \"me\" mean this student)", fees: FEES, views: ALLOWED_VIEWS.filter((v) => v !== "v_risk_flags") },
+  admissions: { who: "an admissions officer", scope: "the user's campus", fees: NO_FEES, views: only("v_students") },
+  exams: { who: "an examinations officer", scope: "the user's campus", fees: NO_FEES, views: only("v_students", "v_marks") },
+  accounts: { who: "an accounts officer", scope: "the user's campus", fees: FEES, views: only("v_students", "v_fee_dues") },
+  hr: { who: "an HR officer", scope: "nothing", fees: "You have no views: call refuse for every question.\n", views: [] as string[] },
 };
 
+const line = (views: string[], name: string, text: string) => (views.includes(name) ? `${text}\n` : "");
+
 const schema = ({ scope, fees, views }: (typeof ROLE)[keyof typeof ROLE]) => `Views you may query (PostgreSQL). Each is already limited to ${scope}.
-v_students(student_id, roll_no, name, batch, year, semester, programme, programme_name, department)
-v_subject_attendance(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, date, status, periods) -- one row per student per session; status is present, absent or late; late counts as attended; weight by periods
-v_student_subject_attendance(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, attendance_percent) -- cumulative per subject
-v_marks(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, marks_status, component, max_marks, marks, section, subject_kind) -- one row per student per component; marks_status is draft, submitted or locked; section is internal, mid, end (theory) or lab_exam, viva, ce (lab only); subject_kind is theory or lab; "internal marks" means section = 'internal' only (out of 40 by default)
-${views.includes("v_risk_flags") ? "v_risk_flags(student_id, roll_no, name, batch, year, programme, reason_text, created_at)\n" : ""}${fees}Batches look like CSE-2024; programmes are codes like CSE, ME. "second-year" means year = 2. "this month" means date >= date_trunc('month', current_date).
-"Below 75%" over a date range: 100.0 * sum(periods) filter (where status <> 'absent') / sum(periods), per student and subject, in v_subject_attendance.`;
+${line(views, "v_students", "v_students(student_id, roll_no, name, batch, year, semester, programme, programme_name, department)")}${line(views, "v_subject_attendance", "v_subject_attendance(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, date, status, periods) -- one row per student per session; status is present, absent or late; late counts as attended; weight by periods")}${line(views, "v_student_subject_attendance", "v_student_subject_attendance(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, attendance_percent) -- cumulative per subject")}${line(views, "v_marks", "v_marks(student_id, roll_no, name, batch, year, programme, subject_code, subject_name, marks_status, component, max_marks, marks, section, subject_kind) -- one row per student per component; marks_status is draft, submitted or locked; section is internal, mid, end (theory) or lab_exam, viva, ce (lab only); subject_kind is theory or lab; \"internal marks\" means section = 'internal' only (out of 40 by default)")}${line(views, "v_risk_flags", "v_risk_flags(student_id, roll_no, name, batch, year, programme, reason_text, created_at)")}${fees}Batches look like CSE-2024; programmes are codes like CSE, ME. "second-year" means year = 2. "this month" means date >= date_trunc('month', current_date).
+${views.includes("v_subject_attendance") ? `"Below 75%" over a date range: 100.0 * sum(periods) filter (where status <> 'absent') / sum(periods), per student and subject, in v_subject_attendance.` : "Attendance is not available to you: call refuse for any question about it."}`;
 
 const UNAVAILABLE = "Termy isn't available right now. Your data is safe; use the lists and filters meanwhile.";
 
@@ -58,6 +64,8 @@ type Catalog = { batches: string[]; subjects: string[] };
 function buildLink(l: z.infer<typeof Link>, viewer: Asker, catalog: Catalog) {
   if (viewer.role === "student") return l.page === "fees" || l.page === "marks" ? { href: `/my/${l.page}`, label: `Open your ${l.page}` } : undefined;
   if (l.page === "none" || (l.page === "fees" && !can(viewer.role, "fees"))) return undefined;
+  if (l.page === "marks" && !can(viewer.role, "moderate_marks") && !can(viewer.role, "teach")) return undefined;
+  if (l.page === "students" && !can(viewer.role, "campus_students") && !can(viewer.role, "teach")) return undefined;
   const q = new URLSearchParams();
   const f = (LINK_FILTERS[l.page] as Record<string, readonly [string, string]>)[l.filter];
   // Admins see marks per subject without a status filter.
