@@ -1,11 +1,13 @@
-import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader, StatCard, StatStrip, StatusPill } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
+import { canAppeal } from "@/domain/appeals";
 import { requirePortal } from "@/server/portal";
-import { portalStudent } from "@/server/portal-data";
+import { myAppeals, portalStudent } from "@/server/portal-data";
+import { AppealButton } from "../appeal-client";
+import { AppealList, AppealPill } from "../appeal-list";
 import { studentMarks, type MarksStatus } from "./queries";
 
 const STATUS: Record<MarksStatus, { label: string; tone: "default" | "ok" }> = {
@@ -18,7 +20,7 @@ export default async function MarksPage() {
   const v = await requirePortal();
   const s = await portalStudent(v.studentId);
   if (!s) redirect("/my");
-  const subjects = await studentMarks(v.studentId, s.batchId);
+  const [subjects, appeals] = await Promise.all([studentMarks(v.studentId, s.batchId), myAppeals(v.studentId, "mark")]);
   const locked = subjects.filter((x) => x.status === "locked").length;
   // The stats count the internal section only, matching the internal marks of 40 used elsewhere.
   const withInternal = subjects.filter((x) => x.internal !== null);
@@ -59,13 +61,22 @@ export default async function MarksPage() {
                   <StatusPill tone={STATUS[x.status].tone}>{STATUS[x.status].label}</StatusPill>
                 </div>
               </div>
-              <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-sm tabular-nums">
-                {x.comps.map((c) => (
-                  <Fragment key={c.name}>
-                    <dt className="text-muted-foreground">{c.name}</dt>
-                    <dd className="text-right">{c.marks === null ? "–" : `${c.marks} / ${c.max}`}</dd>
-                  </Fragment>
-                ))}
+              <dl className="mt-3 grid gap-1.5 text-sm tabular-nums">
+                {x.comps.map((c) => {
+                  const latest = appeals.find((a) => a.componentId === c.id);
+                  return (
+                    <div key={c.id} className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{c.name}</dt>
+                      <dd className="flex items-center gap-2">
+                        {c.marks === null ? "–" : `${c.marks} / ${c.max}`}
+                        {latest && <AppealPill status={latest.status} />}
+                        {c.marks !== null && canAppeal({ role: v.role, existingOpen: latest?.status === "open", kind: "mark" }) && (
+                          <AppealButton kind="mark" target={c.id} label={`${x.name}, ${c.name}`} />
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
               <div className="mt-4 grid gap-2 border-t border-rule pt-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
@@ -89,6 +100,12 @@ export default async function MarksPage() {
           ))}
         </ul>
       )}
+
+      <div className="mt-8">
+        <AppealList items={appeals.map((a) => ({
+          id: a.id, title: `${a.subject}, ${a.component}`, reason: a.reason, status: a.status, response: a.response,
+        }))} />
+      </div>
     </>
   );
 }

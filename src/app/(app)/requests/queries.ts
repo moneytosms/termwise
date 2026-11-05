@@ -1,7 +1,7 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { Viewer } from "@/server/access";
 import { db } from "@/server/db";
-import { batch, leaveRequest, portalRequest, programme, student } from "@/server/schema";
+import { attendanceEntry, attendanceSession, appeal, batch, leaveRequest, mark, markComponent, portalRequest, programme, student, subject } from "@/server/schema";
 
 const leaveCols = {
   id: leaveRequest.id, studentName: student.name, rollNo: student.rollNo, kind: leaveRequest.kind,
@@ -62,4 +62,33 @@ export async function adminRequests(v: Viewer) {
       .where(campus).orderBy(desc(leaveRequest.createdAt)).limit(20),
   ]);
   return { corrections, byStatus, latest };
+}
+
+/**
+ * Appeals on subjects this viewer teaches (faculty) or anywhere on the campus (office admin).
+ * `open` oldest first; `decided` the latest 20. Current values are the mark or attendance status now.
+ */
+export async function appealQueue(v: Viewer) {
+  const teaching = v.role === "faculty" ? eq(subject.facultyId, v.staffId) : undefined;
+  const rows = (where: SQL | undefined) => db.select({
+    id: appeal.id, kind: appeal.kind, reason: appeal.reason, status: appeal.status, response: appeal.response,
+    createdAt: appeal.createdAt, resolvedAt: appeal.resolvedAt, studentId: appeal.studentId, componentId: appeal.componentId,
+    sessionId: appeal.sessionId, studentName: student.name, rollNo: student.rollNo, subjectId: subject.id, subjectCode: subject.code,
+    subjectName: subject.name, componentName: markComponent.name, maxMarks: markComponent.maxMarks, currentMarks: mark.marks,
+    sessionDate: attendanceSession.date, period: attendanceSession.period, currentAttendance: attendanceEntry.status,
+  }).from(appeal)
+    .leftJoin(markComponent, eq(appeal.componentId, markComponent.id))
+    .leftJoin(attendanceSession, eq(appeal.sessionId, attendanceSession.id))
+    .innerJoin(subject, sql`${subject.id} = coalesce(${markComponent.subjectId}, ${attendanceSession.subjectId})`)
+    .innerJoin(batch, eq(subject.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .innerJoin(student, eq(appeal.studentId, student.id))
+    .leftJoin(mark, and(eq(mark.componentId, appeal.componentId), eq(mark.studentId, appeal.studentId)))
+    .leftJoin(attendanceEntry, and(eq(attendanceEntry.sessionId, appeal.sessionId), eq(attendanceEntry.studentId, appeal.studentId)))
+    .where(and(eq(programme.campusId, v.campusId), teaching, where));
+  const [open, decided] = await Promise.all([
+    rows(eq(appeal.status, "open")).orderBy(asc(appeal.createdAt)),
+    rows(inArray(appeal.status, ["accepted", "rejected"])).orderBy(desc(appeal.resolvedAt)).limit(20),
+  ]);
+  return { open, decided };
 }

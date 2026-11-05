@@ -7,11 +7,14 @@ import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { attendancePercent, isShortage, type AttendanceStatus } from "@/domain/attendance";
+import { canAppeal } from "@/domain/appeals";
 import { cn } from "@/lib/utils";
 import { db } from "@/server/db";
 import { requirePortal } from "@/server/portal";
-import { portalStudent } from "@/server/portal-data";
+import { myAppeals, portalStudent } from "@/server/portal-data";
 import { attendanceEntry, attendanceSession, leaveRequest, subject } from "@/server/schema";
+import { AppealButton } from "../appeal-client";
+import { AppealList, AppealPill } from "../appeal-list";
 import { plannerLine } from "./planner";
 
 const REGISTER_PAGE = 30;
@@ -20,10 +23,10 @@ const dayLabel = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("e
 
 export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ subject?: string; q?: string; status?: string; from?: string; to?: string; page?: string }> }) {
   const v = await requirePortal();
-  const [s, rows, leaves] = await Promise.all([
+  const [s, rows, leaves, appeals] = await Promise.all([
     portalStudent(v.studentId),
     db.select({
-      subjectId: subject.id, code: subject.code, subject: subject.name, status: attendanceEntry.status,
+      subjectId: subject.id, code: subject.code, subject: subject.name, status: attendanceEntry.status, sessionId: attendanceSession.id,
       periods: attendanceSession.periodCount, date: attendanceSession.date, period: attendanceSession.period,
     }).from(attendanceEntry)
       .innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id))
@@ -32,6 +35,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
       .orderBy(desc(attendanceSession.date), desc(attendanceSession.period)),
     db.select({ fromDate: leaveRequest.fromDate, toDate: leaveRequest.toDate, kind: leaveRequest.kind }).from(leaveRequest)
       .where(and(eq(leaveRequest.studentId, v.studentId), eq(leaveRequest.status, "approved"))),
+    myAppeals(v.studentId, "attendance"),
   ]);
   if (!s) return null;
 
@@ -156,6 +160,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
                 {day.items.map((r) => {
                   const leave = r.status === "absent" ? leaveOn(r.date) : undefined;
                   const [word, tone] = WORD[r.status];
+                  const latest = appeals.find((a) => a.sessionId === r.sessionId);
                   return (
                     <li key={`${r.date}-${r.period}-${r.subjectId}`} className="flex min-h-12 items-center justify-between gap-3 py-2.5">
                       <span className="min-w-0">
@@ -165,7 +170,13 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
                           {leave && ` · ${leave.kind === "medical" ? "Medical" : "Leave"}`}
                         </span>
                       </span>
-                      {leave ? <StatusPill>On leave</StatusPill> : <StatusPill tone={tone}>{word}</StatusPill>}
+                      <span className="flex shrink-0 items-center gap-2">
+                        {latest && <AppealPill status={latest.status} />}
+                        {canAppeal({ role: v.role, existingOpen: latest?.status === "open", kind: "attendance", status: r.status }) && (
+                          <AppealButton kind="attendance" target={r.sessionId} label={`${r.subject}, ${dayLabel(r.date)}, period ${r.period}`} />
+                        )}
+                        {leave ? <StatusPill>On leave</StatusPill> : <StatusPill tone={tone}>{word}</StatusPill>}
+                      </span>
                     </li>
                   );
                 })}
@@ -180,6 +191,11 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
           Approved leave is shown, but still counts as absent toward the % (college rule).
         </p>
       )}
+      <div className="mt-8">
+        <AppealList items={appeals.map((a) => ({
+          id: a.id, title: `${a.subject}, ${dayLabel(a.date!)}, period ${a.period}`, reason: a.reason, status: a.status, response: a.response,
+        }))} />
+      </div>
     </>
   );
 }

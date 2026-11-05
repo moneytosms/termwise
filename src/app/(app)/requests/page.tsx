@@ -1,8 +1,9 @@
 import { EmptyState } from "@/components/states";
 import { Panel, PageHeader, SectionHeading, StatCard, StatStrip, StatusPill, type Tone } from "@/components/page";
+import { APPEAL_LABEL, type AppealStatus } from "@/domain/appeals";
 import { requireViewer, type Viewer } from "@/server/access";
-import { adminRequests, facultyRequests } from "./queries";
-import { CloseRequest, LeaveDecision } from "./request-forms";
+import { adminRequests, appealQueue, facultyRequests } from "./queries";
+import { AppealDecision, CloseRequest, LeaveDecision } from "./request-forms";
 
 const LEAVE_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending_parent: { label: "Waiting for parent", tone: "default" },
@@ -15,6 +16,12 @@ const LEAVE_STATUS: Record<string, { label: string; tone: Tone }> = {
 const day = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short" });
 const dayCount = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
 const shortDate = (d: Date) => d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" });
+const ago = (d: Date) => {
+  const days = Math.floor((Date.now() - d.getTime()) / 864e5);
+  return days === 0 ? "today" : days === 1 ? "1 day ago" : `${days} days ago`;
+};
+const APPEAL_TONE: Record<AppealStatus, Tone> = { open: "late", accepted: "ok", rejected: "absent" };
+const WORD = { present: "Present", absent: "Absent", late: "Late" } as const;
 
 type Leave = Awaited<ReturnType<typeof facultyRequests>>["toDecide"][number];
 type Note = Awaited<ReturnType<typeof facultyRequests>>["openNotes"][number];
@@ -26,9 +33,10 @@ export default async function RequestsPage() {
 
 async function FacultyView({ v }: { v: Viewer }) {
   const { toDecide, openNotes, doneNotes, decided } = await facultyRequests(v);
+  const appeals = await appealQueue(v);
   return (
     <>
-      <PageHeader title="Requests" description="Your mentees' leave and notes from parents." />
+      <PageHeader title="Requests" description="Your mentees' leave, appeals on your subjects, and notes from parents." />
 
       <SectionHeading title="Leave to approve" count={toDecide.length} />
       {toDecide.length === 0 ? <EmptyState title="Nothing waiting." /> : (
@@ -36,6 +44,8 @@ async function FacultyView({ v }: { v: Viewer }) {
           {toDecide.map((l) => <li key={l.id}><LeaveCard l={l}><LeaveDecision id={l.id} /></LeaveCard></li>)}
         </ul>
       )}
+
+      <AppealsSection open={appeals.open} decided={appeals.decided} />
 
       <SectionHeading title="Notes from parents" count={openNotes.length} />
       {openNotes.length === 0 ? <EmptyState title="Nothing waiting." /> : (
@@ -62,10 +72,11 @@ async function FacultyView({ v }: { v: Viewer }) {
 
 async function AdminView({ v }: { v: Viewer }) {
   const { corrections, byStatus, latest } = await adminRequests(v);
+  const appeals = await appealQueue(v);
   const count = (s: string) => byStatus.find((r) => r.status === s)?.n ?? 0;
   return (
     <>
-      <PageHeader title="Requests" description="Record corrections from families, and leave across the campus." />
+      <PageHeader title="Requests" description="Record corrections from families, appeals, and leave across the campus." />
 
       <SectionHeading title="Record corrections" count={corrections.length} />
       {corrections.length === 0 ? <EmptyState title="Nothing waiting." /> : (
@@ -73,6 +84,8 @@ async function AdminView({ v }: { v: Viewer }) {
           {corrections.map((n) => <li key={n.id}><NoteCard n={n}><CloseRequest id={n.id} /></NoteCard></li>)}
         </ul>
       )}
+
+      <AppealsSection open={appeals.open} decided={appeals.decided} />
 
       <SectionHeading title="Leave on campus" />
       <StatStrip cols={4}>
@@ -95,6 +108,55 @@ async function AdminView({ v }: { v: Viewer }) {
         </Panel>
       </div>
     </>
+  );
+}
+
+type Appeal = Awaited<ReturnType<typeof appealQueue>>["open"][number];
+
+function AppealsSection({ open, decided }: { open: Appeal[]; decided: Appeal[] }) {
+  return (
+    <>
+      <SectionHeading title="Appeals" count={open.length} />
+      {open.length === 0 ? <EmptyState title="Nothing waiting." /> : (
+        <ul className="space-y-3">
+          {open.map((a) => (
+            <li key={a.id}>
+              <AppealCard a={a}>
+                <AppealDecision id={a.id} kind={a.kind} max={a.maxMarks ?? 0} />
+              </AppealCard>
+            </li>
+          ))}
+        </ul>
+      )}
+      {decided.length > 0 && (
+        <Collapsed title="Recent appeal decisions" count={decided.length}>
+          {decided.map((a) => <AppealCard key={a.id} a={a} />)}
+        </Collapsed>
+      )}
+    </>
+  );
+}
+
+function AppealCard({ a, children }: { a: Appeal; children?: React.ReactNode }) {
+  const what = a.kind === "mark"
+    ? `${a.componentName}: ${a.currentMarks ?? "–"} / ${a.maxMarks}`
+    : `Period ${a.period}, ${day(a.sessionDate!)}: ${a.currentAttendance ? WORD[a.currentAttendance] : "–"}`;
+  return (
+    <div className="rounded-xl bg-card p-4 shadow-sheet">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <div className="min-w-0">
+          <p className="font-medium">{a.studentName} <span className="font-normal text-muted-foreground tabular-nums">{a.rollNo}</span></p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{a.subjectCode} {a.subjectName} · {what}</p>
+        </div>
+        <StatusPill tone={APPEAL_TONE[a.status]}>{APPEAL_LABEL[a.status]}</StatusPill>
+      </div>
+      <p className="mt-2 text-sm">{a.reason}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {a.resolvedAt ? `Decided ${shortDate(a.resolvedAt)}` : `${a.kind === "mark" ? "Mark" : "Attendance"} appeal, raised ${ago(a.createdAt)}`}
+      </p>
+      {a.response && <p className="mt-2 text-sm text-muted-foreground">Response: {a.response}</p>}
+      {children}
+    </div>
   );
 }
 
