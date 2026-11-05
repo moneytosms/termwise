@@ -5,7 +5,8 @@ test("office admin corrects a past session with a reason, and the change is audi
   await page.setViewportSize({ width: 1280, height: 900 });
   await signIn(page, "admin@termwise.demo");
   await page.goto("/attendance?tab=sessions");
-  await page.getByLabel("Date").selectOption("Last 7 days");
+  await page.getByLabel("Date").click();
+  await page.getByRole("option", { name: "Last 7 days" }).click();
   await page.getByRole("row").nth(1).click();
   await page.waitForURL(/session=/);
   const sessionUrl = page.url();

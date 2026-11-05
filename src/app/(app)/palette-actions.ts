@@ -8,7 +8,8 @@ import { batch, programme, student } from "@/server/schema";
 /** Students this viewer may see, matched by name or roll number. Top 8 for the command palette. */
 export async function searchStudents(term: string) {
   const v = await requireViewer();
-  const like = `%${term.trim()}%`;
+  if (typeof term !== "string" || !term.trim() || term.length > 64) return [];
+  const like = `%${term.trim().replace(/[\\%_]/g, "\\$&")}%`;
   return db.select({ id: student.id, rollNo: student.rollNo, name: student.name, programme: programme.name }).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))

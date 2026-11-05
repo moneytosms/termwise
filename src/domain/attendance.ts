@@ -17,11 +17,11 @@ export function isShortage(percent: number | null, cutoff: number): boolean {
   return percent !== null && percent < cutoff;
 }
 
-/** Smallest n ≥ 0 with (attended + n) / (held + n) ≥ line (fraction). Infinity when line ≥ 1 and not already full. */
-export function classesToReach(attended: number, held: number, line: number): number {
-  if (attended >= line * held) return 0;
-  if (line >= 1) return Infinity;
-  return Math.ceil((line * held - attended) / (1 - line));
+/** Smallest n ≥ 0 with (attended + n) / (held + n) ≥ cutoff%. Integer maths: 1 - 0.8 in floats overcounts by one. */
+export function classesToReach(attended: number, held: number, cutoff: number): number {
+  if (attended * 100 >= cutoff * held) return 0;
+  if (cutoff >= 100) return Infinity;
+  return Math.ceil((cutoff * held - 100 * attended) / (100 - cutoff));
 }
 
 /** Faculty may edit until the end of the session's date, IST. */

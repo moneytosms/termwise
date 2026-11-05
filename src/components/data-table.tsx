@@ -99,8 +99,8 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
   useEffect(() => { if (!pageSize) table.setPageSize(settingsPageSize); }, [pageSize, settingsPageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const order = rowNav ? table.getPrePaginationRowModel().rows.map((r) => rowNav.id(r.original)) : [];
-  const orderKey = order.join(",");
-  useEffect(() => { if (rowNav) setRowOrder(rowNav.key, orderKey ? orderKey.split(",") : []); }, [rowNav?.key, orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const orderKey = JSON.stringify(order);
+  useEffect(() => { if (rowNav) setRowOrder(rowNav.key, JSON.parse(orderKey)); }, [rowNav?.key, orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = table.getSelectedRowModel().rows.map((r) => r.original);
   const rows = table.getRowModel().rows;

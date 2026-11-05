@@ -12,7 +12,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Mark } from "@/components/mark";
-import { setSetting, useSettings } from "@/lib/settings";
+import { readSettings, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { clearOfflineData } from "@/offline/db";
 
@@ -46,7 +46,10 @@ const ADMIN: Group[] = [
 
 const client = createAuthClient();
 
+const LANDED = "termwise:landed";
+
 async function signOut() {
+  try { sessionStorage.removeItem(LANDED); } catch { /* storage blocked */ }
   await clearOfflineData();
   await client.signOut();
   window.location.href = "/sign-in";
@@ -73,21 +76,24 @@ export function AppShell({ role, name, campus, children }: {
   useEffect(() => {
     if (!s.shortcuts) return;
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest("input, textarea, [contenteditable]")) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") { e.preventDefault(); setSetting("sidebarCollapsed", !collapsed); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [s.shortcuts, collapsed]);
 
-  // Send a fresh sign-in to the chosen landing page once per tab.
+  // Send a fresh sign-in to the chosen landing page once per tab. Mount only, reading storage directly:
+  // the hook still returns defaults during hydration, and changing the setting later must not navigate.
   useEffect(() => {
-    if (pathname !== "/home" || s.landing === "/home" || !all.some((i) => i.href === s.landing)) return;
+    const landing = readSettings().landing;
+    if (pathname !== "/home" || landing === "/home" || !all.some((i) => i.href === landing)) return;
     try {
-      if (sessionStorage.getItem("termwise:landed")) return;
-      sessionStorage.setItem("termwise:landed", "1");
+      if (sessionStorage.getItem(LANDED)) return;
+      sessionStorage.setItem(LANDED, "1");
     } catch { return; }
-    router.replace(s.landing);
-  }, [pathname, s.landing, all, router]);
+    router.replace(landing);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navLink = (on: boolean) => cn(
     "group flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-rail-hover hover:text-foreground",

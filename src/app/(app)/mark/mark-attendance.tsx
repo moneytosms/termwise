@@ -32,6 +32,8 @@ export function MarkAttendance() {
   const [loaded, setLoaded] = useState(false);
   const [find, setFind] = useState("");
   const [filter, setFilter] = useState<"all" | "absent" | "late">("all");
+  // Rows shown by the Absent/Late filter, fixed when it is picked so a tap doesn't make the row vanish.
+  const [pinned, setPinned] = useState<Set<string> | null>(null);
   const [confirming, setConfirming] = useState(false);
   const findRef = useRef<HTMLInputElement>(null);
   const settings = useSettings();
@@ -54,9 +56,9 @@ export function MarkAttendance() {
   const shown = useMemo(() => {
     if (!cls) return [];
     const q = find.trim().toLowerCase();
-    return cls.roster.filter((s) => (filter === "all" || (statuses[s.id] ?? "present") === filter)
+    return cls.roster.filter((s) => (!pinned || pinned.has(String(s.id)))
       && (!q || s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q)));
-  }, [cls, find, filter, statuses]);
+  }, [cls, find, pinned]);
 
   if (cls === undefined || (cls === null && sync.online && !sync.refreshed)) return <div className="space-y-2" aria-busy="true" aria-label="Loading">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
   if (cls === null) {
@@ -111,7 +113,10 @@ export function MarkAttendance() {
         </div>
         <div role="group" aria-label="Show" className="inline-flex gap-1 rounded-lg bg-secondary p-1 text-xs font-medium">
           {([["all", "All"], ["absent", `Absent (${absent.length})`], ["late", `Late (${late.length})`]] as const).map(([v, label]) => (
-            <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)}
+            <button key={v} type="button" aria-pressed={filter === v} onClick={() => {
+              setFilter(v);
+              setPinned(v === "all" || !cls ? null : new Set(cls.roster.filter((r) => (statuses[r.id] ?? "present") === v).map((r) => String(r.id))));
+            }}
               className={cn("h-7 rounded-md px-3 transition-colors", filter === v ? "bg-card text-foreground shadow-sheet" : "text-muted-foreground hover:text-foreground")}>{label}</button>
           ))}
         </div>

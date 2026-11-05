@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
 let cache: Settings | undefined;
 const listeners = new Set<() => void>();
 
-function read(): Settings {
+export function readSettings(): Settings {
   if (cache) return cache;
   try { cache = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") }; }
   catch { cache = DEFAULT_SETTINGS; }
@@ -48,7 +48,7 @@ export function applySettings(s: Settings) {
 }
 
 export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
-  cache = { ...read(), [key]: value };
+  cache = { ...readSettings(), [key]: value };
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(cache)); } catch { /* private mode: keep for this tab only */ }
   applySettings(cache);
   listeners.forEach((l) => l());
@@ -57,6 +57,6 @@ export function setSetting<K extends keyof Settings>(key: K, value: Settings[K])
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 
 export function useSettings(): Settings {
-  return useSyncExternalStore(subscribe, read, () => DEFAULT_SETTINGS);
+  return useSyncExternalStore(subscribe, readSettings, () => DEFAULT_SETTINGS);
 }
 

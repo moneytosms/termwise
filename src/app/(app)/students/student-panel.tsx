@@ -55,7 +55,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
         {onTrack ? <p className="text-sm text-muted-foreground">On track. Nothing to do.</p> : (
           <div className="space-y-2">
             {shortSubjects.map((s) => {
-              const n = classesToReach(s.attended, s.held, d.student.cutoff / 100);
+              const n = classesToReach(s.attended, s.held, d.student.cutoff);
               return (
                 <div key={s.name} className={card}>
                   {n === Infinity

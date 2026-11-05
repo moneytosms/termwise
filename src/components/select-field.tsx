@@ -51,7 +51,7 @@ export function SelectField({ options, value, defaultValue, onValueChange, name,
         {/* Base UI treats "" as no value, so the "all" option's label doubles as the placeholder. */}
         <SelectValue placeholder={options.find((o) => o.value === "")?.label ?? placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false} align="start" className="w-auto min-w-(--anchor-width)">
         {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
       </SelectContent>
     </Select>

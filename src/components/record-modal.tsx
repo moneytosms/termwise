@@ -33,6 +33,7 @@ export function RecordModal({ title, description, leading, onClose, nav, footer,
     if (!n) return;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.defaultPrevented) return;
       if (t.closest("input, textarea, select, [contenteditable], [role=listbox], [role=combobox]")) return;
       if (e.key === "ArrowLeft") go(n.prev);
       if (e.key === "ArrowRight") go(n.next);
