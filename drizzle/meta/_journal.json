@@ -22,6 +22,13 @@
       "when": 1793888392804,
       "tag": "0002_daily_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793894258909,
+      "tag": "0003_exotic_sugar_man",
+      "breakpoints": true
     }
   ]
 }

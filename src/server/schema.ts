@@ -55,6 +55,22 @@ export const campus = pgTable("campus", {
   riskDropPoints: integer("risk_drop_points").notNull().default(10),
   riskMarksPercent: integer("risk_marks_percent").notNull().default(50),
   riskMinSessions: integer("risk_min_sessions").notNull().default(10),
+  // Printed on receipts and the portal header
+  legalName: text("legal_name"),
+  tagline: text("tagline"),
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  city: text("city"),
+  state: text("state"),
+  pincode: text("pincode"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  affiliation: text("affiliation"),
+  registrationNo: text("registration_no"),
+  gstin: text("gstin"),
+  logoDataUrl: text("logo_data_url"),
+  receiptFooter: text("receipt_footer"),
 });
 export const department = pgTable("department", {
   id: serial("id").primaryKey(),
@@ -92,6 +108,15 @@ export const subject = pgTable("subject", {
   code: text("code").notNull(),
   name: text("name").notNull(),
   marksStatus: text("marks_status", { enum: ["draft", "submitted", "locked"] }).notNull().default("draft"),
+  kind: text("kind", { enum: ["theory", "lab"] }).notNull().default("theory"),
+  // Mark caps per section; lab fields count only when kind is "lab"
+  internalMax: integer("internal_max").notNull().default(40),
+  midMax: integer("mid_max").notNull().default(20),
+  endMax: integer("end_max").notNull().default(40),
+  theoryScale: integer("theory_scale").notNull().default(100), // percent of theory 100 that counts
+  labExamMax: integer("lab_exam_max").notNull().default(15),
+  vivaMax: integer("viva_max").notNull().default(10),
+  ceMax: integer("ce_max").notNull().default(5), // continuous evaluation
 });
 export const calendarDay = pgTable("calendar_day", {
   id: serial("id").primaryKey(),
@@ -169,6 +194,21 @@ export const portalRequest = pgTable("portal_request", {
   closedAt: timestamp("closed_at", { withTimezone: true }),
 });
 
+// Student contests a mark or an attendance figure; office resolves it
+export const appeal = pgTable("appeal", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  kind: text("kind", { enum: ["mark", "attendance"] }).notNull(),
+  componentId: integer("component_id").references(() => markComponent.id),
+  sessionId: uuid("session_id").references(() => attendanceSession.id),
+  reason: text("reason").notNull(),
+  status: text("status", { enum: ["open", "accepted", "rejected"] }).notNull().default("open"),
+  response: text("response"),
+  resolvedBy: text("resolved_by").references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+}, (t) => [index("appeal_student_idx").on(t.studentId), index("appeal_status_idx").on(t.status)]);
+
 // Admission document checklist
 export const studentDocument = pgTable("student_document", {
   id: serial("id").primaryKey(),
@@ -213,6 +253,7 @@ export const markComponent = pgTable("mark_component", {
   name: text("name").notNull(),
   maxMarks: integer("max_marks").notNull(),
   position: integer("position").notNull().default(0),
+  section: text("section", { enum: ["internal", "mid", "end", "lab_exam", "viva", "ce"] }).notNull().default("internal"),
 });
 export const mark = pgTable("mark", {
   componentId: integer("component_id").notNull().references(() => markComponent.id),

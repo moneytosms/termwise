@@ -6,11 +6,12 @@ import * as t from "../src/server/schema";
 import { istDate } from "../src/domain/attendance";
 import { runDailyJob } from "../src/server/jobs/daily";
 import { seedPortal } from "./seed-portal.mjs";
+import { seedScheme } from "./seed-scheme.mjs";
 
 // Synthetic data only. Re-run on an empty database; skipped if campuses already exist.
 const PASSWORD = "termwise-demo";
 const [{ n }] = await db.select({ n: count() }).from(t.campus);
-if (n > 0) { await seedPortal(PASSWORD); console.log("already seeded"); await pool.end(); process.exit(0); }
+if (n > 0) { await seedPortal(PASSWORD); await seedScheme(); console.log("already seeded"); await pool.end(); process.exit(0); }
 
 let seed = 42;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
@@ -226,6 +227,7 @@ await seedPortal(PASSWORD);
 delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 delete process.env.GROQ_API_KEY;
 for (const c of [eng, mgmt]) console.log(c.code, await runDailyJob(c.id, "schedule"));
+await seedScheme();
 
 await pool.end();
 console.log("seeded");
