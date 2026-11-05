@@ -19,6 +19,7 @@ export function HistoryTable({ rows }: { rows: HistoryRow[] }) {
     ) },
     { accessorKey: "reason", header: "Reason", cell: ({ row }) => <span className="block max-w-xs truncate text-muted-foreground" title={row.original.reason}>{row.original.reason}</span> },
     { accessorKey: "status", header: "Status", cell: ({ row: { original: r } }) => <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill> },
+    { accessorKey: "note", header: "Office note", cell: ({ row }) => <span className="block max-w-xs truncate text-muted-foreground" title={row.original.note ?? undefined}>{row.original.note ?? "–"}</span> },
     { id: "action", header: "", enableSorting: false, cell: ({ row: { original: r } }) => r.status === "pending" ? <WithdrawButton id={r.id} /> : null },
   ];
   const filters: TableFilter<HistoryRow>[] = [
