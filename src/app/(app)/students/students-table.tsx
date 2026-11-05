@@ -30,6 +30,7 @@ export function StudentsTable({ rows, isAdmin, initialFilters }: { rows: Student
     { label: "Batch", options: unique(rows.map((r) => r.batch)), get: (r) => r.batch },
     { label: "Attendance", options: ["Shortage", "OK"], get: (r) => (r.shortage ? "Shortage" : "OK") },
     { label: "At risk", options: ["Flagged", "Not flagged"], get: (r) => (r.flagged ? "Flagged" : "Not flagged") },
+    { label: "Alumni", options: ["Alumni", "Not alumni"], get: (r) => (r.alumni ? "Alumni" : "Not alumni") },
     ...(isAdmin ? [{ label: "Fees", options: ["Due", "Clear"], get: (r: StudentRow) => (r.duePaise ? "Due" : "Clear") }] : []),
   ];
   return (

@@ -1,14 +1,17 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db, type Tx } from "@/server/db";
-import { batch, calendarDay, campus, department, feeStructure, mark, markComponent, programme, scholarshipScheme, staff, subject, timetableSlot } from "@/server/schema";
+import { batch, calendarDay, campus, department, feeInstalment, feeStructure, mark, markComponent, programme, scholarshipScheme, staff, student, subject, timetableSlot } from "@/server/schema";
 import { sectionMax, sectionsFor, SECTION_LABEL, type Section } from "@/domain/marks";
 import { APPLICANT_CATEGORIES } from "@/domain/applicants";
+import { istDate } from "@/domain/attendance";
+import { semesterFee } from "@/domain/fee-structure";
+import { nextTerm, promoteBlocker } from "@/domain/promotion";
 
 type Result = { error?: string };
 
@@ -399,6 +402,103 @@ export async function saveRules(fd: FormData): Promise<Result> {
     await tx.update(campus).set(p.data).where(eq(campus.id, v.campusId));
     await audit(tx, v, { action: "setup.rules.update", entity: "campus", entityId: v.campusId, oldValue: old, newValue: p.data });
   });
+  revalidatePath("/setup");
+  return {};
+}
+
+/** The batch's current subjects: its own, and those not yet stamped with an earlier semester. */
+async function currentSubjects(tx: Tx, b: { id: number; semester: number }) {
+  return tx.select().from(subject)
+    .where(and(eq(subject.batchId, b.id), or(isNull(subject.semester), eq(subject.semester, b.semester))));
+}
+
+const plusDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+export type TermPlan =
+  | { kind: "promote"; year: number; semester: number; students: number; subjects: number; fees: { category: string; paise: number }[] }
+  | { kind: "graduate"; students: number };
+export type TermPreview = { error?: string; blocker?: string; plan?: TermPlan };
+
+/** What advancing the batch would do, or why it can't. */
+export async function previewBatchTerm(batchId: number): Promise<TermPreview> {
+  const v = await requireCan("setup");
+  const id = pick("Pick a batch.").safeParse(batchId);
+  if (!id.success) return { error: id.error.issues[0].message };
+  return db.transaction(async (tx): Promise<TermPreview> => {
+    const b = await campusBatch(tx, v.campusId, id.data);
+    if (!b) return { error: "Batch not found on this campus." };
+    const [prog] = await tx.select().from(programme).where(eq(programme.id, b.programmeId));
+    const subs = await currentSubjects(tx, b);
+    const blocker = promoteBlocker(subs);
+    if (blocker) return { blocker };
+    const next = nextTerm(b, prog.durationYears);
+    const students = await tx.select({ id: student.id }).from(student).where(and(eq(student.batchId, b.id), isNull(student.graduatedOn)));
+    if (next.kind === "graduate") return { plan: { kind: "graduate", students: students.length } };
+    const fees = await tx.select().from(feeStructure).where(eq(feeStructure.programmeId, prog.id));
+    return {
+      plan: {
+        kind: "promote", year: next.year, semester: next.semester, students: students.length, subjects: subs.length,
+        fees: APPLICANT_CATEGORIES.map((category) => ({ category, paise: semesterFee(prog.semesterFeePaise, fees, category) })),
+      },
+    };
+  });
+}
+
+/** Moves the batch to its next semester, or graduates it. Refused while any current subject is unlocked. Roll numbers, attendance and marks stay. */
+export async function advanceBatch(batchId: number): Promise<Result> {
+  const v = await requireCan("setup");
+  const id = pick("Pick a batch.").safeParse(batchId);
+  if (!id.success) return { error: id.error.issues[0].message };
+  const error = await db.transaction(async (tx) => {
+    const b = await campusBatch(tx, v.campusId, id.data);
+    if (!b) return "Batch not found on this campus.";
+    const [prog] = await tx.select().from(programme).where(eq(programme.id, b.programmeId));
+    const subs = await currentSubjects(tx, b);
+    const blocker = promoteBlocker(subs);
+    if (blocker) return blocker;
+    const next = nextTerm(b, prog.durationYears);
+    const students = await tx.select({ id: student.id, category: student.category }).from(student)
+      .where(and(eq(student.batchId, b.id), isNull(student.graduatedOn)));
+    if (next.kind === "graduate") {
+      if (students.length) {
+        await tx.update(student).set({ graduatedOn: istDate() }).where(and(eq(student.batchId, b.id), isNull(student.graduatedOn)));
+      }
+      await audit(tx, v, { action: "setup.batch.graduate", entity: "batch", entityId: b.id, oldValue: b, newValue: { students: students.length } });
+      return null;
+    }
+    // Stamp the finished semester's subjects, then clone them for the new one.
+    if (subs.length) await tx.update(subject).set({ semester: b.semester }).where(inArray(subject.id, subs.map((s) => s.id)));
+    const [row] = await tx.update(batch).set({ year: next.year, semester: next.semester }).where(eq(batch.id, b.id)).returning();
+    const fees = await tx.select().from(feeStructure).where(eq(feeStructure.programmeId, prog.id));
+    const created: number[] = [];
+    for (const s of subs) {
+      const [clone] = await tx.insert(subject).values({
+        batchId: b.id, facultyId: s.facultyId, code: s.code, name: s.name, kind: s.kind, marksStatus: "draft", semester: next.semester,
+        internalMax: s.internalMax, midMax: s.midMax, endMax: s.endMax, theoryScale: s.theoryScale,
+        labExamMax: s.labExamMax, vivaMax: s.vivaMax, ceMax: s.ceMax,
+      }).returning({ id: subject.id });
+      const comps = await tx.select().from(markComponent).where(eq(markComponent.subjectId, s.id));
+      if (comps.length) {
+        await tx.insert(markComponent).values(comps.map((c) => ({
+          subjectId: clone.id, name: c.name, maxMarks: c.maxMarks, position: c.position, section: c.section,
+        })));
+      }
+      created.push(clone.id);
+    }
+    const today = istDate();
+    for (const s of students) {
+      const fee = semesterFee(prog.semesterFeePaise, fees, s.category);
+      if (fee <= 0) continue;
+      const half = Math.round(fee / 2);
+      await tx.insert(feeInstalment).values([
+        { studentId: s.id, semester: next.semester, label: `Sem ${next.semester} instalment 1/2`, dueDate: plusDays(today, 30), amountPaise: half, scholarshipPaise: 0 },
+        { studentId: s.id, semester: next.semester, label: `Sem ${next.semester} instalment 2/2`, dueDate: plusDays(today, 120), amountPaise: fee - half, scholarshipPaise: 0 },
+      ]);
+    }
+    await audit(tx, v, { action: "setup.batch.promote", entity: "batch", entityId: b.id, oldValue: b, newValue: { batch: row, subjects: created } });
+    return null;
+  });
+  if (error) return { error };
   revalidatePath("/setup");
   return {};
 }

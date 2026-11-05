@@ -8,6 +8,9 @@ import { batch, guardian, guardianStudent, programme, student } from "./schema";
 /** Parent's chosen child; only ever used to pick among the parent's own linked children. */
 export const CHILD_COOKIE = "termwise_child";
 
+/** Shown by every portal write action once the student has graduated. */
+export const ALUMNI_READ_ONLY = "Alumni accounts are read-only.";
+
 type Child = { id: number; name: string; rollNo: string; relation: string | null };
 
 /**
@@ -23,17 +26,19 @@ export type PortalViewer = {
   studentId: number;
   campusId: number;
   mentorId: number | null;
+  /** The student (or the parent's active child) has graduated: the portal is read-only. */
+  alumni: boolean;
 };
 
 export async function getPortalViewer(): Promise<PortalViewer | null> {
   const s = await auth.api.getSession({ headers: await headers() });
   if (!s) return null;
-  const cols = { id: student.id, name: student.name, rollNo: student.rollNo, campusId: programme.campusId, mentorId: student.mentorId };
+  const cols = { id: student.id, name: student.name, rollNo: student.rollNo, campusId: programme.campusId, mentorId: student.mentorId, graduatedOn: student.graduatedOn };
   const [self] = await db.select(cols).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id))
     .where(eq(student.userId, s.user.id));
   if (self) {
-    return { userId: s.user.id, name: self.name, role: "student", guardianId: null, children: [], studentId: self.id, campusId: self.campusId, mentorId: self.mentorId };
+    return { userId: s.user.id, name: self.name, role: "student", guardianId: null, children: [], studentId: self.id, campusId: self.campusId, mentorId: self.mentorId, alumni: self.graduatedOn !== null };
   }
   const [g] = await db.select().from(guardian).where(eq(guardian.userId, s.user.id));
   if (!g) return null;
@@ -47,7 +52,7 @@ export async function getPortalViewer(): Promise<PortalViewer | null> {
   return {
     userId: s.user.id, name: g.name, role: "parent", guardianId: g.id,
     children: kids.map(({ id, name, rollNo, relation }) => ({ id, name, rollNo, relation })),
-    studentId: active.id, campusId: active.campusId, mentorId: active.mentorId,
+    studentId: active.id, campusId: active.campusId, mentorId: active.mentorId, alumni: active.graduatedOn !== null,
   };
 }
 

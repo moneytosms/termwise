@@ -8,7 +8,7 @@ import { paidSql } from "@/app/(app)/fees/queries";
 import { instalmentDue, validatePayment } from "@/domain/fees";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { requirePortal } from "@/server/portal";
+import { ALUMNI_READ_ONLY, requirePortal } from "@/server/portal";
 import { batch, feeInstalment, feePayment, programme, student } from "@/server/schema";
 
 const schema = z.object({ instalmentId: z.number().int().positive() });
@@ -16,6 +16,7 @@ const schema = z.object({ instalmentId: z.number().int().positive() });
 /** Test-mode payment of the full remaining due on one instalment. The student comes from the session, never the client. */
 export async function payTestMode(instalmentId: number): Promise<{ error: string } | { paymentId: number }> {
   const v = await requirePortal();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = schema.safeParse({ instalmentId });
   if (!parsed.success) return { error: "Pick an instalment to pay." };
   const reference = `TEST-${Array.from({ length: 8 }, () => String.fromCharCode(65 + randomInt(26))).join("")}`;

@@ -95,7 +95,10 @@ export function feesToDate(instalments: Instalment[], today: string) {
   return { billedPaise, collectedPaise };
 }
 
-/** Per student on campus: sessions held and attended on or before a date. */
+/** Sessions of a batch's current subjects only: its own, and those not stamped with an earlier semester. */
+const currentSession = sql`${attendanceSession.subjectId} in (select s.id from subject s where s.batch_id = batch.id and (s.semester is null or s.semester = batch.semester))`;
+
+/** Per student on campus: sessions held and attended on or before a date. Alumni are left out. */
 export function studentAttendance(v: Viewer, asOf: string) {
   return db.select({
     id: student.id, cutoff: programme.attendanceCutoff, held: heldSum, attended: attendedSum,
@@ -103,34 +106,36 @@ export function studentAttendance(v: Viewer, asOf: string) {
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .leftJoin(attendanceEntry, eq(attendanceEntry.studentId, student.id))
-    .leftJoin(attendanceSession, and(eq(attendanceEntry.sessionId, attendanceSession.id), lte(attendanceSession.date, asOf)))
-    .where(eq(programme.campusId, v.campusId))
+    .leftJoin(attendanceSession, and(eq(attendanceEntry.sessionId, attendanceSession.id), lte(attendanceSession.date, asOf), currentSession))
+    .where(and(eq(programme.campusId, v.campusId), isNull(student.graduatedOn)))
     .groupBy(student.id, programme.attendanceCutoff);
 }
 
-/** Per student and subject on campus, all sessions to date. */
+/** Per student and subject on campus, all sessions to date. Alumni are left out. */
 export function subjectAttendance(v: Viewer) {
   return db.select({
     subjectId: attendanceSession.subjectId, subject: subject.name, batch: batch.code, cutoff: programme.attendanceCutoff,
     held: heldSum, attended: attendedSum,
   }).from(attendanceEntry)
+    .innerJoin(student, eq(attendanceEntry.studentId, student.id))
     .innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id))
     .innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
     .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(eq(programme.campusId, v.campusId))
+    .where(and(eq(programme.campusId, v.campusId), isNull(student.graduatedOn), currentSession))
     .groupBy(attendanceSession.subjectId, subject.name, batch.code, programme.attendanceCutoff, attendanceEntry.studentId);
 }
 
-/** Per programme and day on campus since a date, for the weekly trend. */
+/** Per programme and day on campus since a date, for the weekly trend. Alumni are left out. */
 export function dailyTotals(v: Viewer, since: string) {
   return db.select({
     date: attendanceSession.date, programmeId: programme.id, held: heldSum, attended: attendedSum,
   }).from(attendanceEntry)
+    .innerJoin(student, eq(attendanceEntry.studentId, student.id))
     .innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id))
     .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, since)))
+    .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, since), isNull(student.graduatedOn), currentSession))
     .groupBy(attendanceSession.date, programme.id);
 }
 
@@ -156,7 +161,7 @@ export function dailyFlags(v: Viewer, since: string): Promise<DayValue[]> {
     .innerJoin(student, eq(riskFlag.studentId, student.id))
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), gte(riskFlag.createdAt, istStart(since))))
+    .where(and(eq(programme.campusId, v.campusId), gte(riskFlag.createdAt, istStart(since)), isNull(student.graduatedOn)))
     .groupBy(day, programme.id);
 }
 
@@ -196,7 +201,7 @@ export async function flagsCreated(v: Viewer, from: Date, to?: Date) {
     .innerJoin(student, eq(riskFlag.studentId, student.id))
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), gte(riskFlag.createdAt, from), to ? lt(riskFlag.createdAt, to) : undefined));
+    .where(and(eq(programme.campusId, v.campusId), gte(riskFlag.createdAt, from), to ? lt(riskFlag.createdAt, to) : undefined, isNull(student.graduatedOn)));
   return r.n;
 }
 
@@ -206,7 +211,7 @@ export async function activeFlags(v: Viewer) {
     .innerJoin(student, eq(riskFlag.studentId, student.id))
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), eq(riskFlag.active, true)));
+    .where(and(eq(programme.campusId, v.campusId), eq(riskFlag.active, true), isNull(student.graduatedOn)));
   return r.n;
 }
 

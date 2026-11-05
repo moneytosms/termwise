@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { CountUp } from "@/components/count-up";
 import { AttendanceMeter, PageHeader, SectionHeading, StatusPill, type Tone } from "@/components/page";
 import { Pager, paginate } from "@/components/pager";
@@ -28,6 +28,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     db.select({
       subjectId: subject.id, code: subject.code, subject: subject.name, status: attendanceEntry.status, sessionId: attendanceSession.id,
       periods: attendanceSession.periodCount, date: attendanceSession.date, period: attendanceSession.period,
+      // Only the batch's current subjects count toward the %: not stamped with an earlier semester
+      current: sql<boolean>`(${subject.semester} is null or ${subject.semester} = (select b.semester from batch b where b.id = ${subject.batchId}))`,
     }).from(attendanceEntry)
       .innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id))
       .innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
@@ -43,8 +45,9 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const cutoff = s.cutoff;
   const you = v.role === "student" ? "Your" : `${s.name.split(" ")[0]}'s`;
 
+  const counted = rows.filter((r) => r.current);
   const groups = new Map<number, { subjectId: number; code: string; name: string; rows: typeof rows }>();
-  for (const r of rows) {
+  for (const r of counted) {
     const g = groups.get(r.subjectId) ?? { subjectId: r.subjectId, code: r.code, name: r.subject, rows: [] };
     g.rows.push(r);
     groups.set(r.subjectId, g);
@@ -55,7 +58,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     return { ...g, held, attended, percent: attendancePercent(g.rows) };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
-  const overall = attendancePercent(rows);
+  const overall = attendancePercent(counted);
   const shortSubjects = subjects.filter((x) => isShortage(x.percent, cutoff));
   const finding = overall === null ? "No classes marked yet."
     : shortSubjects.length > 0 ? `Below the ${cutoff}% line in ${shortSubjects.map((x) => x.name).join(", ")}.`

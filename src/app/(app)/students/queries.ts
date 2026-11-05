@@ -11,13 +11,14 @@ import { can } from "@/domain/roles";
 
 export type StudentRow = {
   id: number; rollNo: string; name: string; batch: string; programme: string; year: number;
-  attendance: number | null; cutoff: number; shortage: boolean; marks: number | null; duePaise: number | null; flagged: boolean;
+  attendance: number | null; cutoff: number; shortage: boolean; marks: number | null; duePaise: number | null; flagged: boolean; alumni: boolean;
 };
 
 /** One row per student this viewer may see. `duePaise` is null for faculty, who get no fee data. */
 export async function listStudents(v: Viewer): Promise<StudentRow[]> {
   const rows = await db.select({
     id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code, programme: programme.name, year: batch.year, cutoff: programme.attendanceCutoff,
+    graduatedOn: student.graduatedOn,
     held: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id)`.mapWith(Number),
     attended: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id and e.status<>'absent')`.mapWith(Number),
     marksAvg: sql<number | null>`(select avg(t.total) from (select sum(m.marks) total from mark m join mark_component c on c.id=m.component_id where m.student_id=student.id and m.marks is not null and c.section='internal' group by c.subject_id having count(*)=(select count(*) from mark_component c2 where c2.subject_id=c.subject_id and c2.section='internal')) t)`.mapWith((x) => (x === null ? null : Number(x))),
@@ -42,11 +43,12 @@ export async function listStudents(v: Viewer): Promise<StudentRow[]> {
   }
   return rows.map((r) => {
     const attendance = r.held ? Math.round((r.attended / r.held) * 1000) / 10 : null;
+    const alumni = r.graduatedOn !== null;
     return {
       id: r.id, rollNo: r.rollNo, name: r.name, batch: r.batch, programme: r.programme, year: r.year, cutoff: r.cutoff,
-      attendance, shortage: isShortage(attendance, r.cutoff),
+      attendance, shortage: !alumni && isShortage(attendance, r.cutoff),
       marks: r.marksAvg === null ? null : Math.round(r.marksAvg * 10) / 10,
-      duePaise: isAdmin ? due.get(r.id) ?? 0 : null, flagged: r.flagged,
+      duePaise: isAdmin ? due.get(r.id) ?? 0 : null, flagged: r.flagged, alumni,
     };
   });
 }
