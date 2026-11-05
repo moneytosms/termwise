@@ -3,6 +3,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { CountUp } from "@/components/count-up";
 import { AttendanceMeter, PageHeader, SectionHeading, StatusPill, type Tone } from "@/components/page";
 import { EmptyState } from "@/components/states";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { attendancePercent, isShortage, type AttendanceStatus } from "@/domain/attendance";
 import { cn } from "@/lib/utils";
 import { db } from "@/server/db";
@@ -15,7 +17,7 @@ const REGISTER_LIMIT = 60;
 const WORD: Record<AttendanceStatus, [string, Tone]> = { present: ["Present", "ok"], late: ["Late", "late"], absent: ["Absent", "absent"] };
 const dayLabel = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ subject?: string }> }) {
+export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ subject?: string; q?: string; status?: string; from?: string; to?: string }> }) {
   const v = await requirePortal();
   const [s, rows, leaves] = await Promise.all([
     portalStudent(v.studentId),
@@ -32,7 +34,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   ]);
   if (!s) return null;
 
-  const { subject: wanted } = await searchParams;
+  const { subject: wanted, q = "", status = "", from = "", to = "" } = await searchParams;
   const cutoff = s.cutoff;
   const you = v.role === "student" ? "Your" : `${s.name.split(" ")[0]}'s`;
 
@@ -55,7 +57,12 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     : `Above the ${cutoff}% line in every subject.`;
 
   const filter = subjects.find((x) => x.code === wanted);
-  const shown = filter ? rows.filter((r) => r.subjectId === filter.subjectId) : rows;
+  const needle = q.trim().toLowerCase();
+  const shown = rows.filter((r) => (!filter || r.subjectId === filter.subjectId)
+    && (!needle || `${r.subject} ${r.code}`.toLowerCase().includes(needle))
+    && (!status || r.status === status)
+    && (!from || r.date >= from) && (!to || r.date <= to));
+  const filtered = Boolean(needle || status || from || to);
   const register = shown.slice(0, REGISTER_LIMIT);
   const days: { date: string; items: typeof register }[] = [];
   for (const r of register) {
@@ -64,7 +71,10 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
     else days.push({ date: r.date, items: [r] });
   }
   const leaveOn = (date: string) => leaves.find((l) => l.fromDate <= date && date <= l.toDate);
-  const hrefFor = (code?: string) => (code ? `/my/attendance?subject=${encodeURIComponent(code)}` : "/my/attendance");
+  const hrefFor = (code?: string) => {
+    const qs = new URLSearchParams(Object.entries({ subject: code ?? "", q, status, from, to }).filter(([, val]) => val)).toString();
+    return qs ? `/my/attendance?${qs}` : "/my/attendance";
+  };
 
   return (
     <>
@@ -120,7 +130,22 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         </nav>
       )}
 
-      {register.length === 0 ? <EmptyState title="No sessions marked yet." /> : (
+      {rows.length > 0 && (
+        <form className="mb-4 flex flex-wrap items-center gap-2 text-sm" role="search" aria-label="Filter register">
+          {filter && <input type="hidden" name="subject" value={filter.code} />}
+          <Input name="q" type="search" placeholder="Search subject" aria-label="Search subject" defaultValue={q} className="w-full sm:w-48" />
+          <select name="status" aria-label="Status" defaultValue={status} className="h-8 rounded-md border border-border bg-card px-2 text-sm">
+            <option value="">Any status</option>
+            {Object.entries(WORD).map(([k, [w]]) => <option key={k} value={k}>{w}</option>)}
+          </select>
+          <Input name="from" type="date" aria-label="From date" defaultValue={from} className="w-auto" />
+          <Input name="to" type="date" aria-label="To date" defaultValue={to} className="w-auto" />
+          <Button type="submit" variant="outline" size="sm">Apply</Button>
+          {filtered && <Link href={filter ? `/my/attendance?subject=${encodeURIComponent(filter.code)}` : "/my/attendance"} className="text-muted-foreground underline-offset-4 hover:underline">Clear</Link>}
+        </form>
+      )}
+
+      {register.length === 0 ? <EmptyState title={filtered ? "No sessions match these filters." : "No sessions marked yet."} /> : (
         <div className="space-y-5">
           {days.map((day) => (
             <section key={day.date} aria-label={dayLabel(day.date)}>

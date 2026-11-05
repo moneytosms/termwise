@@ -5,13 +5,14 @@ import { CalendarCheck, CalendarClock, UserRoundCheck, Wallet } from "lucide-rea
 import { paidSql } from "@/app/(app)/fees/queries";
 import { ModuleCard, PageHeader, SectionHeading, StatCard, StatStrip, StatusPill, type Tone } from "@/components/page";
 import { EmptyState } from "@/components/states";
-import { attendancePercent, classesToReach, istDate, istDayOfWeek, istTime, isShortage, type AttendanceStatus } from "@/domain/attendance";
+import { attendancePercent, classesToReach, currentOrNext, istDate, istDayOfWeek, istTime, isShortage, type AttendanceStatus } from "@/domain/attendance";
 import { dues, instalmentDue } from "@/domain/fees";
 import { isMinor } from "@/domain/templates";
 import { rupees } from "@/lib/utils";
 import { db } from "@/server/db";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
+import { TodayCarousel } from "./today-carousel";
 import { attendanceEntry, attendanceSession, feeInstalment, leaveRequest, mark, markComponent, subject, timetableSlot } from "@/server/schema";
 
 const STATUS: Record<AttendanceStatus, { tone: Tone; label: string }> = {
@@ -78,6 +79,8 @@ export default async function PortalHome() {
     .where(and(eq(attendanceSession.batchId, s.batchId), eq(attendanceSession.date, today))) : [];
   const now = istTime();
   const todayRows = slots.map((c) => ({ ...c, session: sessions.find((x) => x.subjectId === c.subjectId && x.period === c.period) }));
+  const cur = currentOrNext(todayRows, now);
+  const start = cur ? todayRows.indexOf(cur.cls) : todayRows.length - 1;
 
   const attention = [
     ...short.map((x) => ({ key: `short-${x.name}`, href: "/my/attendance", icon: CalendarCheck, title: x.name, description: `${x.percent}% · attend next ${x.toReach} in a row to reach ${s.cutoff}%` })),
@@ -124,11 +127,14 @@ export default async function PortalHome() {
         <>
           <SectionHeading title="Today" count={todayRows.length} action={<Link href="/my/timetable" className="font-medium text-foreground underline-offset-4 hover:underline">Full timetable</Link>} />
           {todayRows.length === 0 ? <EmptyState title="No classes today." /> : (
-            <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
-              {todayRows.map((c) => (
-                <li key={`${c.period}-${c.startTime}`} className="flex items-center justify-between gap-3 px-4 py-3">
+            <TodayCarousel start={start}>
+              {todayRows.map((c, i) => (
+                <div key={`${c.period}-${c.startTime}`} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 text-sm shadow-sheet">
                   <span className="min-w-0">
-                    <span className="block truncate font-medium">{c.subject ?? c.label ?? "Period"}</span>
+                    <span className="block truncate font-medium">
+                      {c.subject ?? c.label ?? "Period"}
+                      {cur && i === start && <span className="ml-2 rounded-full bg-data-soft px-2 py-0.5 align-middle text-xs font-medium text-data">{cur.running ? "Now" : "Next"}</span>}
+                    </span>
                     <span className="block text-xs text-muted-foreground tabular-nums">{c.startTime}–{c.endTime}</span>
                   </span>
                   {c.subjectId !== null && (c.session
@@ -136,9 +142,9 @@ export default async function PortalHome() {
                       ? <StatusPill tone={STATUS[c.session.status].tone}>{STATUS[c.session.status].label}</StatusPill>
                       : <StatusPill>Marked</StatusPill>
                     : c.startTime <= now && <StatusPill>Not marked yet</StatusPill>)}
-                </li>
+                </div>
               ))}
-            </ul>
+            </TodayCarousel>
           )}
         </>
       )}

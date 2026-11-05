@@ -5,6 +5,7 @@ import { currentOrNext, istDate, istDayOfWeek, istTime, type AttendanceStatus } 
 import { cn } from "@/lib/utils";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
+import { TodayCarousel } from "../today-carousel";
 import { getCalendar, getSlots, getTodayMarks, type Slot } from "./queries";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -35,6 +36,7 @@ export default async function TimetablePage() {
   const holiday = calendar.find((d) => d.date === today && d.kind === "holiday");
   const todays = slots.filter((x) => x.day === dow);
   const cur = currentOrNext(todays, now);
+  const start = cur ? todays.indexOf(cur.cls) : todays.length - 1;
   const todayIdx = MON_FIRST.indexOf(dow);
 
   return (
@@ -47,11 +49,11 @@ export default async function TimetablePage() {
         ) : todays.length === 0 ? (
           <p className="text-sm text-muted-foreground">No classes today.</p>
         ) : (
-          <ol className="flex flex-col gap-1">
+          <TodayCarousel start={start}>
             {todays.map((x) => {
               const isCur = cur?.cls.id === x.id;
               return (
-                <li key={x.id} className={cn("flex items-center gap-3 rounded-lg px-2.5 py-2.5", isCur && "bg-data-soft/50")}>
+                <div key={x.id} className="flex items-center gap-3 rounded-lg bg-muted/50 px-2.5 py-2.5">
                   <span className="w-24 shrink-0 text-sm text-muted-foreground tabular-nums">{x.startTime}–{x.endTime}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{subjectName(x)}</span>
@@ -61,10 +63,10 @@ export default async function TimetablePage() {
                   </span>
                   <MarkPill slot={x} now={now} marks={marks} />
                   {isCur && <StatusPill tone="ok">{cur.running ? "Now" : `Next at ${x.startTime}`}</StatusPill>}
-                </li>
+                </div>
               );
             })}
-          </ol>
+          </TodayCarousel>
         )}
       </Panel>
 
