@@ -10,11 +10,13 @@ import { seedScheme } from "./seed-scheme.mjs";
 import { seedTrust } from "./seed-trust.mjs";
 import { seedResults } from "./seed-results.mjs";
 import { seedLanguage } from "./seed-language.mjs";
+import { seedApplicants } from "./seed-applicants.mjs";
+import { seedStaffLeave } from "./seed-staff-leave.mjs";
 
 // Synthetic data only. Re-run on an empty database; skipped if campuses already exist.
 const PASSWORD = "termwise-demo";
 const [{ n }] = await db.select({ n: count() }).from(t.campus);
-if (n > 0) { await seedPortal(PASSWORD); await seedScheme(); await seedTrust(PASSWORD); await seedResults(); await seedLanguage(); console.log("already seeded"); await pool.end(); process.exit(0); }
+if (n > 0) { await seedPortal(PASSWORD); await seedScheme(); await seedTrust(PASSWORD); await seedResults(); await seedLanguage(); await seedApplicants(PASSWORD); await seedStaffLeave(); console.log("already seeded"); await pool.end(); process.exit(0); }
 
 let seed = 42;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
@@ -234,6 +236,8 @@ await seedScheme();
 await seedTrust(PASSWORD);
 await seedResults();
 await seedLanguage();
+await seedApplicants(PASSWORD);
+await seedStaffLeave();
 
 await pool.end();
 console.log("seeded");
