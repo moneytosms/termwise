@@ -3,7 +3,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db, type Tx } from "@/server/db";
 import { batch, calendarDay, campus, department, mark, markComponent, programme, staff, subject, timetableSlot } from "@/server/schema";
@@ -101,7 +101,7 @@ async function campusSubject(tx: Tx, campusId: number, id: number) {
 }
 
 export async function saveProgramme(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(programmeInput, fd);
   if (!p.ok) return { error: p.error };
   const { id, departmentId, ...input } = p.data;
@@ -129,7 +129,7 @@ export async function saveProgramme(fd: FormData): Promise<Result> {
 }
 
 export async function saveBatch(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(batchInput, fd);
   if (!p.ok) return { error: p.error };
   const { id, ...input } = p.data;
@@ -157,7 +157,7 @@ export async function saveBatch(fd: FormData): Promise<Result> {
 }
 
 export async function saveSubject(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(subjectInput, fd);
   if (!p.ok) return { error: p.error };
   const { id, facultyId, ...input } = p.data;
@@ -203,7 +203,7 @@ export async function saveSubject(fd: FormData): Promise<Result> {
 }
 
 export async function saveCalendarDay(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(dayInput, fd);
   if (!p.ok) return { error: p.error };
   const { id, ...input } = p.data;
@@ -225,7 +225,7 @@ export async function saveCalendarDay(fd: FormData): Promise<Result> {
 }
 
 export async function deleteCalendarDay(id: number): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const cid = pick("Pick a day.").safeParse(id);
   if (!cid.success) return { error: cid.error.issues[0].message };
   const error = await db.transaction(async (tx) => {
@@ -241,7 +241,7 @@ export async function deleteCalendarDay(id: number): Promise<Result> {
 }
 
 export async function saveSlot(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(slotInput, fd);
   if (!p.ok) return { error: p.error };
   const { batchId, dayOfWeek, period, subjectId, label, startTime, endTime, periodCount } = p.data;
@@ -272,7 +272,7 @@ export async function saveSlot(fd: FormData): Promise<Result> {
 }
 
 export async function deleteSlot(input: { batchId: number; dayOfWeek: number; period: number }): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const c = cellInput.safeParse(input);
   if (!c.success) return { error: c.error.issues[0].message };
   const { batchId, dayOfWeek, period } = c.data;
@@ -291,7 +291,7 @@ export async function deleteSlot(input: { batchId: number; dayOfWeek: number; pe
 }
 
 export async function saveRules(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(rulesInput, fd);
   if (!p.ok) return { error: p.error };
   const keys = { riskDropPoints: campus.riskDropPoints, riskMarksPercent: campus.riskMarksPercent, riskMinSessions: campus.riskMinSessions };

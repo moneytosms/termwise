@@ -7,6 +7,7 @@ import { requireViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { batch, leaveRequest, portalRequest, programme, student } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 const id = z.number().int().positive();
 const note = z.string().trim().max(500, "Keep it to 500 characters or fewer.");
@@ -64,7 +65,7 @@ export async function closeRequest(input: { id: number; reply: string }): Promis
     if (!row) return "Request not found.";
     const allowed = row.kind === "mentor_note"
       ? row.mentorId === v.staffId
-      : v.role === "office_admin" && row.campusId === v.campusId;
+      : can(v.role, "office_requests") && row.campusId === v.campusId;
     if (!allowed) return "This isn't yours to close.";
     if (row.status !== "open") return "Already marked done.";
 

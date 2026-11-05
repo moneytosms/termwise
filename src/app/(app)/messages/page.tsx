@@ -2,14 +2,14 @@ import { EmptyState } from "@/components/states";
 import { Panel, PageHeader, StatCard, StatStrip } from "@/components/page";
 import { istDate } from "@/domain/attendance";
 import { previews } from "@/domain/templates";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { KIND, LANGUAGE, STATUS } from "./labels";
 import { listMessages } from "./queries";
 import { MessagePanel } from "./message-panel";
 import { MessagesTable } from "./messages-table";
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("messages");
   const { message } = await searchParams;
   const rows = await listMessages(v);
   const open = message && /^\d+$/.test(message) ? rows.find((r) => r.id === Number(message)) : undefined;

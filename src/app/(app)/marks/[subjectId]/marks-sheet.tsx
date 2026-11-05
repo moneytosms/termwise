@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/states";
 import type { SheetData } from "../queries";
 import { saveComponents, saveMarks, transitionMarks } from "../actions";
 import { STATUS } from "../shared";
+import { can } from "@/domain/roles";
 
 const key = (componentId: number, studentId: number) => `${componentId}:${studentId}`;
 const parse = (s: string) => (s.trim() === "" ? null : Number(s));
@@ -243,19 +244,19 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
         {editable && changes.length > 0 && (
           <Button onClick={save} disabled={busy || errors.size > 0}>Save {changes.length}</Button>
         )}
-        {role === "faculty" && s.status === "draft" && (
+        {can(role, "teach") && s.status === "draft" && (
           <>
             <Button variant="outline" disabled={busy} onClick={() => setEditOpen(true)}>Edit components</Button>
             <Button variant={changes.length > 0 ? "outline" : "default"} disabled={busy || changes.length > 0} onClick={() => act("submit")}>Submit</Button>
           </>
         )}
-        {role === "office_admin" && s.status === "submitted" && (
+        {can(role, "moderate_marks") && s.status === "submitted" && (
           <>
             <Button variant="outline" disabled={busy} onClick={() => { setWhy(""); setReasonFor("send_back"); }}>Send back</Button>
             <Button disabled={busy} onClick={() => act("lock")}>Lock</Button>
           </>
         )}
-        {role === "office_admin" && s.status === "locked" && (
+        {can(role, "moderate_marks") && s.status === "locked" && (
           <Button variant="outline" disabled={busy} onClick={() => { setWhy(""); setReasonFor("reopen"); }}>Reopen</Button>
         )}
       </div>

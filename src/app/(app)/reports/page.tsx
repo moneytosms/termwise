@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { istDate } from "@/domain/attendance";
 import { REPORT_KEYS, REPORTS, type ReportKey, type Row } from "@/domain/reports";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { cn } from "@/lib/utils";
 import { listProgrammes, runReport } from "./queries";
 
@@ -14,7 +14,7 @@ const PREVIEW_ROWS = 200;
 export default async function ReportsPage({ searchParams }: {
   searchParams: Promise<{ report?: string; month?: string; programme?: string }>;
 }) {
-  const v = await requireAdmin();
+  const v = await requireCan("reports");
   const sp = await searchParams;
   const report: ReportKey = (REPORT_KEYS as readonly string[]).includes(sp.report ?? "") ? (sp.report as ReportKey) : "strength";
   const month = sp.month && /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month) ? sp.month : istDate().slice(0, 7);

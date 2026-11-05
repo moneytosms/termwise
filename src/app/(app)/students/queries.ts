@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import {
   attendanceEntry, attendanceSession, auditLog, batch, feeInstalment, feePayment, mark, markComponent, mentorTask, programme, riskFlag, staff, student, subject,
 } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 export type StudentRow = {
   id: number; rollNo: string; name: string; batch: string; programme: string; year: number;
@@ -27,7 +28,7 @@ export async function listStudents(v: Viewer): Promise<StudentRow[]> {
     .where(studentScope(v))
     .orderBy(student.rollNo);
 
-  const isAdmin = v.role === "office_admin";
+  const isAdmin = can(v.role, "campus_students");
   const due = new Map<number, number>();
   if (isAdmin) {
     const ids = rows.map((r) => r.id);
@@ -77,7 +78,7 @@ export async function getStudentDetail(v: Viewer, id: number) {
   const flags = await db.select({ reason: riskFlag.reasonText, source: riskFlag.reasonSource, at: riskFlag.createdAt, taskId: mentorTask.id, taskStatus: mentorTask.status })
     .from(riskFlag).leftJoin(mentorTask, eq(mentorTask.flagId, riskFlag.id)).where(and(eq(riskFlag.studentId, id), eq(riskFlag.active, true)));
 
-  const isAdmin = v.role === "office_admin";
+  const isAdmin = can(v.role, "campus_students");
   const instalments = isAdmin ? await db.select({
     id: feeInstalment.id, label: feeInstalment.label, dueDate: feeInstalment.dueDate, amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise,
     paidPaise: sql<number>`(select coalesce(sum(p.amount_paise),0) from ${feePayment} p where p.instalment_id=fee_instalment.id)`.mapWith(Number),

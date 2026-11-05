@@ -9,6 +9,7 @@ import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { clearResults, writeResults } from "@/server/results";
 import { mark, markComponent, student, subject } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 const key = (componentId: number, studentId: number) => `${componentId}:${studentId}`;
 
@@ -141,7 +142,7 @@ export async function saveComponents(subjectId: number, components: unknown): Pr
   if (denied) return denied;
 
   const [s] = await db.select({ status: subject.marksStatus, ...schemeColumns }).from(subject).where(eq(subject.id, id));
-  if (v.role !== "faculty" || !canEditMarks(s.status, v.role)) {
+  if (!can(v.role, "teach") || !canEditMarks(s.status, v.role)) {
     return { error: "Components can only be changed by faculty while the subject is in Draft." };
   }
   const err = validateComponents(next, s);

@@ -3,7 +3,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { programme, requiredDocument } from "@/server/schema";
@@ -24,7 +24,7 @@ function parse<S extends z.ZodType>(schema: S, fd: FormData) {
 }
 
 export async function saveRequiredDocument(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const p = parse(docInput, fd);
   if (!p.ok) return { error: p.error };
   const cats = z.array(z.enum(APPLICANT_CATEGORIES)).safeParse(fd.getAll("categories"));
@@ -65,7 +65,7 @@ export async function saveRequiredDocument(fd: FormData): Promise<Result> {
 }
 
 export async function deleteRequiredDocument(id: number): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const did = z.coerce.number().int().positive().safeParse(id);
   if (!did.success) return { error: "Pick a document." };
   const error = await db.transaction(async (tx) => {

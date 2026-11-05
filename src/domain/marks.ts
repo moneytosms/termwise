@@ -1,6 +1,7 @@
+import { can, type StaffRole } from "./roles";
 export type MarksStatus = "draft" | "submitted" | "locked";
 export type MarksAction = "submit" | "send_back" | "lock" | "reopen";
-export type Role = "faculty" | "office_admin";
+export type Role = StaffRole;
 
 export const SECTIONS = ["internal", "mid", "end", "lab_exam", "viva", "ce"] as const;
 export type Section = (typeof SECTIONS)[number];
@@ -39,7 +40,7 @@ export function transition(
   status: MarksStatus, action: MarksAction, role: Role, reason?: string,
 ): { ok: true; to: MarksStatus } | { ok: false; error: string } {
   const r = RULES[action];
-  if (r.role !== "any" && r.role !== role) return { ok: false, error: "Only an office admin can do this." };
+  if (r.role !== "any" && !can(role, "moderate_marks")) return { ok: false, error: "Only an office admin can do this." };
   if (r.from !== status) return { ok: false, error: `Marks are ${status}, so this can't be done.` };
   if (r.reason && !reason?.trim()) return { ok: false, error: "A reason is required." };
   return { ok: true, to: r.to };
@@ -47,7 +48,7 @@ export function transition(
 
 /** Faculty edit drafts; an office admin moderates submitted marks; locked marks need a reopen. */
 export function canEditMarks(status: MarksStatus, role: Role): boolean {
-  return role === "faculty" ? status === "draft" : status === "submitted";
+  return can(role, "moderate_marks") ? status === "submitted" : status === "draft";
 }
 
 /** Internal components sum to internalMax; every other section applying to the kind is exactly one component of its max. */

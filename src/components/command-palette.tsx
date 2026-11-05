@@ -10,6 +10,7 @@ import { searchStudents } from "@/app/(app)/palette-actions";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PRESETS, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { can, isStaffRole } from "@/domain/roles";
 
 type Nav = { href: string; label: string; icon: NavIcon };
 type Mode = "go" | "actions" | "students" | "settings";
@@ -59,7 +60,7 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const [pick, setPick] = useState(0);
   const [people, setPeople] = useState<{ term: string; rows: Person[] }>({ term: "", rows: [] });
 
-  const prefix = q.startsWith(">") ? "actions" : q.startsWith("@") && (role === "faculty" || role === "office_admin") ? "students" : null;
+  const prefix = q.startsWith(">") ? "actions" : q.startsWith("@") && isStaffRole(role) ? "students" : null;
   const m = prefix ?? mode;
   const term = (prefix ? q.slice(1) : q).trim().toLowerCase();
 
@@ -80,11 +81,9 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const current = (on: boolean) => (on ? "current" : undefined);
 
   const actions: Row[] = [
-    ...(role === "faculty" ? [{ key: "mark", label: "Mark attendance", icon: ClipboardCheck, run: () => go("/mark") }] : []),
-    ...(role === "office_admin" ? [
-      { key: "fees", label: "Send fee reminders", icon: IndianRupee, run: () => go("/fees") },
-      { key: "risk", label: "Run at-risk check", icon: ShieldAlert, run: () => go("/risk") },
-    ] : []),
+    ...(isStaffRole(role) && can(role, "teach") ? [{ key: "mark", label: "Mark attendance", icon: ClipboardCheck, run: () => go("/mark") }] : []),
+    ...(isStaffRole(role) && can(role, "fees") ? [{ key: "fees", label: "Send fee reminders", icon: IndianRupee, run: () => go("/fees") }] : []),
+    ...(isStaffRole(role) && can(role, "risk") ? [{ key: "risk", label: "Run at-risk check", icon: ShieldAlert, run: () => go("/risk") }] : []),
     { key: "theme", label: "Toggle dark mode", icon: Moon, run: () => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark")) },
     { key: "sidebar", label: "Toggle sidebar", icon: PanelLeft, run: () => run(() => setSetting("sidebarCollapsed", !s.sidebarCollapsed)) },
     { key: "settings", label: "Open settings", icon: Settings, run: () => run(onSettings) },
@@ -109,7 +108,7 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const at = Math.min(pick, rows.length - 1);
 
   // Student search and Termy's staff page are staff-only.
-  const staff = role === "faculty" || role === "office_admin";
+  const staff = isStaffRole(role);
   const modes = staff ? MODES : MODES.filter(([id]) => id !== "students");
   const cycle = () => { setMode(modes[(modes.findIndex(([id]) => id === mode) + 1) % modes.length][0]); setQ(""); setPick(0); };
 

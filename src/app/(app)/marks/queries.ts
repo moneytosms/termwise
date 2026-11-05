@@ -3,6 +3,7 @@ import { sectionsFor, type MarksStatus, type Section } from "@/domain/marks";
 import { assertSubjectAccess, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import { auditLog, batch, mark, markComponent, programme, staff, student, subject } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 export type SubjectRow = {
   id: number; code: string; name: string; batch: string; faculty: string | null; status: MarksStatus; filled: number; needed: number;
@@ -19,7 +20,7 @@ export async function listSubjects(v: Viewer): Promise<SubjectRow[]> {
     .innerJoin(batch, eq(subject.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .leftJoin(staff, eq(subject.facultyId, staff.id))
-    .where(and(eq(programme.campusId, v.campusId), v.role === "faculty" ? eq(subject.facultyId, v.staffId) : undefined))
+    .where(and(eq(programme.campusId, v.campusId), can(v.role, "teach") ? eq(subject.facultyId, v.staffId) : undefined))
     .orderBy(batch.code, subject.code);
   return rows.map((r) => ({
     id: r.id, code: r.code, name: r.name, batch: r.batch, faculty: r.faculty, status: r.status,

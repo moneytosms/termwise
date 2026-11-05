@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { confirmApplicant, rejectApplicant } from "@/server/admission";
 
 const pick = z.coerce.number().int().positive();
@@ -12,7 +12,7 @@ function refresh() {
 }
 
 export async function confirmAdmission(applicantId: number): Promise<{ error?: string; rollNo?: string; studentId?: number }> {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const id = pick.safeParse(applicantId);
   if (!id.success) return { error: "Pick an applicant." };
   const r = await confirmApplicant(v, id.data);
@@ -21,7 +21,7 @@ export async function confirmAdmission(applicantId: number): Promise<{ error?: s
 }
 
 export async function rejectAdmission(applicantId: number, reason: string): Promise<{ error?: string }> {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const id = pick.safeParse(applicantId);
   if (!id.success) return { error: "Pick an applicant." };
   const r = await rejectApplicant(v, id.data, reason);

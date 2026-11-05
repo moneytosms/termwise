@@ -5,11 +5,12 @@ import { getViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { runReport } from "../../queries";
+import { can } from "@/domain/roles";
 
 export async function GET(req: Request, { params }: { params: Promise<{ report: string }> }) {
   const v = await getViewer();
   if (!v) return NextResponse.json({ error: "signed_out" }, { status: 401 });
-  if (v.role !== "office_admin") return NextResponse.json({ error: "Office admin only" }, { status: 403 });
+  if (!can(v.role, "reports")) return NextResponse.json({ error: "Office admin only" }, { status: 403 });
   const { report } = await params;
   if (!(REPORT_KEYS as readonly string[]).includes(report)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

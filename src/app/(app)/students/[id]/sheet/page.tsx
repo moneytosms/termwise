@@ -5,12 +5,12 @@ import { ArrowLeft } from "lucide-react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import { MarkSheet } from "@/components/mark-sheet";
-import { AccessError, assertStudentAccess, requireAdmin } from "@/server/access";
+import { AccessError, assertStudentAccess, requireCan } from "@/server/access";
 import { loadMarkSheet, sheetHash } from "@/server/marksheet";
 import { PrintButton } from "@/app/(portal)/my/marks/sheet/print-button";
 
 export default async function StudentSheetPage({ params }: { params: Promise<{ id: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("moderate_marks");
   const { id } = await params;
   if (!/^\d{1,9}$/.test(id)) notFound();
   const studentId = Number(id);

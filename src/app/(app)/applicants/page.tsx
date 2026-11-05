@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/page";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { listBatches } from "../setup/queries";
 import { ApplicantPanel } from "./applicant-panel";
 import { ApplicantsTable } from "./applicants-table";
@@ -7,7 +7,7 @@ import { ImportDialog } from "./import-dialog";
 import { getApplicantDetail, listApplicants } from "./queries";
 
 export default async function ApplicantsPage({ searchParams }: { searchParams: Promise<{ applicant?: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const { applicant } = await searchParams;
   const rows = await listApplicants(v.campusId);
   const batches = await listBatches(v.campusId);

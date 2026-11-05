@@ -1,6 +1,6 @@
 import { count, desc, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/page";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { db } from "@/server/db";
 import { auditLog } from "@/server/schema";
 import { AuditTable } from "./audit-table";
@@ -8,7 +8,7 @@ import { AuditTable } from "./audit-table";
 const LIMIT = 2000;
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ entry?: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("audit");
   const { entry } = await searchParams;
   const onCampus = eq(auditLog.campusId, v.campusId);
   const [{ n }] = await db.select({ n: count() }).from(auditLog).where(onCampus);

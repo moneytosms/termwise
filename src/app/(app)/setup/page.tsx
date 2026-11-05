@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page";
 import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { BatchesTab } from "./batches-tab";
 import { CollegeTab } from "./college-tab";
 import { CalendarTab } from "./calendar-tab";
@@ -28,7 +28,7 @@ const TABS = [
 ] as const;
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<{ tab?: string; batch?: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const { tab, batch: batchParam } = await searchParams;
   const current = TABS.find((t) => t.key === tab)?.key ?? "programmes";
   const c = v.campusId;

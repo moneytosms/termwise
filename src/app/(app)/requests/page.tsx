@@ -4,6 +4,7 @@ import { APPEAL_LABEL, type AppealStatus } from "@/domain/appeals";
 import { requireViewer, type Viewer } from "@/server/access";
 import { adminRequests, appealQueue, facultyRequests } from "./queries";
 import { AppealDecision, CloseRequest, LeaveDecision } from "./request-forms";
+import { can } from "@/domain/roles";
 
 const LEAVE_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending_parent: { label: "Waiting for parent", tone: "default" },
@@ -28,7 +29,7 @@ type Note = Awaited<ReturnType<typeof facultyRequests>>["openNotes"][number];
 
 export default async function RequestsPage() {
   const v = await requireViewer();
-  return v.role === "office_admin" ? <AdminView v={v} /> : <FacultyView v={v} />;
+  return can(v.role, "office_requests") ? <AdminView v={v} /> : <FacultyView v={v} />;
 }
 
 async function FacultyView({ v }: { v: Viewer }) {

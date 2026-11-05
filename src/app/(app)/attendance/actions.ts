@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { OutboxItem } from "@/domain/sync";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { attendanceEntry, attendanceSession, batch, programme, syncConflict } from "@/server/schema";
@@ -15,7 +15,7 @@ const Status = z.enum(["present", "absent", "late"]);
 export async function correctSession(
   sessionId: string, entries: { studentId: number; status: "present" | "absent" | "late" }[], reason: string,
 ): Promise<{ error?: string }> {
-  const v = await requireAdmin();
+  const v = await requireCan("attendance");
   const input = z.object({
     sessionId: z.uuid(),
     entries: z.array(z.object({ studentId: z.number().int(), status: Status })).min(1),
@@ -61,7 +61,7 @@ export async function correctSession(
 
 /** "keep" leaves the saved session as it is; "replace" writes the incoming entries over it (or creates it). */
 export async function resolveConflict(conflictId: string, choice: "keep" | "replace"): Promise<{ error?: string }> {
-  const v = await requireAdmin();
+  const v = await requireCan("attendance");
   const input = z.object({ conflictId: z.uuid(), choice: z.enum(["keep", "replace"]) }).safeParse({ conflictId, choice });
   if (!input.success) return { error: "Invalid choice." };
 

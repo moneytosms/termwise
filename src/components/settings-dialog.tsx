@@ -6,6 +6,7 @@ import { SelectField } from "@/components/select-field";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { PRESETS, setSetting, useSettings, type Settings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { can, isStaffRole } from "@/domain/roles";
 
 // Swatches for the preset cards: background, text, accent, alert.
 const SWATCHES: Record<Settings["preset"], string[]> = {
@@ -114,7 +115,7 @@ export function SettingsDialog({ open, onOpenChange, role, pages }: {
             <SelectField aria-label="Rows per page" value={String(s.pageSize)} onValueChange={(v) => setSetting("pageSize", Number(v) as Settings["pageSize"])}
               options={[{ value: "10", label: "10" }, { value: "20", label: "20" }, { value: "50", label: "50" }]} />
           </Row>
-          {role === "faculty" && (
+          {isStaffRole(role) && can(role, "teach") && (
             <Row title="Confirm before saving attendance">
               <Switch label="Confirm before saving attendance" checked={s.confirmAttendance} onChange={(v) => setSetting("confirmAttendance", v)} />
             </Row>

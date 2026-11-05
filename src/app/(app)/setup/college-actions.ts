@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { campus } from "@/server/schema";
@@ -33,7 +33,7 @@ const collegeInput = z.object({
 });
 
 export async function saveCollege(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("setup");
   const r = collegeInput.safeParse(Object.fromEntries(fd));
   if (!r.success) return { error: r.error.issues[0].message };
   await db.transaction(async (tx) => {

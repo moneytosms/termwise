@@ -5,6 +5,7 @@ import { SwRegister } from "@/components/sw-register";
 import { requireViewer } from "@/server/access";
 import { db } from "@/server/db";
 import { campus, userSetting } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const v = await requireViewer();
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell role={v.role} name={v.name} campus={c.name}>
       <SettingsSync saved={saved?.data ?? null} />
-      {v.role === "faculty" && <SwRegister />}
+      {can(v.role, "teach") && <SwRegister />}
       {children}
     </AppShell>
   );

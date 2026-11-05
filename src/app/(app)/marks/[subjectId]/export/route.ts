@@ -4,11 +4,12 @@ import { AccessError, getViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { getSheet } from "../../queries";
+import { can } from "@/domain/roles";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ subjectId: string }> }) {
   const v = await getViewer();
   if (!v) return NextResponse.json({ error: "signed_out" }, { status: 401 });
-  if (v.role !== "office_admin") return NextResponse.json({ error: "Office admin only" }, { status: 403 });
+  if (!can(v.role, "moderate_marks")) return NextResponse.json({ error: "Office admin only" }, { status: 403 });
   const { subjectId } = await params;
   if (!/^\d+$/.test(subjectId)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
