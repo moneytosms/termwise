@@ -8,10 +8,10 @@ import { dues, instalmentDue, validatePayment } from "@/domain/fees";
 import { requireAdmin, studentScope } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { batch, feeInstalment, feePayment, message, programme, student } from "@/server/schema";
+import { batch, feeInstalment, feePayment, guardian, guardianStudent, message, programme, student } from "@/server/schema";
 import { paidSql } from "./queries";
-import { isMinor, reminderBody } from "./reminder";
-import { feeMessage } from "@/domain/templates";
+import { isMinor } from "./reminder";
+import { feeMessage, guardianLanguages } from "@/domain/templates";
 import { rupees } from "@/lib/utils";
 
 const remindSchema = z.object({ ids: z.array(z.number().int().positive()).min(1, "Select at least one student.") });
@@ -23,7 +23,7 @@ export async function sendFeeReminders(ids: number[]): Promise<{ error?: string;
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const counts = await db.transaction(async (tx) => {
-    const people = await tx.select({ id: student.id, name: student.name, rollNo: student.rollNo, birthDate: student.birthDate, parentConsentAt: student.parentConsentAt })
+    const people = await tx.select({ id: student.id, name: student.name, birthDate: student.birthDate, parentConsentAt: student.parentConsentAt })
       .from(student)
       .innerJoin(batch, eq(student.batchId, batch.id))
       .innerJoin(programme, eq(batch.programmeId, programme.id))
@@ -32,19 +32,21 @@ export async function sendFeeReminders(ids: number[]): Promise<{ error?: string;
       studentId: feeInstalment.studentId, id: feeInstalment.id, dueDate: feeInstalment.dueDate,
       amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise, paidPaise: paidSql,
     }).from(feeInstalment).where(inArray(feeInstalment.studentId, people.map((p) => p.id)));
+    const guardians = await tx.select({ studentId: guardianStudent.studentId, language: guardian.language }).from(guardianStudent)
+      .innerJoin(guardian, eq(guardianStudent.guardianId, guardian.id)).where(inArray(guardianStudent.studentId, people.map((p) => p.id)));
 
     const today = istDate();
     const n = { logged: 0, blocked: 0, skipped: 0 };
     for (const p of people) {
       const due = dues(instalments.filter((i) => i.studentId === p.id), today).totalPaise;
       if (!due) { n.skipped++; continue; }
-      const status = isMinor(p.birthDate, today) && !p.parentConsentAt ? "blocked_no_consent" : "logged";
+      const status = isMinor(p.birthDate, today) && !p.parentConsentAt ? "blocked_no_consent" as const : "logged" as const;
       const link = `\n${process.env.BETTER_AUTH_URL ?? ""}/sign-in`;
-      // Both languages, like the daily job, so a parent reading in Odia sees it too.
-      await tx.insert(message).values([
-        { studentId: p.id, kind: "fee_reminder", language: "en", body: reminderBody(p.name, p.rollNo, due) + link, status },
-        { studentId: p.id, kind: "fee_reminder", language: "or", body: feeMessage("or", p.name, rupees(due)) + link, status },
-      ]);
+      // One row per guardian language, like the daily job, so a parent reading in Odia sees it in Odia.
+      const langs = guardianLanguages(guardians.filter((g) => g.studentId === p.id).map((g) => g.language));
+      await tx.insert(message).values(langs.map((language) => ({
+        studentId: p.id, kind: "fee_reminder" as const, language, body: feeMessage(language, p.name, rupees(due)) + link, status,
+      })));
       await audit(tx, v, { action: "fees.reminder", entity: "student", entityId: p.id, newValue: { status, duePaise: due } });
       if (status === "logged") n.logged++; else n.blocked++;
     }
