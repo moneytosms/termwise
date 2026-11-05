@@ -17,6 +17,7 @@ import { closeMentorTask } from "./actions";
 import type { StudentDetail } from "./queries";
 
 const card = "rounded-xl bg-card p-3.5 text-sm shadow-sheet";
+const DOC_LABEL: Record<StudentDetail["documents"][number]["status"], string> = { pending: "Pending", received: "Received", verified: "Verified" };
 
 export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null; isAdmin: boolean }) {
   const router = useRouter();
@@ -136,6 +137,21 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
                 </li>
               );
             })}
+          </ul>
+        )}
+
+        <SectionHeading title="Admission documents" count={d.documents.length} />
+        {d.documents.length === 0 ? <p className="text-sm text-muted-foreground">No admission documents.</p> : (
+          <ul className="space-y-2.5 text-sm">
+            {d.documents.map((doc) => (
+              <li key={doc.id} className="flex items-center justify-between gap-3">
+                <span className="truncate">{doc.name}</span>
+                <span className="flex flex-none items-center gap-3">
+                  <StatusPill>{DOC_LABEL[doc.status]}</StatusPill>
+                  {doc.fileId && <a href={`/api/documents/${doc.fileId}`} target="_blank" rel="noreferrer" className="underline underline-offset-4">View</a>}
+                </span>
+              </li>
+            ))}
           </ul>
         )}
 

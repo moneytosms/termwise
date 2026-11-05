@@ -26,6 +26,31 @@ test("document checklist: verifying the last document completes it, and the chan
   await expect(page.getByText("applicant.document").filter({ visible: true }).first()).toBeVisible();
 });
 
+test("documents: attach a PDF, open it, verify it; a text file is refused", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signIn(page, "admin@termwise.demo");
+  await page.goto("/applicants");
+  await page.getByRole("row", { name: /Deepika Swain/ }).click();
+
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Attach file for Aadhaar card", { exact: true }).setInputFiles({
+    name: "doc.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test"),
+  });
+  const view = dialog.getByRole("link", { name: "View", exact: true }).filter({ visible: true });
+  await expect(view).toBeVisible();
+  const res = await page.request.get((await view.getAttribute("href"))!);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("application/pdf");
+
+  await dialog.getByRole("group", { name: "Status of Aadhaar card", exact: true }).getByRole("button", { name: "Verified", exact: true }).click();
+  await expect(dialog.getByText("2/5 verified")).toBeVisible();
+
+  await dialog.getByLabel("Attach file for Passport photo", { exact: true }).setInputFiles({
+    name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("not a photo"),
+  });
+  await expect(page.getByText("Only PDF, JPEG or PNG files.").filter({ visible: true })).toBeVisible();
+});
+
 test("import: a valid CSV adds applicants, a bad one lists its line errors and imports nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await signIn(page, "admin@termwise.demo");

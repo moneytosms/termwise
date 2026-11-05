@@ -231,7 +231,18 @@ export const studentDocument = pgTable("student_document", {
   studentId: integer("student_id").notNull().references(() => student.id),
   name: text("name").notNull(),
   status: text("status", { enum: ["pending", "received", "verified"] }).notNull().default("pending"),
+  fileId: integer("file_id").references(() => documentFile.id),
 }, (t) => [index("student_document_student_idx").on(t.studentId)]);
+
+// Uploaded admission documents, stored inline as base64 text (demo scale)
+export const documentFile = pgTable("document_file", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  mime: text("mime").notNull(),
+  size: integer("size").notNull(),
+  data: text("data").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // Applicants: people applying to a programme before admission; a confirmed applicant becomes a student
 export const applicant = pgTable("applicant", {
@@ -264,6 +275,7 @@ export const applicantDocument = pgTable("applicant_document", {
   name: text("name").notNull(),
   status: text("status", { enum: ["pending", "received", "verified"] }).notNull().default("pending"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  fileId: integer("file_id").references(() => documentFile.id),
 }, (t) => [unique("applicant_document_natural").on(t.applicantId, t.name)]);
 
 // Attendance

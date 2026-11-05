@@ -53,7 +53,7 @@ export async function confirmApplicant(actor: Viewer, applicantId: number): Prom
       // 2. Re-check the blockers from fresh rows
       const required = await tx.select({ name: requiredDocument.name, categories: requiredDocument.categories })
         .from(requiredDocument).where(eq(requiredDocument.programmeId, app.programmeId));
-      const statuses = await tx.select({ name: applicantDocument.name, status: applicantDocument.status })
+      const statuses = await tx.select({ name: applicantDocument.name, status: applicantDocument.status, fileId: applicantDocument.fileId })
         .from(applicantDocument).where(eq(applicantDocument.applicantId, app.id));
       const items = checklist(applicableDocs(required, app.category), statuses);
       const blocker = confirmBlocker({ items, birthDate: app.birthDate, parentConsentAt: app.parentConsentAt, status: "applied" }, today);
@@ -72,7 +72,11 @@ export async function confirmApplicant(actor: Viewer, applicantId: number): Prom
         rollNo, name: app.name, batchId: b.id, mentorId: null, birthDate: app.birthDate,
         guardianName: app.guardianName, guardianPhone: app.guardianPhone, parentConsentAt: app.parentConsentAt,
       }).returning({ id: student.id });
-      if (items.length > 0) await tx.insert(studentDocument).values(items.map((i) => ({ studentId: s.id, name: i.name, status: i.status })));
+      if (items.length > 0) {
+        await tx.insert(studentDocument).values(items.map((i) => ({
+          studentId: s.id, name: i.name, status: i.status, fileId: statuses.find((d) => d.name === i.name)?.fileId ?? null,
+        })));
+      }
       if (p.semesterFeePaise > 0) {
         const half = Math.round(p.semesterFeePaise / 2);
         await tx.insert(feeInstalment).values([

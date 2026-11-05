@@ -91,7 +91,10 @@ export default async function ProfilePage() {
           {docs.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <span className="min-w-0 truncate">{d.name}</span>
-              <StatusPill tone={DOC[d.status].tone}>{DOC[d.status].label}</StatusPill>
+              <span className="flex flex-none items-center gap-3">
+                <StatusPill tone={DOC[d.status].tone}>{DOC[d.status].label}</StatusPill>
+                {d.fileId && <a href={`/api/documents/${d.fileId}`} target="_blank" rel="noreferrer" className="underline underline-offset-4">View</a>}
+              </span>
             </li>
           ))}
         </ul>
