@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import { batch, calendarDay, campus, department, programme, staff, student, subject, timetableSlot } from "@/server/schema";
 
@@ -47,13 +47,13 @@ export const listFaculty = (campusId: number) =>
 
 export const listStaff = (campusId: number) =>
   db.select({
-    id: staff.id, name: staff.name, department: department.name, role: staff.role,
+    id: staff.id, name: staff.name, department: department.name, role: sql<"faculty" | "office_admin">`${staff.role}`,
     hasAccount: sql<boolean>`${staff.userId} is not null`,
     subjects: sql<number>`(select count(*) from ${subject} where ${subject.facultyId} = ${staff.id})`.mapWith(Number),
     mentees: sql<number>`(select count(*) from ${student} where ${student.mentorId} = ${staff.id})`.mapWith(Number),
   }).from(staff)
     .leftJoin(department, eq(staff.departmentId, department.id))
-    .where(eq(staff.campusId, campusId)).orderBy(staff.name);
+    .where(and(eq(staff.campusId, campusId), ne(staff.role, "trust"))).orderBy(staff.name);
 
 export const listCalendar = (campusId: number) =>
   db.select().from(calendarDay).where(eq(calendarDay.campusId, campusId)).orderBy(calendarDay.date);

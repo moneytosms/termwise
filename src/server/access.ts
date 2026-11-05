@@ -17,23 +17,44 @@ export type Viewer = {
 
 export class AccessError extends Error {}
 
-/** The signed-in staff member, or null. Use in route handlers, which answer 401 themselves. */
-export async function getViewer(): Promise<Viewer | null> {
+type StaffSession = { userId: string; row: typeof staff.$inferSelect };
+
+/** The signed-in user's staff row, any role, or null. */
+async function staffSession(): Promise<StaffSession | null> {
   const s = await auth.api.getSession({ headers: await headers() });
   if (!s) return null;
   const [row] = await db.select().from(staff).where(eq(staff.userId, s.user.id));
-  if (!row) return null;
+  return row ? { userId: s.user.id, row } : null;
+}
+
+/** Trust staff get no staff viewer: every staff page and action rejects them. */
+function viewerFrom(s: StaffSession | null): Viewer | null {
+  if (!s || s.row.role === "trust") return null;
   return {
-    userId: s.user.id, name: row.name, staffId: row.id, campusId: row.campusId,
-    departmentId: row.departmentId, role: row.role,
+    userId: s.userId, name: s.row.name, staffId: s.row.id, campusId: s.row.campusId,
+    departmentId: s.row.departmentId, role: s.row.role,
   };
+}
+
+/** The signed-in staff member, or null. Use in route handlers, which answer 401 themselves. */
+export async function getViewer(): Promise<Viewer | null> {
+  return viewerFrom(await staffSession());
 }
 
 /** For pages and server actions: redirects to sign-in when signed out, and students/parents to their portal. */
 export async function requireViewer(): Promise<Viewer> {
-  const v = await getViewer();
+  const s = await staffSession();
+  if (s?.row.role === "trust") redirect("/trust");
+  const v = viewerFrom(s);
   if (v) return v;
   redirect((await getPortalViewer()) ? "/my" : "/sign-in");
+}
+
+/** For the trust area: the trust staff member. Other users go to /home, or to sign-in when signed out. */
+export async function requireTrust() {
+  const s = await staffSession();
+  if (s?.row.role === "trust") return { userId: s.userId, name: s.row.name, staffId: s.row.id };
+  redirect(viewerFrom(s) ? "/home" : "/sign-in");
 }
 
 /** For office-admin-only pages and actions. */

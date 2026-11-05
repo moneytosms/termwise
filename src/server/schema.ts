@@ -83,7 +83,7 @@ export const staff = pgTable("staff", {
   campusId: integer("campus_id").notNull().references(() => campus.id),
   departmentId: integer("department_id").references(() => department.id),
   name: text("name").notNull(),
-  role: text("role", { enum: ["faculty", "office_admin"] }).notNull(),
+  role: text("role", { enum: ["faculty", "office_admin", "trust"] }).notNull(),
 });
 export const programme = pgTable("programme", {
   id: serial("id").primaryKey(),
@@ -260,6 +260,24 @@ export const mark = pgTable("mark", {
   studentId: integer("student_id").notNull().references(() => student.id),
   marks: numeric("marks", { precision: 5, scale: 2, mode: "number" }),
 }, (t) => [primaryKey({ columns: [t.componentId, t.studentId] })]);
+export const result = pgTable("result", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").notNull().references(() => subject.id),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  internal: numeric("internal", { precision: 5, scale: 2, mode: "number" }).notNull(),
+  theoryScaled: numeric("theory_scaled", { precision: 5, scale: 2, mode: "number" }).notNull(),
+  lab: numeric("lab", { precision: 5, scale: 2, mode: "number" }).notNull(),
+  total: numeric("total", { precision: 5, scale: 2, mode: "number" }).notNull(),
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique("result_subject_student").on(t.subjectId, t.studentId)]);
+export const reportSnapshot = pgTable("report_snapshot", {
+  id: serial("id").primaryKey(),
+  campusId: integer("campus_id").notNull().references(() => campus.id),
+  month: text("month").notNull(), // 'YYYY-MM'
+  report: text("report", { enum: ["strength", "shortage", "marks", "fees"] }).notNull(),
+  rows: jsonb("rows").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [unique("report_snapshot_natural").on(t.campusId, t.month, t.report)]);
 
 // Fees: money is integer paise; dues are always calculated
 export const feeInstalment = pgTable("fee_instalment", {

@@ -29,6 +29,13 @@
       "when": 1793894258909,
       "tag": "0003_exotic_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793904417624,
+      "tag": "0004_strong_cardiac",
+      "breakpoints": true
     }
   ]
 }
