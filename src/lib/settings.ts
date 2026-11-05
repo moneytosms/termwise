@@ -1,0 +1,63 @@
+// No "use client": the root layout imports SETTINGS_BOOT as a plain string.
+import { useSyncExternalStore } from "react";
+
+// Per-device preferences. Light/dark/system lives in next-themes; everything else here.
+export const PRESETS = [
+  { id: "default", label: "Register" },
+  { id: "catppuccin", label: "Catppuccin" },
+  { id: "nord", label: "Nord" },
+  { id: "tokyo-night", label: "Tokyo Night" },
+  { id: "rose-pine", label: "Rosé Pine" },
+] as const;
+
+export type Settings = {
+  preset: (typeof PRESETS)[number]["id"];
+  reduceMotion: boolean;
+  density: "comfortable" | "compact";
+  sidebarCollapsed: boolean;
+  /** Page to open after sign-in, instead of Home. */
+  landing: string;
+  pageSize: 10 | 20 | 50;
+  confirmAttendance: boolean;
+  shortcuts: boolean;
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  preset: "default", reduceMotion: false, density: "comfortable", sidebarCollapsed: false,
+  landing: "/home", pageSize: 20, confirmAttendance: true, shortcuts: true,
+};
+
+export const SETTINGS_KEY = "termwise:settings";
+let cache: Settings | undefined;
+const listeners = new Set<() => void>();
+
+function read(): Settings {
+  if (cache) return cache;
+  try { cache = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") }; }
+  catch { cache = DEFAULT_SETTINGS; }
+  return cache!;
+}
+
+/** Mirrors the visual settings onto <html> as data attributes the CSS keys off. */
+export function applySettings(s: Settings) {
+  const d = document.documentElement.dataset;
+  d.preset = s.preset;
+  d.density = s.density;
+  d.motion = s.reduceMotion ? "reduce" : "full";
+}
+
+export function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+  cache = { ...read(), [key]: value };
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(cache)); } catch { /* private mode: keep for this tab only */ }
+  applySettings(cache);
+  listeners.forEach((l) => l());
+}
+
+const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+
+export function useSettings(): Settings {
+  return useSyncExternalStore(subscribe, read, () => DEFAULT_SETTINGS);
+}
+
+/** Inline in <head> so the preset applies before first paint (no flash). */
+export const SETTINGS_BOOT = `try{var s=JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})||"{}"),d=document.documentElement.dataset;d.preset=s.preset||"default";d.density=s.density||"comfortable";d.motion=s.reduceMotion?"reduce":"full"}catch(e){}`;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,
   type ColumnDef, type RowSelectionState, type SortingState, type VisibilityState,
@@ -13,6 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./states";
+import { setRowOrder } from "./row-nav";
+import { SelectField } from "./select-field";
+import { useSettings } from "@/lib/settings";
 
 export type TableFilter<T> = { label: string; options: string[]; get: (row: T) => string | null };
 
@@ -33,7 +36,7 @@ function toCsv<T>(rows: T[], columns: { header: string; value: (r: T) => unknown
  */
 const NO_FILTERS: never[] = [];
 
-export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filters = NO_FILTERS, initialFilters = {}, onRowClick, bulkActions, exportName, emptyTitle, emptyAction, pageSize = 20, mobile }: {
+export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filters = NO_FILTERS, initialFilters = {}, onRowClick, bulkActions, exportName, emptyTitle, emptyAction, pageSize, mobile, rowNav }: {
   data: T[];
   columns: ColumnDef<T, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   searchPlaceholder?: string;
@@ -48,7 +51,10 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
   pageSize?: number;
   /** Phone row: identity and key figure on line 1, the other fields on line 2. Replaces the table below md. */
   mobile?: (row: T) => React.ReactNode;
+  /** Publishes the shown row order so a RecordModal with the same `key` can step prev/next. */
+  rowNav?: { key: string; id: (row: T) => string };
 }) {
+  const settingsPageSize = useSettings().pageSize;
   const [search, setSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [visibility, setVisibility] = useState<VisibilityState>(() =>
@@ -71,7 +77,7 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
     state: { globalFilter: search, sorting, columnVisibility: visibility, rowSelection: selection },
     onGlobalFilterChange: setSearch, onSortingChange: setSorting, onColumnVisibilityChange: setVisibility, onRowSelectionChange: setSelection,
     getCoreRowModel: getCoreRowModel(), getFilteredRowModel: getFilteredRowModel(), getSortedRowModel: getSortedRowModel(), getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    initialState: { pagination: { pageSize: pageSize ?? settingsPageSize } },
     // Callers pass inline columns, so data and columns change identity on every parent render.
     // The automatic page reset would then set state during render forever; reset on search and filter changes instead.
     autoResetPageIndex: false,
@@ -89,6 +95,13 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
     URL.revokeObjectURL(a.href);
   }
 
+  // Settings load after hydration, so initialState alone would miss a saved page size.
+  useEffect(() => { if (!pageSize) table.setPageSize(settingsPageSize); }, [pageSize, settingsPageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const order = rowNav ? table.getPrePaginationRowModel().rows.map((r) => rowNav.id(r.original)) : [];
+  const orderKey = order.join(",");
+  useEffect(() => { if (rowNav) setRowOrder(rowNav.key, orderKey ? orderKey.split(",") : []); }, [rowNav?.key, orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const selected = table.getSelectedRowModel().rows.map((r) => r.original);
   const rows = table.getRowModel().rows;
   const total = table.getFilteredRowModel().rows.length;
@@ -103,13 +116,9 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
         {filters.length > 0 && (
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:overflow-visible md:px-0">
             {filters.map((f) => (
-              <select key={f.label} aria-label={f.label} value={picked[f.label] ?? ""}
-                onChange={(e) => { setPicked((p) => ({ ...p, [f.label]: e.target.value })); table.setPageIndex(0); }}
-                className={cn("h-9 shrink-0 rounded-lg bg-card pl-3 text-sm shadow-field outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/30",
-                  picked[f.label] && "bg-foreground text-background shadow-none")}>
-                <option value="">{f.label}: all</option>
-                {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <SelectField key={f.label} aria-label={f.label} value={picked[f.label] ?? ""} active={!!picked[f.label]} className="shrink-0"
+                options={[{ value: "", label: `${f.label}: all` }, ...f.options.map((o) => ({ value: o, label: o }))]}
+                onValueChange={(v) => { setPicked((p) => ({ ...p, [f.label]: v })); table.setPageIndex(0); }} />
             ))}
           </div>
         )}

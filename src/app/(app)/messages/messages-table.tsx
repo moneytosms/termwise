@@ -37,6 +37,7 @@ export function MessagesTable({ rows }: { rows: MessageRow[] }) {
           <span className="block truncate text-[13px] text-muted-foreground">{r.body}</span>
         </span>
       )}
+      rowNav={{ key: "messages", id: (r) => String(r.id) }}
       onRowClick={(r) => router.push(`/messages?message=${r.id}`, { scroll: false })} />
   );
 }
