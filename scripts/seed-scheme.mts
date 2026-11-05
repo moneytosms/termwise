@@ -33,7 +33,7 @@ const PROFILES: Record<string, Partial<typeof t.campus.$inferInsert>> = {
     legalName: "Termwise College of Pharmacy", tagline: "Care, backed by science",
     addressLine1: "Plot 22, Kalinga Vihar", city: "Bhubaneswar", state: "Odisha", pincode: "751019",
     phone: "+91 674 255 0220", email: "office@tcp-bbsr.example", website: "https://tcp-bbsr.example",
-    affiliation: AFFILIATION, registrationNo: "PCI-OR-2013-0581", gstin: "21AAHCT0000P1Z1", receiptFooter: RECEIPT_FOOTER,
+    affiliation: "Affiliated to Biju Patnaik University of Technology, Odisha · Approved by PCI", registrationNo: "PCI-OR-2013-0581", gstin: "21AAHCT0000P1Z1", receiptFooter: RECEIPT_FOOTER,
   },
 };
 
