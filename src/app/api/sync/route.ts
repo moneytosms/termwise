@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { correctedEditedAt, decideSync, type OutboxItem } from "@/domain/sync";
-import { getViewer, type Viewer } from "@/server/access";
+import { getViewer, getViewerAs, type Viewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { attendanceEntry, attendanceSession, batch, programme, student, subject, syncConflict } from "@/server/schema";
@@ -20,9 +20,11 @@ const Item = z.object({
 });
 const Body = z.object({ clientNow: z.iso.datetime(), items: z.array(Item).max(100) });
 
-async function apply(v: Viewer, item: OutboxItem, editedAt: Date) {
+async function apply(signedIn: Viewer, item: OutboxItem, editedAt: Date) {
   // A shared phone can hold a sheet from a teacher whose sign-in expired; only they can send it.
-  if (item.markedBy !== v.staffId) return { outcome: "rejected" as const, error: "Marked by another teacher on this phone. They need to sign in to send it." };
+  // The sheet syncs as the staff row it was marked with, so it lands on the campus it was marked on.
+  const v = item.markedBy === signedIn.staffId ? signedIn : await getViewerAs(item.markedBy);
+  if (!v) return { outcome: "rejected" as const, error: "Marked by another teacher on this phone. They need to sign in to send it." };
   // The subject must belong to this batch and campus, and the sheet must cover exactly its students.
   const [valid] = await db.select({ id: subject.id }).from(subject)
     .innerJoin(batch, eq(subject.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id))

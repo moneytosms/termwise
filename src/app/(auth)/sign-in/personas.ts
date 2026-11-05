@@ -18,5 +18,7 @@ export const PERSONAS: Persona[] = [
   { email: "phr.admin@termwise.demo", name: "Sasmita Behera", role: "Office admin", campus: "Pharmacy College" },
   { email: "phr.faculty@termwise.demo", name: "Debasis Mohapatra", role: "Faculty", campus: "Pharmacy College" },
   { email: "phr.faculty2@termwise.demo", name: "Itishree Swain", role: "Faculty", campus: "Pharmacy College" },
+  { email: "visiting.faculty@termwise.demo", name: "Prakash Chandra Rout", role: "Visiting faculty", campus: "Engineering + Management" },
+  { email: "dual.role@termwise.demo", name: "Anjali Mohanty", role: "Faculty + office admin", campus: "Engineering + Pharmacy" },
   { email: "trust@termwise.demo", name: "Bijay Mishra", role: "Trust", campus: "All campuses" },
 ];
