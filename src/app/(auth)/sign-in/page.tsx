@@ -40,17 +40,17 @@ export default function SignInPage() {
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(28rem,36rem)]">
-      <section className="relative hidden flex-col justify-center gap-12 overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
+      <section className="relative hidden flex-col justify-center gap-8 overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
         <FeatureShowcase />
         <p className="text-sm text-muted-foreground">One student record, from admission to graduation.</p>
       </section>
 
       <section className="flex flex-col justify-center px-4 py-10 sm:px-10">
         <div className="mx-auto w-full max-w-sm">
-          <p className="mb-10 flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight"><Mark />Termwise</p>
+          <p className="mb-6 flex items-center gap-3 text-xl font-semibold tracking-tight"><Mark className="size-10" />Termwise</p>
           <h1 className="text-2xl leading-tight font-semibold tracking-[-0.02em]">Sign in</h1>
           <p className="mt-1 text-sm text-muted-foreground">Use your college account.</p>
-          <form onSubmit={submit} className="mt-8 space-y-4">
+          <form onSubmit={submit} className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
@@ -62,7 +62,7 @@ export default function SignInPage() {
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="h-11 w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
           </form>
-          <div className="mt-8 rounded-xl bg-card p-4 text-sm shadow-sheet">
+          <div className="mt-6 rounded-xl bg-card p-4 text-sm shadow-sheet">
             <p className="font-medium">Demo accounts</p>
             <p className="mt-0.5 text-muted-foreground">Password: termwise-demo</p>
             <div className="mt-3 grid grid-cols-2 gap-2">

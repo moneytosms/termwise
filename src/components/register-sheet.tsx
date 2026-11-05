@@ -2,7 +2,7 @@
  * An attendance register drawn in code: roll numbers down, periods across, each cell marked in turn.
  * Pure CSS animation with a fixed pattern, so server and client render the same; still under reduced motion.
  */
-const ROWS = ["0401", "0402", "0403", "0404", "0405", "0406", "0407", "0408", "0409", "0410", "0411", "0412"];
+const ROWS = ["0401", "0402", "0403", "0404", "0405", "0406"];
 const PERIODS = ["09:00", "09:50", "10:50", "11:40", "13:30", "14:20", "15:05"];
 // A fixed, believable spread: mostly present, a few absent (A) and late (L).
 const MARK = (r: number, c: number) => ((r * 7 + c * 13) % 23 === 0 ? "A" : (r * 5 + c * 3) % 29 === 0 ? "L" : (r + c * 11) % 31 === 0 ? "A" : "P");
