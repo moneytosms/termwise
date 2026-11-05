@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowLeft, Search, X } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/states";
 import { StatusPill } from "@/components/page";
 import { SyncLine } from "@/components/sync-line";
 import { nextStatus, type AttendanceStatus } from "@/domain/attendance";
+import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { offlineDb } from "@/offline/db";
 import { flushOutbox, requestBackgroundSync } from "@/offline/sync";
@@ -30,8 +31,10 @@ export function MarkAttendance() {
   const [statuses, setStatuses] = useState<Record<number, AttendanceStatus>>({});
   const [loaded, setLoaded] = useState(false);
   const [find, setFind] = useState("");
+  const [filter, setFilter] = useState<"all" | "absent" | "late">("all");
   const [confirming, setConfirming] = useState(false);
   const findRef = useRef<HTMLInputElement>(null);
+  const settings = useSettings();
 
   // Start from whatever exists: this phone's queued copy, else the saved session, else everyone Present.
   useEffect(() => {
@@ -51,8 +54,9 @@ export function MarkAttendance() {
   const shown = useMemo(() => {
     if (!cls) return [];
     const q = find.trim().toLowerCase();
-    return q ? cls.roster.filter((s) => s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q)) : cls.roster;
-  }, [cls, find]);
+    return cls.roster.filter((s) => (filter === "all" || (statuses[s.id] ?? "present") === filter)
+      && (!q || s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q)));
+  }, [cls, find, filter, statuses]);
 
   if (cls === undefined || (cls === null && sync.online && !sync.refreshed)) return <div className="space-y-2" aria-busy="true" aria-label="Loading">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>;
   if (cls === null) {
@@ -105,25 +109,24 @@ export function MarkAttendance() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input ref={findRef} aria-label="Find by name or roll number" placeholder="Find by name or roll number" className="pl-9" value={find} onChange={(e) => setFind(e.target.value)} />
         </div>
-        {marked.length > 0 && (
-          <ul aria-label="Absent and late" className="flex gap-1.5 overflow-x-auto">
-            {marked.map((s) => (
-              <li key={s.id}>
-                <button onClick={() => setStatuses((x) => ({ ...x, [s.id]: "present" }))} aria-label={`Undo ${s.name}`}
-                  className={cn("flex h-8 items-center gap-1 whitespace-nowrap rounded-full px-3 text-xs font-medium active:scale-95", STYLE[status(s.id)])}>
-                  {s.name.split(" ")[0]} · {LABEL[status(s.id)]}<X className="size-3" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div role="group" aria-label="Show" className="inline-flex gap-1 rounded-lg bg-secondary p-1 text-xs font-medium">
+          {([["all", "All"], ["absent", `Absent (${absent.length})`], ["late", `Late (${late.length})`]] as const).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={filter === v} onClick={() => setFilter(v)}
+              className={cn("h-7 rounded-md px-3 transition-colors", filter === v ? "bg-card text-foreground shadow-sheet" : "text-muted-foreground hover:text-foreground")}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <p>Tap once for absent, twice for late, three times to reset.</p>
+        <p className="flex gap-2"><span className="font-medium text-absent">A</span>absent<span className="font-medium text-late">L</span>late</p>
       </div>
 
       <ul className="mx-4 mt-3 divide-y divide-rule overflow-hidden rounded-xl bg-card shadow-sheet">
         {shown.map((s) => (
           <li key={s.id}>
             <button onClick={() => tap(s.id)} aria-label={`${s.name}, ${LABEL[status(s.id)]}. Tap to change.`}
-              className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors duration-100 active:bg-muted", STYLE[status(s.id)])}>
+              className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors duration-100 hover:bg-muted/50 active:bg-muted", STYLE[status(s.id)])}>
               <span className="w-11 shrink-0 text-sm text-muted-foreground tabular-nums">{s.rollNo.split("-").pop()}</span>
               <span className="min-w-0 flex-1 truncate text-foreground">{s.name}</span>
               {status(s.id) === "present"
@@ -132,12 +135,12 @@ export function MarkAttendance() {
             </button>
           </li>
         ))}
-        {shown.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted-foreground">No one matches “{find}”.</li>}
+        {shown.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted-foreground">{find ? <>No one matches “{find}”.</> : filter === "all" ? "No students." : `No one ${filter} yet.`}</li>}
       </ul>
 
       <div className="fixed inset-x-0 bottom-0 z-50 space-y-2.5 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:left-60">
         <SyncLine s={sync} />
-        <Button className="h-12 w-full text-base md:mx-auto md:flex md:max-w-xl" onClick={() => setConfirming(true)}>
+        <Button className="h-12 w-full text-base md:mx-auto md:flex md:max-w-xl" onClick={() => (settings.confirmAttendance ? setConfirming(true) : void save())}>
           Submit · {cls.roster.length - absent.length} present, {absent.length} absent
         </Button>
       </div>
@@ -148,9 +151,30 @@ export function MarkAttendance() {
             <SheetTitle>Save attendance?</SheetTitle>
             <SheetDescription>{cls.subjectName} · {cls.batchCode} · {cls.roster.length} students</SheetDescription>
           </SheetHeader>
-          <div className="space-y-3 px-4 text-sm leading-relaxed">
-            <p><span className="font-medium text-absent">Absent ({absent.length})</span>: {absent.map((s) => s.name).join(", ") || "None"}</p>
-            <p><span className="font-medium text-late">Late ({late.length})</span>: {late.map((s) => s.name).join(", ") || "None"}</p>
+          <div className="space-y-4 px-4 text-sm">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {([["Present", cls.roster.length - marked.length, "bg-data-soft text-data"], ["Absent", absent.length, "bg-absent-soft text-absent"], ["Late", late.length, "bg-late-soft text-late"]] as const).map(([label, n, tone]) => (
+                <div key={label} className={cn("rounded-lg px-2 py-2.5", tone)}>
+                  <p className="text-lg leading-none font-semibold tabular-nums">{n}</p>
+                  <p className="mt-1 text-xs">{label}</p>
+                </div>
+              ))}
+            </div>
+            {([["Absent", absent, "text-absent", "No one absent"], ["Late", late, "text-late", "No one late"]] as const).map(([label, group, tone, empty]) => (
+              <div key={label}>
+                <p className={cn("font-medium", tone)}>{label} ({group.length})</p>
+                {group.length === 0 ? <p className="mt-1 text-muted-foreground">{empty}</p> : (
+                  <ul className="mt-1 divide-y divide-rule">
+                    {group.map((s) => (
+                      <li key={s.id} className="flex items-center justify-between gap-3 py-1.5">
+                        <span className="min-w-0 truncate">{s.name}</span>
+                        <span className="shrink-0 text-muted-foreground tabular-nums">{s.rollNo}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
           <SheetFooter>
             <Button className="h-12" onClick={save}>Confirm and save</Button>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mark } from "@/components/mark";
-import { RegisterSheet } from "@/components/register-sheet";
+import { FeatureShowcase } from "./feature-showcase";
 
 const client = createAuthClient();
 
@@ -38,13 +38,7 @@ export default function SignInPage() {
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(28rem,36rem)]">
       <section className="relative hidden flex-col justify-between overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
         <p className="flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight"><Mark />Termwise</p>
-        <div className="space-y-8">
-          <div className="max-w-md">
-            <h2 className="text-[2rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">Attendance in class, even with no signal.</h2>
-            <p className="mt-3 text-base text-muted-foreground">Everyone starts present; one tap per absentee. It syncs later and never overwrites another teacher’s sheet.</p>
-          </div>
-          <RegisterSheet />
-        </div>
+        <FeatureShowcase />
         <p className="text-sm text-muted-foreground">One student record, from admission to graduation.</p>
       </section>
 

@@ -23,10 +23,11 @@ test("mark attendance offline, then it syncs and is saved on the server", async 
   await rows.nth(0).click();
   await rows.nth(1).click();
   await rows.nth(1).click(); // Absent, then Late
-  await expect(page.getByRole("list", { name: "Absent and late" }).getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Absent (1)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Late (1)" })).toBeVisible();
 
   await page.getByRole("button", { name: /^Submit/ }).click();
-  await expect(page.getByText("Absent (1)")).toBeVisible();
+  await expect(page.getByRole("dialog").getByText("Absent (1)")).toBeVisible();
   await page.getByRole("button", { name: "Confirm and save" }).click();
   await page.waitForURL("**/home");
   await expect(page.getByText(/1 pending/)).toBeVisible();
