@@ -32,7 +32,10 @@ Or run the whole stack in containers: `docker compose up --build` (migrates and 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test   # unit tests
 pnpm build && E2E=1 pnpm e2e               # end-to-end tests on a phone viewport, on a freshly seeded database
+pnpm tsx scripts/confirm-race.mts          # two concurrent admissions get consecutive roll numbers; a repeat confirm is refused
 ```
+
+The race script confirms applicants in the seeded database, so reset the database (above) before using the demo again.
 
 ### Load test
 
@@ -99,3 +102,12 @@ Password for every account: `termwise-demo`. All data is synthetic.
 Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent. The guardian `pallavi.jena@termwise.demo` (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.
 
 Try first: sign in as `faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.
+
+Admissions and staff leave:
+
+- **Confirm an admission (admin).** Sign in as `admin@termwise.demo` and open **Applicants**. The seeded applicant **Ritika Nayak** has every required document verified, so she is ready to confirm. Open her panel and choose **Confirm admission**. The student gets the next roll number in the batch, two fee instalments and a guardian login with the demo password. The other seeded applicants show what is missing, and one applicant can be rejected with a reason.
+- **Import applicants (admin).** On **Applicants**, choose **Import CSV**, pick the batch and a file (the template downloads from the dialog). Any bad line stops the whole file, and the dialog lists each line's error.
+- **Staff leave (faculty).** Sign in as `faculty@termwise.demo` and open **Leave**. Apply for leave, and see the balances and history. Withdraw the request while it is pending.
+- **Approve staff leave (admin).** Sign in as `admin@termwise.demo` and open **Leave**. Approve or reject the pending request from the Engineering campus, with a note. Nobody can decide their own leave.
+
+To try the admission again, reset the database as above.
