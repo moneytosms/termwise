@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { paidSql } from "@/app/(app)/fees/queries";
-import { SectionHeading, StatusPill } from "@/components/page";
+import { AttendanceMeter, SectionHeading, StatusPill } from "@/components/page";
+import { CountUp } from "@/components/count-up";
+import { Mark } from "@/components/mark";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { attendancePercent, istDate, isShortage, type AttendanceStatus } from "@/domain/attendance";
@@ -58,34 +60,53 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
   const today = istDate();
   const totalDue = dues(instalments, today).totalPaise;
 
+  const shortSubjects = subjects.filter((x) => isShortage(x.percent, s.cutoff));
+  const finding = overall === null ? "No classes marked yet."
+    : shortSubjects.length > 0 ? `Below the ${s.cutoff}% line in ${shortSubjects.map((x) => x.name).join(", ")}.`
+    : `Above the ${s.cutoff}% line in every subject.`;
+  const overdue = instalments.filter((i) => instalmentDue(i) > 0 && i.dueDate < today).length;
+
   return (
-    <main className="mx-auto max-w-xl px-4 py-8">
-      <header className="mb-6">
-        <p className="text-sm text-muted-foreground">{s.campus}</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{s.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground"><span className="font-mono">{s.rollNo}</span> · {s.programme} · Year {s.year}</p>
+    <main className="mx-auto max-w-xl px-4 pt-5 pb-12 md:pt-10">
+      <p className="mb-8 flex items-center gap-2 text-sm text-muted-foreground"><Mark className="size-6" /><span className="font-semibold text-foreground">Termwise</span> · {s.campus}</p>
+      <header>
+        <h1 className="text-2xl leading-tight font-semibold tracking-[-0.02em] md:text-[1.75rem]">{s.name}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{s.rollNo} · {s.programme} · Year {s.year}</p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <p className="rounded-xl border bg-card p-4"><span className="block font-mono text-2xl">{overall ?? "–"}{overall !== null && "%"}</span><span className="text-muted-foreground">Attendance</span></p>
-        <p className="rounded-xl border bg-card p-4"><span className="block font-mono text-2xl">{rupees(totalDue)}</span><span className="text-muted-foreground">Fee due</span></p>
-      </div>
+      <section className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sheet" aria-label="Summary">
+        <div className="p-5">
+          <p className="text-sm text-muted-foreground">Attendance, all subjects</p>
+          <p className={`mt-1 text-[2.5rem] leading-none font-medium tracking-[-0.03em] tabular-nums ${overall !== null && isShortage(overall, s.cutoff) ? "text-absent" : ""}`}>
+            {overall === null ? "–" : <CountUp value={overall} decimals={1} suffix="%" />}
+          </p>
+          {overall !== null && (
+            <div className="relative mt-5 h-2.5 rounded-full bg-secondary" aria-hidden>
+              <div className={`h-full origin-left animate-[grow-x_900ms_cubic-bezier(0.25,1,0.5,1)_both] rounded-full ${isShortage(overall, s.cutoff) ? "bg-absent" : "bg-data"}`} style={{ width: `${overall}%` }} />
+              <div className="absolute -inset-y-1.5 w-0.5 rounded bg-foreground" style={{ left: `${s.cutoff}%` }} />
+              <span className="absolute top-5 -translate-x-1/2 text-xs text-muted-foreground" style={{ left: `${s.cutoff}%` }}>{s.cutoff}% line</span>
+            </div>
+          )}
+          <p className="mt-9 text-sm">{finding}</p>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/50 px-5 py-4">
+          <span className="text-sm text-muted-foreground">Fee due</span>
+          <span className="flex items-center gap-2">
+            {overdue > 0 && <StatusPill tone="absent">{overdue} overdue</StatusPill>}
+            <span className="text-xl font-semibold tabular-nums">{rupees(totalDue)}</span>
+          </span>
+        </div>
+      </section>
 
       <SectionHeading title="Attendance by subject" count={subjects.length} />
       {subjects.length === 0 ? <p className="text-sm text-muted-foreground">No sessions marked yet.</p> : (
-        <ul className="space-y-2 text-sm">
+        <ul className="divide-y divide-rule rounded-xl bg-card px-4 text-sm shadow-sheet">
           {subjects.map((x) => {
             const short = isShortage(x.percent, s.cutoff);
             return (
-              <li key={x.name}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate">{x.name}</span>
-                  <span className="flex items-center gap-2">{short && <StatusPill tone="absent">Shortage</StatusPill>}<span className="font-mono">{x.percent}%</span></span>
-                </div>
-                <div className="relative mt-1 h-1.5 rounded-full bg-muted" aria-hidden>
-                  <div className={short ? "h-full rounded-full bg-absent" : "h-full rounded-full bg-primary"} style={{ width: `${x.percent}%` }} />
-                  <div className="absolute inset-y-[-2px] w-px bg-foreground" style={{ left: `${s.cutoff}%` }} />
-                </div>
+              <li key={x.name} className="flex min-h-12 items-center justify-between gap-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-2"><span className="truncate">{x.name}</span>{short && <StatusPill tone="absent">Shortage</StatusPill>}</span>
+                <AttendanceMeter pct={x.percent} threshold={s.cutoff} />
               </li>
             );
           })}
@@ -95,44 +116,45 @@ export default async function ParentPage({ params }: { params: Promise<{ token: 
       <SectionHeading title="Fees" count={instalments.length} />
       {instalments.length === 0 ? <EmptyState title="No fee records yet." /> : (
         <>
-          <p className="mb-3 text-xs text-muted-foreground">Test mode: payments here are simulated. No real money moves.</p>
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {instalments.map((i) => {
               const due = instalmentDue(i);
               return (
-                <li key={i.id} className="rounded-xl border bg-card p-3 text-sm">
+                <li key={i.id} className="rounded-xl bg-card p-4 text-sm shadow-sheet">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{i.label} <span className="text-muted-foreground">· due {i.dueDate}</span></span>
+                    <span><span className="font-medium">{i.label}</span><span className="block text-xs text-muted-foreground">Due {i.dueDate}</span></span>
                     {due === 0 ? <StatusPill tone="ok">Paid</StatusPill> : i.dueDate < today ? <StatusPill tone="absent">Overdue</StatusPill> : <StatusPill tone="late">Due</StatusPill>}
                   </div>
-                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                    <dt className="text-muted-foreground">Amount</dt><dd className="text-right font-mono">{rupees(i.amountPaise)}</dd>
-                    <dt className="text-muted-foreground">Scholarship</dt><dd className="text-right font-mono">{rupees(i.scholarshipPaise)}</dd>
-                    <dt className="text-muted-foreground">Paid</dt><dd className="text-right font-mono">{rupees(i.paidPaise)}</dd>
-                    <dt className="text-muted-foreground">Due</dt><dd className="text-right font-mono">{rupees(due)}</dd>
+                  <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 tabular-nums">
+                    <dt className="text-muted-foreground">Amount</dt><dd className="text-right">{rupees(i.amountPaise)}</dd>
+                    <dt className="text-muted-foreground">Scholarship</dt><dd className="text-right">{i.scholarshipPaise ? `−${rupees(i.scholarshipPaise)}` : rupees(0)}</dd>
+                    <dt className="text-muted-foreground">Paid</dt><dd className="text-right">{i.paidPaise ? `−${rupees(i.paidPaise)}` : rupees(0)}</dd>
+                    <dt className="pt-1 font-medium">Due</dt><dd className="pt-1 text-right font-semibold">{rupees(due)}</dd>
                   </dl>
                   {due > 0 && <PayButton token={token} instalmentId={i.id} duePaise={due} />}
                 </li>
               );
             })}
           </ul>
+          <p className="mt-3 text-xs text-muted-foreground">Test mode: payments here are simulated. No real money moves.</p>
         </>
       )}
 
       <SectionHeading title="Payments" count={payments.length} />
       {payments.length === 0 ? <p className="text-sm text-muted-foreground">No payments yet.</p> : (
-        <ul className="divide-y rounded-xl border bg-card text-sm">
+        <ul className="divide-y divide-rule rounded-xl bg-card text-sm shadow-sheet">
           {payments.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 p-3">
+            <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <span className="min-w-0">{p.label}<span className="block text-xs text-muted-foreground">{ist(p.paidAt)}</span></span>
               <span className="flex shrink-0 items-center gap-3">
-                <span className="font-mono">{rupees(p.amountPaise)}</span>
-                <Button size="sm" variant="outline" render={<Link href={`/p/${token}/receipt/${p.id}`} />}>Receipt</Button>
+                <span className="font-medium tabular-nums">{rupees(p.amountPaise)}</span>
+                <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/p/${token}/receipt/${p.id}`} />}>Receipt</Button>
               </span>
             </li>
           ))}
         </ul>
       )}
+      <p className="mt-10 text-xs text-muted-foreground">Read-only view from {s.campus}. This link expires; ask the college office for a new one.</p>
     </main>
   );
 }

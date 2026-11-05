@@ -52,6 +52,7 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
     return v !== null && Number.isFinite(v) ? n + v : n;
   }, 0);
   const edit = (k: string, v: string) => setDrafts((d) => ({ ...d, [k]: v }));
+  const changedKeys = new Set(changes.map((c) => key(c.componentId, c.studentId)));
   const phoneComponent = components.find((c) => c.id === part) ?? components[0];
 
   const save = () => start(async () => {
@@ -79,28 +80,26 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
         <EmptyState title="No components yet. Faculty add them in Draft." />
       ) : (
         <>
-          <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
+          <div className="hidden overflow-x-auto rounded-xl bg-card shadow-sheet md:block">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Roll no</TableHead>
-                  <TableHead>Name</TableHead>
-                  {components.map((c) => <TableHead key={c.id} className="text-right">{c.name} <span className="font-mono">/{c.maxMarks}</span></TableHead>)}
-                  <TableHead className="text-right">Total <span className="font-mono">/{INTERNAL_TOTAL}</span></TableHead>
+                  <TableHead>Student</TableHead>
+                  {components.map((c) => <TableHead key={c.id} className="text-right">{c.name} <span className="text-muted-foreground/70">/{c.maxMarks}</span></TableHead>)}
+                  <TableHead className="text-right">Total <span className="text-muted-foreground/70">/{INTERNAL_TOTAL}</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {students.map((st) => (
                   <TableRow key={st.id}>
-                    <TableCell className="font-mono text-sm">{st.rollNo}</TableCell>
-                    <TableCell>{st.name}</TableCell>
+                    <TableCell><span className="block font-medium">{st.name}</span><span className="block text-xs text-muted-foreground">{st.rollNo}</span></TableCell>
                     {components.map((c) => (
                       <TableCell key={c.id} className="text-right">
                         <MarkInput editable={editable} value={shown(c.id, st.id)} error={errors.get(key(c.id, st.id))} max={c.maxMarks}
-                          label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
+                          changed={changedKeys.has(key(c.id, st.id))} label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
                       </TableCell>
                     ))}
-                    <TableCell className="text-right font-mono">{total(st.id)}</TableCell>
+                    <TableCell className="text-right font-medium">{total(st.id)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -108,21 +107,25 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
           </div>
 
           <div className="md:hidden">
-            <select aria-label="Component" value={part} onChange={(e) => setPart(Number(e.target.value))}
-              className="mb-3 h-10 w-full rounded-md border bg-card px-2 text-sm">
-              {components.map((c) => <option key={c.id} value={c.id}>{c.name} (out of {c.maxMarks})</option>)}
-            </select>
-            <ul className="divide-y rounded-xl border bg-card">
+            <div role="tablist" aria-label="Component" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4">
+              {components.map((c) => (
+                <button key={c.id} role="tab" aria-selected={c.id === phoneComponent.id} onClick={() => setPart(c.id)}
+                  className={`h-10 shrink-0 rounded-full px-4 text-sm transition-colors ${c.id === phoneComponent.id ? "bg-foreground font-medium text-background" : "bg-card text-muted-foreground shadow-sheet"}`}>
+                  {c.name} <span className="opacity-70">/{c.maxMarks}</span>
+                </button>
+              ))}
+            </div>
+            <ul className="divide-y divide-rule rounded-xl bg-card shadow-sheet">
               {students.map((st) => {
                 const c = phoneComponent;
                 return (
-                  <li key={st.id} className="flex items-center gap-3 p-3">
+                  <li key={st.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="font-mono text-sm">{st.rollNo}</p>
-                      <p className="truncate text-sm text-muted-foreground">{st.name}</p>
+                      <p className="truncate font-medium">{st.name}</p>
+                      <p className="text-[13px] text-muted-foreground">{st.rollNo} · total {total(st.id)}/{INTERNAL_TOTAL}</p>
                     </div>
                     <MarkInput editable={editable} value={shown(c.id, st.id)} error={errors.get(key(c.id, st.id))} max={c.maxMarks}
-                      label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
+                      changed={changedKeys.has(key(c.id, st.id))} large label={`${c.name}, ${st.name}`} onChange={(v) => edit(key(c.id, st.id), v)} />
                   </li>
                 );
               })}
@@ -131,17 +134,17 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
         </>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {editable && (
-          <Button onClick={save} disabled={busy || changes.length === 0 || errors.size > 0}>
-            Save{changes.length > 0 && ` (${changes.length})`}
-          </Button>
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-card px-3 py-2.5 shadow-float md:bottom-4">
+        {changes.length > 0
+          ? <span className="mr-auto flex items-center gap-2 text-sm"><span className="size-2 rounded-full bg-data" aria-hidden />{changes.length} unsaved {changes.length === 1 ? "change" : "changes"}{errors.size > 0 && <span className="text-absent">· {errors.size} to fix</span>}</span>
+          : <span className="mr-auto text-sm text-muted-foreground">{editable ? "All marks saved" : `${STATUS[s.status].label}`}</span>}
+        {editable && changes.length > 0 && (
+          <Button onClick={save} disabled={busy || errors.size > 0}>Save {changes.length}</Button>
         )}
-        {changes.length > 0 && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
         {role === "faculty" && s.status === "draft" && (
           <>
             <Button variant="outline" disabled={busy} onClick={() => setEditOpen(true)}>Edit components</Button>
-            <Button disabled={busy || changes.length > 0} onClick={() => act("submit")}>Submit</Button>
+            <Button variant={changes.length > 0 ? "outline" : "default"} disabled={busy || changes.length > 0} onClick={() => act("submit")}>Submit</Button>
           </>
         )}
         {role === "office_admin" && s.status === "submitted" && (
@@ -174,14 +177,15 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
   );
 }
 
-function MarkInput({ editable, value, error, max, label, onChange }: {
-  editable: boolean; value: string; error?: string; max: number; label: string; onChange: (v: string) => void;
+function MarkInput({ editable, value, error, max, label, onChange, changed, large }: {
+  editable: boolean; value: string; error?: string; max: number; label: string; onChange: (v: string) => void; changed?: boolean; large?: boolean;
 }) {
-  if (!editable) return <span className="font-mono">{value || "–"}</span>;
+  if (!editable) return <span className={value ? "" : "text-muted-foreground"}>{value || "–"}</span>;
   return (
-    <div className="ml-auto w-20 text-left">
+    <div className={`ml-auto text-left ${large ? "w-24" : "w-20"}`}>
       <Input aria-label={label} type="number" inputMode="decimal" min={0} max={max} step="any" value={value}
-        aria-invalid={!!error} onChange={(e) => onChange(e.target.value)} className="h-8 text-right font-mono" />
+        aria-invalid={!!error} onChange={(e) => onChange(e.target.value)}
+        className={`text-right tabular-nums ${large ? "h-11 text-base" : "h-8"} ${changed ? "bg-data-soft border-data" : ""}`} />
       {error && <p className="mt-1 text-xs text-absent">{error}</p>}
     </div>
   );
@@ -220,7 +224,7 @@ function ComponentsDialog({ subjectId, components, onClose }: {
               <Input aria-label={`Component ${i + 1} name`} value={r.name} maxLength={60} placeholder="Name"
                 onChange={(e) => update(i, { name: e.target.value })} className="flex-1" />
               <Input aria-label={`Component ${i + 1} max marks`} type="number" inputMode="numeric" min={1} value={r.max}
-                onChange={(e) => update(i, { max: e.target.value })} className="w-24 text-right font-mono" />
+                onChange={(e) => update(i, { max: e.target.value })} className="w-24 text-right tabular-nums" />
               <Button variant="ghost" size="icon" aria-label={`Remove component ${i + 1}`}
                 onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}><Trash2 aria-hidden /></Button>
             </div>

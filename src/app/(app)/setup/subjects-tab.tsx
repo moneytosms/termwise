@@ -29,9 +29,9 @@ export function SubjectsTab({ rows, batches, faculty }: {
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const current = editing && editing !== "new" ? editing : null;
   const columns: ColumnDef<Row>[] = [
-    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="font-mono text-sm">{row.original.code}</span> },
+    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="tabular-nums text-sm">{row.original.code}</span> },
     { accessorKey: "name", header: "Name" },
-    { accessorKey: "batch", header: "Batch", cell: ({ row }) => <span className="font-mono text-sm">{row.original.batch}</span> },
+    { accessorKey: "batch", header: "Batch", cell: ({ row }) => <span className="tabular-nums text-sm">{row.original.batch}</span> },
     { accessorKey: "faculty", header: "Faculty", cell: ({ row }) => row.original.faculty ?? "Unassigned" },
     { accessorKey: "marksStatus", header: "Marks status", cell: ({ row }) => {
       const m = MARKS[row.original.marksStatus];

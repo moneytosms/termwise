@@ -14,8 +14,8 @@ export function FacultyTab({ rows }: { rows: Row[] }) {
     { accessorKey: "department", header: "Department", cell: ({ row }) => row.original.department ?? "–" },
     { accessorKey: "role", header: "Role", cell: ({ row }) => (row.original.role === "office_admin" ? "Office admin" : "Faculty") },
     { accessorKey: "hasAccount", header: "Signed-in account", cell: ({ row }) => (row.original.hasAccount ? "Yes" : "No") },
-    { accessorKey: "subjects", header: "Subjects taught", cell: ({ row }) => <span className="font-mono">{row.original.subjects}</span> },
-    { accessorKey: "mentees", header: "Mentees", cell: ({ row }) => <span className="font-mono">{row.original.mentees}</span> },
+    { accessorKey: "subjects", header: "Subjects taught", cell: ({ row }) => <span className="tabular-nums">{row.original.subjects}</span> },
+    { accessorKey: "mentees", header: "Mentees", cell: ({ row }) => <span className="tabular-nums">{row.original.mentees}</span> },
   ];
 
   return (

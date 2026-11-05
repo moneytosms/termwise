@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { CalendarCheck, CalendarX, Percent } from "lucide-react";
 import { z } from "zod";
-import { PageHeader, SectionHeading, StatCard, StatusPill } from "@/components/page";
+import { PageHeader, SectionHeading, StatCard, StatStrip, StatusPill } from "@/components/page";
 import { EmptyState } from "@/components/states";
 import { cn } from "@/lib/utils";
 import { requireAdmin } from "@/server/access";
@@ -39,7 +38,7 @@ export default async function AttendancePage({ searchParams }: {
         className={cn("-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium",
           active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
         {label}
-        {count !== undefined && <span className="rounded-full bg-muted px-1.5 font-mono text-xs">{count}</span>}
+        {count !== undefined && <span className="rounded-full bg-muted px-1.5 tabular-nums text-xs">{count}</span>}
       </Link>
     );
   };
@@ -54,20 +53,20 @@ export default async function AttendancePage({ searchParams }: {
 
       {stats && sessions && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Sessions marked today" value={stats.markedToday} icon={CalendarCheck} tone="ok" />
-            <StatCard label="Classes not marked today" value={stats.unmarked.length} icon={CalendarX} tone="late"
+          <StatStrip cols={3}>
+            <StatCard label="Sessions marked today" value={stats.markedToday} tone="ok" />
+            <StatCard label="Classes not marked today" value={stats.unmarked.length} tone="late"
               href={`/attendance?tab=sessions&filter=unmarked`} />
-            <StatCard label="Marked on the same day (7 days)" value={stats.rate === null ? "–" : `${stats.rate}%`} icon={Percent} />
-          </div>
+            <StatCard label="Marked the same day, 7 days" value={stats.rate === null ? "–" : `${stats.rate}%`} />
+          </StatStrip>
 
           {filter === "unmarked" && (
             <>
               <SectionHeading title="Not marked today" count={stats.unmarked.length} />
               {stats.unmarked.length === 0 ? (
-                <EmptyState title="No unmarked classes today." action={<Link href="/attendance?tab=sessions" className="text-sm text-primary underline-offset-4 hover:underline">Show all sessions</Link>} />
+                <EmptyState title="No unmarked classes today." action={<Link href="/attendance?tab=sessions" className="text-sm font-medium underline-offset-4 hover:underline">Show all sessions</Link>} />
               ) : (
-                <ul className="divide-y rounded-xl border bg-card">
+                <ul className="divide-y rounded-xl bg-card shadow-sheet">
                   {stats.unmarked.map((s) => (
                     <li key={`${s.batchId}:${s.subjectId}:${s.period}`} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                       <span><span className="font-medium">{s.subject}</span> <span className="text-muted-foreground">· {s.batch} · Period {s.period} · {s.startTime}</span></span>

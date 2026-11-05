@@ -46,13 +46,13 @@ export function SessionPanel({ detail, base }: { detail: SessionDetail | null; b
               <SheetDescription>{d.batch} · {d.date} · Period {d.period} · {d.faculty} · Last edited {d.editedAt}</SheetDescription>
             </SheetHeader>
             <div className="space-y-4 px-4 pb-8">
-              <ul className="divide-y rounded-xl border text-sm">
+              <ul className="divide-y rounded-lg bg-muted/60 text-sm">
                 {d.entries.map((e) => (
                   <li key={e.studentId} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <span className="min-w-0"><span className="block font-mono text-xs text-muted-foreground">{e.rollNo}</span>{e.name}</span>
+                    <span className="min-w-0"><span className="block tabular-nums text-xs text-muted-foreground">{e.rollNo}</span>{e.name}</span>
                     <select aria-label={`Status for ${e.name}`} value={statuses[e.studentId]} disabled={busy}
                       onChange={(ev) => setStatuses((s) => ({ ...s, [e.studentId]: ev.target.value as AttendanceStatus }))}
-                      className="h-9 rounded-md border bg-card px-2 text-sm">
+                      className="h-9 rounded-lg bg-field pl-3 text-sm shadow-field outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
                       <option value="present">Present</option>
                       <option value="absent">Absent</option>
                       <option value="late">Late</option>

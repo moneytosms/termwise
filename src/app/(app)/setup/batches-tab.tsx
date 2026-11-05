@@ -18,12 +18,12 @@ export function BatchesTab({ rows, programmes }: { rows: Row[]; programmes: { id
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const current = editing && editing !== "new" ? editing : null;
   const columns: ColumnDef<Row>[] = [
-    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="font-mono text-sm">{row.original.code}</span> },
+    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="tabular-nums text-sm">{row.original.code}</span> },
     { accessorKey: "programme", header: "Programme" },
-    { accessorKey: "admissionYear", header: "Admission year", cell: ({ row }) => <span className="font-mono">{row.original.admissionYear}</span> },
-    { accessorKey: "year", header: "Year", cell: ({ row }) => <span className="font-mono">{row.original.year}</span> },
-    { accessorKey: "semester", header: "Semester", cell: ({ row }) => <span className="font-mono">{row.original.semester}</span> },
-    { accessorKey: "students", header: "Students", cell: ({ row }) => <span className="font-mono">{row.original.students}</span> },
+    { accessorKey: "admissionYear", header: "Admission year", cell: ({ row }) => <span className="tabular-nums">{row.original.admissionYear}</span> },
+    { accessorKey: "year", header: "Year", cell: ({ row }) => <span className="tabular-nums">{row.original.year}</span> },
+    { accessorKey: "semester", header: "Semester", cell: ({ row }) => <span className="tabular-nums">{row.original.semester}</span> },
+    { accessorKey: "students", header: "Students", cell: ({ row }) => <span className="tabular-nums">{row.original.students}</span> },
     editColumn<Row>(setEditing),
   ];
   const addButton = <Button size="sm" onClick={() => setEditing("new")}><Plus aria-hidden />Add batch</Button>;

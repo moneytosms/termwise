@@ -13,3 +13,7 @@ Timetable_Sem_5.jpg
 next-env.d.ts
 *.tsbuildinfo
 .vitest
+
+# design tool working files
+.impeccable/
+.taste-skill/

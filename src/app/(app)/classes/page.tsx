@@ -31,14 +31,14 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
         <section>
           <SectionHeading title="This week" />
           {week.length === 0 ? <EmptyState title="No timetable classes for you." /> : (
-            <ol className="divide-y rounded-xl border bg-card">
+            <ol className="divide-y rounded-xl bg-card shadow-sheet">
               {MON_FIRST.map((d) => {
                 const slots = week.filter((s) => s.day === d);
                 return slots.length === 0 ? null : (
-                  <li key={d} className={cn("px-4 py-3", d === today && "bg-accent")}>
-                    <p className="text-sm font-medium">{DAYS[d]}{d === today && <span className="ml-2 text-xs text-primary">Today</span>}</p>
+                  <li key={d} className={cn("px-4 py-3", d === today && "bg-data-soft/60")}>
+                    <p className="text-sm font-medium">{DAYS[d]}{d === today && <span className="ml-2 text-xs font-medium text-data">Today</span>}</p>
                     <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                      {slots.map((s, i) => <li key={i}><span className="font-mono">{s.startTime}</span> {s.subject} · {s.batch}</li>)}
+                      {slots.map((s, i) => <li key={i}><span className="tabular-nums">{s.startTime}</span> {s.subject} · {s.batch}</li>)}
                     </ul>
                   </li>
                 );

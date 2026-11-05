@@ -7,7 +7,7 @@ test("campus and role limits hold", async ({ page }) => {
   await page.getByLabel("Search name or roll number").fill("MBA-25-0093");
   await expect(page.getByText("Nothing matches these filters.")).toBeVisible();
   await page.getByLabel("Search name or roll number").fill("ENG-24-ME-0177");
-  await expect(page.getByText("Ankit Panda")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Ankit Panda/ })).toBeVisible();
 });
 
 test("faculty don't see fees", async ({ page }) => {
@@ -31,7 +31,7 @@ test("the brief's sample figures appear exactly", async ({ page }) => {
 test("office admin screens all load without errors", async ({ page }) => {
   await signIn(page, "admin@termwise.demo");
   for (const [path, heading] of [
-    ["/home", /Welcome/], ["/students", "Students"], ["/attendance", "Attendance"], ["/attendance?tab=conflicts", "Attendance"], ["/marks", "Marks"], ["/fees", "Fees"], ["/risk", "Risk"],
+    ["/home", "Today"], ["/students", "Students"], ["/attendance", "Attendance"], ["/attendance?tab=conflicts", "Attendance"], ["/marks", "Marks"], ["/fees", "Fees"], ["/risk", "Risk"],
     ["/messages", "Messages"], ["/assistant", "Assistant"], ["/setup", "College setup"], ["/setup?tab=timetable", "College setup"], ["/setup?tab=rules", "College setup"], ["/audit", "Audit log"],
   ] as const) {
     await page.goto(path);

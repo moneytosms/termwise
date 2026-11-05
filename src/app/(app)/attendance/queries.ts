@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { istDate, istDayOfWeek, type AttendanceStatus } from "@/domain/attendance";
 import type { OutboxItem } from "@/domain/sync";
 import type { Viewer } from "@/server/access";
@@ -38,17 +38,42 @@ export async function listSessions(v: Viewer): Promise<SessionRow[]> {
 }
 
 /** Headline figures and today's timetabled classes with no session yet. */
-export async function sessionStats(v: Viewer) {
+/**
+ * Sessions per day over the last 7 days and how many were marked on the day they were held.
+ * "Marked" is editedAt, set on the phone when the teacher saves, so an offline sync that lands later still counts.
+ * Home and Attendance both read this, so the figure is one fact.
+ */
+export async function sameDayByDay(v: Viewer) {
   const today = istDate();
-  const recent = await db.select({
-    batchId: attendanceSession.batchId, subjectId: attendanceSession.subjectId, period: attendanceSession.period,
-    date: attendanceSession.date, syncedAt: attendanceSession.syncedAt,
+  return db.select({
+    date: attendanceSession.date,
+    total: count(),
+    sameDay: sql<number>`count(*) filter (where (${attendanceSession.editedAt} at time zone 'Asia/Kolkata')::date = ${attendanceSession.date})`.mapWith(Number),
   }).from(attendanceSession)
     .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, addDays(today, -6))));
+    .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, addDays(today, -6)), lte(attendanceSession.date, today)))
+    .groupBy(attendanceSession.date);
+}
 
-  const markedToday = new Set(recent.filter((s) => s.date === today).map((s) => `${s.batchId}:${s.subjectId}:${s.period}`));
+/** Share of sessions marked the same day, one decimal; null when nothing was held. */
+export function sameDayRate(days: { total: number; sameDay: number }[]) {
+  const total = days.reduce((t, d) => t + d.total, 0);
+  return total ? Math.round((days.reduce((t, d) => t + d.sameDay, 0) / total) * 1000) / 10 : null;
+}
+
+export async function sessionStats(v: Viewer) {
+  const today = istDate();
+  const [recent, perDay] = await Promise.all([
+    db.select({ batchId: attendanceSession.batchId, subjectId: attendanceSession.subjectId, period: attendanceSession.period, date: attendanceSession.date })
+      .from(attendanceSession)
+      .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
+      .innerJoin(programme, eq(batch.programmeId, programme.id))
+      .where(and(eq(programme.campusId, v.campusId), eq(attendanceSession.date, today))),
+    sameDayByDay(v),
+  ]);
+
+  const markedToday = new Set(recent.map((s) => `${s.batchId}:${s.subjectId}:${s.period}`));
   const slots = await db.select({
     batchId: timetableSlot.batchId, subjectId: subject.id, period: timetableSlot.period,
     startTime: timetableSlot.startTime, endTime: timetableSlot.endTime, batch: batch.code, subject: subject.name,
@@ -59,11 +84,10 @@ export async function sessionStats(v: Viewer) {
     .where(and(eq(programme.campusId, v.campusId), eq(timetableSlot.dayOfWeek, istDayOfWeek())))
     .orderBy(asc(timetableSlot.startTime));
 
-  const synced = recent.filter((s) => istDate(s.syncedAt) === s.date).length;
   return {
     markedToday: markedToday.size,
     unmarked: slots.filter((s) => !markedToday.has(`${s.batchId}:${s.subjectId}:${s.period}`)),
-    rate: recent.length ? Math.round((synced / recent.length) * 100) : null,
+    rate: sameDayRate(perDay),
   };
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
+import { RegisterBar } from "@/components/charts";
 import { DataTable, type TableFilter } from "@/components/data-table";
 import { buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -11,16 +12,16 @@ import { EmptyState } from "@/components/states";
 import type { PastRow, SessionDetail } from "./queries";
 
 const unique = (xs: string[]) => [...new Set(xs)].sort();
-const mono = (n: number) => <span className="font-mono">{n}</span>;
 
 const columns: ColumnDef<PastRow>[] = [
-  { accessorKey: "date", header: "Date", cell: ({ row }) => <span className="font-mono">{row.original.date}</span> },
-  { accessorKey: "period", header: "Period", cell: ({ row }) => mono(row.original.period) },
-  { accessorKey: "batch", header: "Batch" },
-  { accessorKey: "subject", header: "Subject" },
-  { accessorKey: "present", header: "Present", cell: ({ row }) => mono(row.original.present) },
-  { accessorKey: "absent", header: "Absent", cell: ({ row }) => <span className="font-mono text-absent">{row.original.absent}</span> },
-  { accessorKey: "late", header: "Late", cell: ({ row }) => mono(row.original.late) },
+  { accessorKey: "subject", header: "Subject", cell: ({ row: { original: r } }) => <span><span className="block font-medium">{r.subject}</span><span className="block text-xs text-muted-foreground">{r.batch} · Period {r.period}</span></span> },
+  { accessorKey: "date", header: "Date", cell: ({ row }) => <span className="text-muted-foreground">{row.original.date}</span> },
+  { accessorKey: "batch", header: "Batch", meta: { hidden: true } },
+  { accessorKey: "period", header: "Period", meta: { hidden: true } },
+  { id: "register", header: "Register", enableSorting: false, cell: ({ row: { original: r } }) => <RegisterBar present={r.present} late={r.late} absent={r.absent} /> },
+  { accessorKey: "present", header: "Present", meta: { align: "right" } },
+  { accessorKey: "absent", header: "Absent", meta: { align: "right" }, cell: ({ row }) => <span className={row.original.absent ? "font-medium text-absent" : "text-muted-foreground"}>{row.original.absent}</span> },
+  { accessorKey: "late", header: "Late", meta: { align: "right" } },
 ];
 
 export function PastSessions({ rows, open, detail }: { rows: PastRow[]; open: boolean; detail: SessionDetail | null }) {
@@ -33,6 +34,12 @@ export function PastSessions({ rows, open, detail }: { rows: PastRow[]; open: bo
   return (
     <>
       <DataTable data={rows} columns={columns} filters={filters} emptyTitle="No attendance sessions yet."
+        mobile={(r) => (
+          <span className="block">
+            <span className="flex items-center justify-between gap-3"><span className="truncate font-medium">{r.subject}</span><span className="text-sm tabular-nums">{r.present}<span className="text-muted-foreground">/{r.present + r.absent + r.late}</span></span></span>
+            <span className="mt-0.5 flex items-center justify-between gap-3 text-[13px] text-muted-foreground"><span className="truncate">{r.date} · {r.batch} · P{r.period}</span>{r.absent > 0 && <span className="shrink-0 text-absent">{r.absent} absent</span>}</span>
+          </span>
+        )}
         onRowClick={(r) => router.push(`/classes?session=${r.id}`, { scroll: false })} />
       <Sheet open={open} onOpenChange={(o) => { if (!o) router.push("/classes", { scroll: false }); }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
@@ -45,7 +52,7 @@ export function PastSessions({ rows, open, detail }: { rows: PastRow[]; open: bo
             <>
               <SheetHeader>
                 <SheetTitle>{detail.subject} · {detail.batch}</SheetTitle>
-                <SheetDescription><span className="font-mono">{detail.date}</span> · Period {detail.period}</SheetDescription>
+                <SheetDescription><span className="tabular-nums">{detail.date}</span> · Period {detail.period}</SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-4 pb-8">
                 {detail.isToday ? (
@@ -69,10 +76,10 @@ function StudentList({ title, list }: { title: string; list: { rollNo: string; n
     <section>
       <SectionHeading title={title} count={list.length} />
       {list.length === 0 ? <p className="text-sm text-muted-foreground">None.</p> : (
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y rounded-lg bg-muted/60">
           {list.map((s) => (
             <li key={s.rollNo} className="flex justify-between gap-3 px-3 py-2 text-sm">
-              <span className="font-mono">{s.rollNo}</span><span>{s.name}</span>
+              <span className="tabular-nums">{s.rollNo}</span><span>{s.name}</span>
             </li>
           ))}
         </ul>

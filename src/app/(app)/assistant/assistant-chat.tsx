@@ -73,7 +73,7 @@ export function AssistantChat() {
         {turns.map((t) => (
           <section key={t.id} aria-label={`Question: ${t.question}`} aria-busy={t.result === null} className="space-y-3">
             <p className="text-sm text-muted-foreground">You asked: {t.question}</p>
-            {t.result === null && <Skeleton className="h-40 w-full rounded-2xl" />}
+            {t.result === null && <Skeleton className="h-40 w-full rounded-xl" />}
             {t.result?.kind === "answer" && <Answer a={t.result} />}
             {t.result?.kind === "clarify" && <Note label="Needs more detail" message={t.result.message} />}
             {t.result?.kind === "refused" && <Note label="Can't answer this" message={t.result.message} />}
@@ -88,21 +88,21 @@ export function AssistantChat() {
 
 function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
   return (
-    <div className="space-y-5 rounded-2xl border bg-card p-4">
+    <div className="space-y-5 rounded-xl bg-card p-4 shadow-sheet">
       <p className="text-lg font-medium leading-snug">{a.summary}</p>
 
       <div>
         <p className="mb-2 text-xs text-muted-foreground">Filters used</p>
         {a.filters.length ? (
           <div className="flex flex-wrap gap-1.5">
-            {a.filters.map((f) => <span key={f} className="rounded-full border bg-accent px-2.5 py-0.5 text-xs">{f}</span>)}
+            {a.filters.map((f) => <span key={f} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">{f}</span>)}
           </div>
         ) : <p className="text-sm text-muted-foreground">No filters.</p>}
       </div>
 
       <div>
         <p className="text-xs text-muted-foreground">Row count</p>
-        <p className="font-mono text-2xl">
+        <p className="tabular-nums text-2xl">
           {a.rowCount}
           {a.truncated && <span className="ml-2 font-sans text-sm text-muted-foreground">showing first {a.rows.length}</span>}
         </p>
@@ -111,7 +111,7 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
       {a.rowCount === 0 ? (
         <p className="text-sm text-muted-foreground">No rows match these filters.</p>
       ) : (
-        <div className="rounded-xl border">
+        <div className="rounded-lg bg-muted/60">
           <Table>
             <TableHeader>
               <TableRow>{a.columns.map((c) => <TableHead key={c}>{c}</TableHead>)}</TableRow>
@@ -121,7 +121,7 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
                 <TableRow key={i}>
                   {a.columns.map((c) => {
                     const v = cell(r[c]);
-                    return <TableCell key={c} className={typeof r[c] === "number" || FIGURE.test(v) ? "font-mono" : undefined}>{v}</TableCell>;
+                    return <TableCell key={c} className={typeof r[c] === "number" || FIGURE.test(v) ? "tabular-nums" : undefined}>{v}</TableCell>;
                   })}
                 </TableRow>
               ))}
@@ -130,9 +130,9 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
         </div>
       )}
 
-      <details className="rounded-xl border px-4 py-3 text-sm">
+      <details className="rounded-lg bg-muted/60 px-4 py-3 text-sm">
         <summary className="cursor-pointer font-medium">Query</summary>
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap font-mono text-xs">{a.sql}</pre>
+        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap tabular-nums text-xs">{a.sql}</pre>
       </details>
 
       <p className="text-xs text-muted-foreground">{CHECK_FILTERS}</p>
@@ -142,7 +142,7 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
 
 function Note({ label, message }: { label: string; message: string }) {
   return (
-    <div className="rounded-2xl border bg-card p-4">
+    <div className="rounded-xl bg-card p-4 shadow-sheet">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1">{message}</p>
     </div>

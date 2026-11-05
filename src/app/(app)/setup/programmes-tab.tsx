@@ -15,10 +15,10 @@ export function ProgrammesTab({ rows, departments }: { rows: Row[]; departments:
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const current = editing && editing !== "new" ? editing : null;
   const columns: ColumnDef<Row>[] = [
-    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="font-mono text-sm">{row.original.code}</span> },
+    { accessorKey: "code", header: "Code", cell: ({ row }) => <span className="tabular-nums text-sm">{row.original.code}</span> },
     { accessorKey: "name", header: "Name" },
     { accessorKey: "department", header: "Department", cell: ({ row }) => row.original.department ?? "–" },
-    { accessorKey: "cutoff", header: "Attendance cutoff", cell: ({ row }) => <span className="font-mono">{row.original.cutoff}%</span> },
+    { accessorKey: "cutoff", header: "Attendance cutoff", cell: ({ row }) => <span className="tabular-nums">{row.original.cutoff}%</span> },
     editColumn<Row>(setEditing),
   ];
   const addButton = <Button size="sm" onClick={() => setEditing("new")}><Plus aria-hidden />Add programme</Button>;

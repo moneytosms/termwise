@@ -5,6 +5,8 @@ import { createAuthClient } from "better-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Mark } from "@/components/mark";
+import { RegisterSheet } from "@/components/register-sheet";
 
 const client = createAuthClient();
 
@@ -33,34 +35,50 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in to Termwise</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Use your college account.</p>
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+    <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(28rem,36rem)]">
+      <section className="relative hidden flex-col justify-between overflow-hidden bg-muted px-10 py-10 lg:flex xl:px-16" aria-label="About Termwise">
+        <p className="flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight"><Mark />Termwise</p>
+        <div className="space-y-8">
+          <div className="max-w-md">
+            <h2 className="text-[2rem] leading-[1.1] font-semibold tracking-[-0.025em] text-balance">Attendance in class, even with no signal.</h2>
+            <p className="mt-3 text-base text-muted-foreground">Everyone starts present; one tap per absentee. It syncs later and never overwrites another teacher’s sheet.</p>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="h-11 w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
-        </form>
-        <div className="mt-8 rounded-xl border bg-card p-4 text-sm">
-          <p className="font-medium">Demo accounts</p>
-          <p className="mt-0.5 text-muted-foreground">Password: <span className="font-mono">termwise-demo</span></p>
-          <div className="mt-3 flex gap-2">
-            {DEMO.map((d) => (
-              <Button key={d.email} type="button" variant="outline" size="sm" onClick={() => { setEmail(d.email); setPassword("termwise-demo"); }}>
-                {d.label}
-              </Button>
-            ))}
+          <RegisterSheet />
+        </div>
+        <p className="text-sm text-muted-foreground">One student record, from admission to graduation.</p>
+      </section>
+
+      <section className="flex flex-col justify-center px-4 py-10 sm:px-10">
+        <div className="mx-auto w-full max-w-sm">
+          <p className="mb-10 flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-tight lg:hidden"><Mark />Termwise</p>
+          <h1 className="text-2xl leading-tight font-semibold tracking-[-0.02em]">Sign in</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Use your college account.</p>
+          <form onSubmit={submit} className="mt-8 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11" />
+            </div>
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="h-11 w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</Button>
+          </form>
+          <div className="mt-8 rounded-xl bg-card p-4 text-sm shadow-sheet">
+            <p className="font-medium">Demo accounts</p>
+            <p className="mt-0.5 text-muted-foreground">Password: termwise-demo</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {DEMO.map((d) => (
+                <Button key={d.email} type="button" variant="outline" className="h-10" onClick={() => { setEmail(d.email); setPassword("termwise-demo"); }}>
+                  {d.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
+

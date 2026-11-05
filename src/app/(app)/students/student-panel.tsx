@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/states";
-import { SectionHeading, StatusPill } from "@/components/page";
+import { AttendanceMeter, SectionHeading, StatusPill } from "@/components/page";
+import { Initials } from "./students-table";
 import { dues } from "@/domain/fees";
 import { istDate } from "@/domain/attendance";
 import { rupees } from "@/lib/utils";
@@ -34,22 +35,27 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
           </>
         ) : (
           <>
-            <SheetHeader>
-              <SheetTitle>{d.student.name}</SheetTitle>
-              <SheetDescription><span className="font-mono">{d.student.rollNo}</span> · {d.student.programme} · Year {d.student.year}</SheetDescription>
+            <SheetHeader className="flex-row items-center gap-3 border-b border-border pb-4">
+              <Initials name={d.student.name} />
+              <div className="min-w-0">
+                <SheetTitle className="text-lg">{d.student.name}</SheetTitle>
+                <SheetDescription>{d.student.rollNo} · {d.student.programme} · Year {d.student.year}</SheetDescription>
+              </div>
             </SheetHeader>
             <div className="space-y-2 px-4 pb-8">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <p className="rounded-xl border p-3"><span className="block font-mono text-xl">{d.overall ?? "–"}{d.overall !== null && "%"}</span><span className="text-muted-foreground">Attendance</span></p>
-                {d.instalments && <p className="rounded-xl border p-3"><span className="block font-mono text-xl">{rupees(dues(d.instalments, istDate()).totalPaise)}</span><span className="text-muted-foreground">Fee due</span></p>}
-              </div>
-              <p className="text-sm text-muted-foreground">Mentor: {d.student.mentor ?? "None"}</p>
+              <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border text-sm shadow-sheet">
+                <div className="bg-card p-3.5"><dt className="text-muted-foreground">Attendance</dt><dd className={`mt-1 text-xl font-medium tabular-nums ${d.overall !== null && d.overall < d.student.cutoff ? "text-absent" : ""}`}>{d.overall ?? "–"}{d.overall !== null && "%"}</dd></div>
+                {d.instalments
+                  ? <div className="bg-card p-3.5"><dt className="text-muted-foreground">Fee due</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{rupees(dues(d.instalments, istDate()).totalPaise)}</dd></div>
+                  : <div className="bg-card p-3.5"><dt className="text-muted-foreground">Line</dt><dd className="mt-1 text-xl font-medium tabular-nums">{d.student.cutoff}%</dd></div>}
+              </dl>
+              <p className="pt-1 text-sm text-muted-foreground">Mentor: <span className="text-foreground">{d.student.mentor ?? "None"}</span></p>
 
               {d.flags.length > 0 && (
                 <>
                   <SectionHeading title="At risk" count={d.flags.length} />
                   {d.flags.map((f, i) => (
-                    <div key={i} className="rounded-xl bg-late-soft p-3 text-sm">
+                    <div key={i} className="rounded-xl bg-late-soft p-3.5 text-sm text-foreground">
                       <p>{f.reason}</p>
                       {f.taskId && f.taskStatus === "open" && !isAdmin && (
                         <div className="mt-2 flex gap-2">
@@ -66,19 +72,13 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
 
               <SectionHeading title="Attendance by subject" count={d.subjects.length} />
               {d.subjects.length === 0 ? <p className="text-sm text-muted-foreground">No sessions marked yet.</p> : (
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-2.5 text-sm">
                   {d.subjects.map((s) => {
                     const short = s.percent !== null && s.percent < d.student.cutoff;
                     return (
-                      <li key={s.name}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate">{s.name}</span>
-                          <span className="flex items-center gap-2">{short && <StatusPill tone="absent">Shortage</StatusPill>}<span className="font-mono">{s.percent}%</span></span>
-                        </div>
-                        <div className="relative mt-1 h-1.5 rounded-full bg-muted" aria-hidden>
-                          <div className={short ? "h-full rounded-full bg-absent" : "h-full rounded-full bg-primary"} style={{ width: `${s.percent}%` }} />
-                          <div className="absolute inset-y-[-2px] w-px bg-foreground" style={{ left: `${d.student.cutoff}%` }} />
-                        </div>
+                      <li key={s.name} className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2"><span className="truncate">{s.name}</span>{short && <StatusPill tone="absent">Shortage</StatusPill>}</span>
+                        <AttendanceMeter pct={s.percent} threshold={d.student.cutoff} />
                       </li>
                     );
                   })}
@@ -96,7 +96,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
                         <span className="truncate">{name}</span>
                         <span className="flex items-center gap-2">
                           {rows[0].status === "locked" && <StatusPill>Locked</StatusPill>}
-                          <span className="font-mono">{total}/40</span>
+                          <span className="tabular-nums">{total}<span className="text-muted-foreground">/40</span></span>
                         </span>
                       </li>
                     );
@@ -109,7 +109,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
                   <SectionHeading title="Fees" count={d.instalments.length} />
                   <ul className="space-y-1 text-sm">
                     {d.instalments.map((i) => (
-                      <li key={i.id} className="flex justify-between gap-2"><span>{i.label} <span className="text-muted-foreground">· due {i.dueDate}</span></span><span className="font-mono">{rupees(Math.max(0, i.amountPaise - i.scholarshipPaise - i.paidPaise))}</span></li>
+                      <li key={i.id} className="flex justify-between gap-2"><span>{i.label} <span className="text-muted-foreground">· due {i.dueDate}</span></span><span className="tabular-nums">{rupees(Math.max(0, i.amountPaise - i.scholarshipPaise - i.paidPaise))}</span></li>
                     ))}
                   </ul>
                 </>
