@@ -5,5 +5,5 @@ export async function signIn(page: Page, email: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("termwise-demo");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL(/\/(home|my)$/);
+  await page.waitForURL(/\/(home|my|trust)$/);
 }
