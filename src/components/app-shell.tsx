@@ -17,6 +17,7 @@ import { readSettings, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { can, isStaffRole, type Capability } from "@/domain/roles";
 import { clearOfflineData } from "@/offline/db";
+import { setCampus } from "@/app/(app)/campus-actions";
 import { setChild } from "@/app/(portal)/my/child-actions";
 
 type Item = { href: string; label: string; icon: NavIcon; short?: string; cap?: Capability };
@@ -116,8 +117,20 @@ function KidPicker({ kids, active, className }: { kids: Kid[]; active?: number; 
   );
 }
 
-export function AppShell({ role, name, campus, kids = [], activeKid, children }: {
-  role: ShellRole; name: string; campus: string; kids?: Kid[]; activeKid?: number; children: React.ReactNode;
+/** Campus switcher for logins with a staff row on more than one campus. The server only accepts the user's own campuses. */
+function CampusPicker({ campuses, active, className }: { campuses: { id: number; name: string }[]; active?: number; className?: string }) {
+  const router = useRouter();
+  if (campuses.length < 2) return null;
+  return (
+    <select aria-label="Campus" value={active} className={cn("h-8 w-full rounded-md border border-border bg-card px-2 text-sm", className)}
+      onChange={async (e) => { await setCampus(Number(e.target.value)); router.refresh(); }}>
+      {campuses.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+    </select>
+  );
+}
+
+export function AppShell({ role, name, campus, campuses = [], activeCampus, kids = [], activeKid, children }: {
+  role: ShellRole; name: string; campus: string; campuses?: { id: number; name: string }[]; activeCampus?: number; kids?: Kid[]; activeKid?: number; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -182,6 +195,7 @@ export function AppShell({ role, name, campus, kids = [], activeKid, children }:
           </button>
         </div>
         {!collapsed && <KidPicker kids={kids} active={activeKid} className="mb-3" />}
+        {!collapsed && <CampusPicker campuses={campuses} active={activeCampus} className="mb-3" />}
         <button onClick={() => setPalette(true)} title="Go to" aria-label="Go to"
           className={cn("mb-4 flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-sm text-muted-foreground shadow-raised transition-colors hover:text-foreground", collapsed && "justify-center px-0")}>
           <Search className="size-3.5" aria-hidden />
@@ -264,6 +278,7 @@ export function AppShell({ role, name, campus, kids = [], activeKid, children }:
       <Sheet open={more} onOpenChange={setMore}>
         <SheetContent side="bottom" className="gap-0 px-3 pt-4 pb-3">
           <SheetTitle className="px-3 pb-2 text-base">{campus}</SheetTitle>
+          <CampusPicker campuses={campuses} active={activeCampus} className="mb-2" />
           <nav aria-label="All areas" className="grid grid-cols-2 gap-1 overflow-y-auto">
             {(few ? [] : all.slice(4)).map((i) => (
               <Link key={i.href} href={i.href} onClick={() => setMore(false)} aria-current={active(i.href) ? "page" : undefined}
