@@ -1,7 +1,7 @@
 # Deployment
 
 Repository: https://github.com/moneytosms/termwise
-Live app: _added once deployed_
+Live app: https://termwise-s1vj.onrender.com
 
 ## Run it locally
 
@@ -33,6 +33,18 @@ Or run the whole stack in containers: `docker compose up --build` (migrates and 
 pnpm typecheck && pnpm lint && pnpm test   # unit tests
 pnpm build && E2E=1 pnpm e2e               # end-to-end tests on a phone viewport, on a freshly seeded database
 ```
+
+### Load test
+
+Simulates 7,800 students reading results at once, with one signed-in session reused for every request. Start the server first, with `E2E=1` so the sign-in rate limiter is off and `BETTER_AUTH_URL` set to the same origin the script calls:
+
+```bash
+pnpm build
+E2E=1 BETTER_AUTH_URL=http://localhost:3000 pnpm start
+BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts
+```
+
+The script reads four optional inputs: `BASE` (default `http://localhost:3000`), `EMAIL` (default `ankit.panda@termwise.demo`), `N` (requests, default 7800) and `C` (concurrency, default 200). They are script inputs, not app settings. It signs in with the demo password.
 
 The plain-English assistant and AI-worded risk reasons need an LLM key. Without one the assistant says no provider is configured, and risk reasons use the rule's own wording.
 
@@ -82,7 +94,8 @@ Password for every account: `termwise-demo`. All data is synthetic.
 | `admin@termwise.demo` | Office admin | Engineering College |
 | `mba.admin@termwise.demo` | Office admin | Management School |
 | `mba.faculty@termwise.demo` | Faculty, MBA | Management School |
+| `trust@termwise.demo` | Trust secretary (all campuses, read-only) | All campuses |
 
-Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent.
+Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent. The guardian `pallavi.jena@termwise.demo` (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.
 
 Try first: sign in as `faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.
