@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RecordModal } from "@/components/record-modal";
 import { EmptyState } from "@/components/states";
 import { SectionHeading, StatusPill, type Tone } from "@/components/page";
@@ -12,6 +14,8 @@ import { Initials } from "../students/students-table";
 import { CATEGORY_LABEL, checklistComplete, checklistProgress, type ApplicantCategory, type DocStatus } from "@/domain/applicants";
 import { istDate } from "@/domain/attendance";
 import { isMinor } from "@/domain/templates";
+import { confirmBlocker } from "@/domain/admission";
+import { confirmAdmission, rejectAdmission } from "./admission-actions";
 import { saveConsent, updateApplicantDocument } from "./actions";
 import type { ApplicantDetail } from "./queries";
 
@@ -33,6 +37,8 @@ function ageOn(birthDate: string, today: string) {
 export function ApplicantPanel({ detail }: { detail: ApplicantDetail | null }) {
   const router = useRouter();
   const [busy, start] = useTransition();
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
   const close = () => router.push("/applicants", { scroll: false });
   const d = detail;
 
@@ -59,6 +65,18 @@ export function ApplicantPanel({ detail }: { detail: ApplicantDetail | null }) {
     if (r.error) toast.error(r.error); else router.refresh();
   });
 
+  const blocker = confirmBlocker({ items: d.checklist, birthDate: d.birthDate, parentConsentAt: d.parentConsentAt, status: d.status }, today);
+
+  const confirm = () => start(async () => {
+    const r = await confirmAdmission(d.id);
+    if (r.error) toast.error(r.error); else { toast.success(`Confirmed as ${r.rollNo}`); router.refresh(); }
+  });
+
+  const reject = () => start(async () => {
+    const r = await rejectAdmission(d.id, reason);
+    if (r.error) toast.error(r.error); else { toast.success("Applicant rejected."); setRejecting(false); setReason(""); router.refresh(); }
+  });
+
   const consent = (fd: FormData) => start(async () => {
     fd.set("applicantId", String(d.id));
     const r = await saveConsent(fd);
@@ -73,16 +91,37 @@ export function ApplicantPanel({ detail }: { detail: ApplicantDetail | null }) {
       leading={<Initials name={d.name} />}
       onClose={close}
       nav={{ key: "applicants", id: String(d.id), href: (id) => `/applicants?applicant=${id}` }}
-      footer={<div className="flex flex-wrap gap-2">{/* admission actions */}</div>}>
+      footer={editable ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button disabled={busy || !!blocker} onClick={confirm}>Confirm admission</Button>
+          <Button variant="outline" disabled={busy} onClick={() => setRejecting((r) => !r)}>Reject</Button>
+          {blocker && <span className="text-sm text-muted-foreground">{blocker}</span>}
+        </div>
+      ) : undefined}>
       <div className="space-y-2 pb-2">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill tone={STATUS[d.status].tone}>{STATUS[d.status].label}</StatusPill>
           {minor && <StatusPill tone="late">Minor</StatusPill>}
+          {d.status === "confirmed" && d.studentId && (
+            <span className="text-sm">Confirmed as {d.rollNo} · <Link href={`/students?student=${d.studentId}`} className="underline underline-offset-4">Open student</Link></span>
+          )}
           {d.status === "rejected" && d.rejectReason && <span className="text-sm text-muted-foreground">{d.rejectReason}</span>}
         </div>
       </div>
 
       <div className="space-y-6 pb-8">
+        {rejecting && editable && (
+          <form className="grid w-full gap-3" onSubmit={(e) => { e.preventDefault(); reject(); }}>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Reason for rejecting
+              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} minLength={5} maxLength={500} required />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" variant="destructive" disabled={busy || reason.trim().length < 5}>Confirm rejection</Button>
+              <Button type="button" variant="outline" onClick={() => setRejecting(false)}>Cancel</Button>
+            </div>
+          </form>
+        )}
         <dl className="grid gap-3 sm:grid-cols-2">
           <div className={card}><dt className="text-muted-foreground">Birth date</dt><dd className="mt-1 tabular-nums">{d.birthDate}</dd></div>
           <div className={card}><dt className="text-muted-foreground">Age</dt><dd className="mt-1 tabular-nums">{ageOn(d.birthDate, today)}</dd></div>
