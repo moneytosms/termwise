@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Code2, Copy, Download, RotateCcw, SquarePen } from "lucide-react";
+import { ArrowUp, Check, Code2, Copy, Download, History, RotateCcw, Square, SquarePen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SelectField } from "@/components/select-field";
 import { Termy, type TermyPose } from "@/components/termy";
 import { cn } from "@/lib/utils";
 import type { AssistantAnswer } from "@/server/assistant/ask";
-import { askAction } from "./actions";
 
-type Result = AssistantAnswer | { kind: "error"; model?: string };
+type Result = AssistantAnswer | { kind: "error" | "stopped"; model?: string };
 type Turn = { id: number; question: string; result: Result | null };
+type Chat = { id: string; title: string; turns: Turn[]; at: number };
 type Effort = "low" | "medium" | "high";
 export type ModelOption = { id: string; label: string; hint: string };
 
@@ -35,38 +36,83 @@ const EFFORTS: { id: Effort; label: string; hint: string }[] = [
   { id: "medium", label: "Balanced", hint: "More thought for multi-step questions" },
   { id: "high", label: "Deep", hint: "Slowest; for tricky comparisons" },
 ];
-const POSE: Record<Result["kind"], TermyPose> = { answer: "answer", clarify: "idle", refused: "refused", unavailable: "error", error: "error" };
+const POSE: Record<Result["kind"], TermyPose> = { answer: "answer", clarify: "idle", refused: "refused", unavailable: "error", error: "error", stopped: "idle" };
 const PREFS = "termwise:termy";
+const MAX_CHATS = 20;
 const FIGURE = /^[-+]?[\d,.]+%?$/;
 const cell = (v: unknown) => (v === null || v === undefined ? "–" : typeof v === "object" ? JSON.stringify(v) : String(v));
+const newId = () => Math.random().toString(36).slice(2, 10);
 
-function loadPrefs(models: ModelOption[]): { model: string; effort: Effort } {
-  const fallback = { model: models[0]?.id ?? "lite", effort: "low" as Effort };
-  try {
-    const p = JSON.parse(localStorage.getItem(PREFS) ?? "{}");
-    return { model: models.some((m) => m.id === p.model) ? p.model : fallback.model, effort: EFFORTS.some((e) => e.id === p.effort) ? p.effort : "low" };
-  } catch { return fallback; }
+function load<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback; } catch { return fallback; }
+}
+function save(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full or blocked: chat still works, just not kept */ }
 }
 
-export function AssistantChat({ role, models, initial }: { role: "faculty" | "office_admin"; models: ModelOption[]; initial?: string }) {
+export function AssistantChat({ role, userId, models, initial }: { role: "faculty" | "office_admin"; userId: string; models: ModelOption[]; initial?: string }) {
+  const CHATS = `termwise:termy-chats:${userId}`;
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [chatId, setChatId] = useState(newId);
   const [busy, setBusy] = useState(false);
-  const [prefs, setPrefs] = useState({ model: models[0]?.id ?? "lite", effort: "low" as Effort });
+  const [prefs, setPrefs] = useState({ model: models[0]?.id ?? "", effort: "low" as Effort });
   const seq = useRef(0);
+  const ctrl = useRef<AbortController | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const asked = useRef(false);
 
-  useEffect(() => { setPrefs(loadPrefs(models)); }, [models]); // eslint-disable-line react-hooks/set-state-in-effect -- localStorage is client-only
+  // localStorage is client-only, so prefs and saved chats load after mount.
+  useEffect(() => {
+    const p = load<{ model?: string; effort?: Effort }>(PREFS, {});
+    setPrefs({ model: models.some((m) => m.id === p.model) ? p.model! : models[0]?.id ?? "", effort: EFFORTS.some((e) => e.id === p.effort) ? p.effort! : "low" }); // eslint-disable-line react-hooks/set-state-in-effect
+    setChats(load<Chat[]>(CHATS, []));
+  }, [models, CHATS]);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns]);
   // "Ask Termy" links elsewhere arrive as /assistant?q=...
-  useEffect(() => { if (initial && !asked.current) { asked.current = true; void ask(initial); } }); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initial && !asked.current) { asked.current = true; void ask(initial); } });
+  useEffect(() => {
+    if (!busy) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") stop(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy]);
+  useEffect(() => () => ctrl.current?.abort(), []);
+
+  // Keep the current chat in the saved list once it has a settled turn.
+  useEffect(() => {
+    const settled = turns.filter((t) => t.result !== null);
+    if (!settled.length) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mirrors turns into the saved list and localStorage
+    setChats((cs) => {
+      const next = [{ id: chatId, title: settled[0].question, turns: settled, at: Date.now() }, ...cs.filter((c) => c.id !== chatId)].slice(0, MAX_CHATS);
+      save(CHATS, next);
+      return next;
+    });
+  }, [turns, chatId, CHATS]);
 
   function pick(next: Partial<typeof prefs>) {
     const p = { ...prefs, ...next };
     setPrefs(p);
-    try { localStorage.setItem(PREFS, JSON.stringify(p)); } catch { /* storage blocked */ }
+    save(PREFS, p);
+  }
+
+  function stop() { ctrl.current?.abort(); }
+
+  function open(c: Chat | null) {
+    stop();
+    setTurns(c?.turns ?? []);
+    setChatId(c?.id ?? newId());
+    seq.current = Math.max(0, ...(c?.turns ?? []).map((t) => t.id));
+    setText("");
+    box.current?.focus();
+  }
+
+  function remove(id: string) {
+    setChats((cs) => { const next = cs.filter((c) => c.id !== id); save(CHATS, next); return next; });
+    if (id === chatId) open(null);
   }
 
   async function ask(question: string, retryId?: number) {
@@ -78,31 +124,47 @@ export function AssistantChat({ role, models, initial }: { role: "faculty" | "of
       const a = t.result as Extract<AssistantAnswer, { kind: "answer" }>;
       return { question: t.question, summary: a.summary, sql: a.sql };
     });
+    const c = new AbortController();
+    ctrl.current = c;
     setBusy(true);
     setTurns((ts) => (retryId === undefined ? [...ts, { id, question: q, result: null }] : ts.map((t) => (t.id === id ? { ...t, result: null } : t))));
     if (retryId === undefined) setText("");
+    const settle = (result: Result) => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, result } : t)));
     try {
-      const r = await askAction(q, { ...prefs, history });
+      const res = await fetch("/api/assistant", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: c.signal,
+        body: JSON.stringify({ question: q, ...prefs, history }),
+      });
+      const r = (await res.json()) as { error?: string; answer?: AssistantAnswer };
       if (r.error || !r.answer) {
         toast.error(r.error ?? "Couldn't reach Termy.");
         setTurns((ts) => ts.filter((t) => t.id !== id));
         if (retryId === undefined) setText(q);
         return;
       }
-      const answer = r.answer;
-      setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, result: answer } : t)));
+      settle(r.answer);
     } catch {
-      setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, result: { kind: "error" } } : t)));
+      settle({ kind: c.signal.aborted ? "stopped" : "error" });
     } finally {
+      if (ctrl.current === c) ctrl.current = null;
       setBusy(false);
       box.current?.focus();
     }
   }
 
   const current = models.find((m) => m.id === prefs.model);
+  const list = (
+    <ChatList chats={chats} current={chatId} onOpen={open} onDelete={remove} />
+  );
 
   return (
-    <div className="flex h-[calc(100dvh-10rem-env(safe-area-inset-bottom))] flex-col overflow-hidden rounded-2xl bg-card shadow-sheet md:h-[calc(100dvh-4rem)]">
+    <div className="flex h-[calc(100dvh-10rem-env(safe-area-inset-bottom))] overflow-hidden rounded-2xl bg-card shadow-sheet md:h-[calc(100dvh-4rem)]">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-rule lg:flex" aria-label="Chats">
+        <div className="p-3"><Button variant="outline" className="w-full justify-start" onClick={() => open(null)}><SquarePen className="size-4" aria-hidden />New chat</Button></div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">{list}</div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex shrink-0 items-center gap-3 border-b border-rule px-4 py-3">
         <Termy pose={busy ? "thinking" : "idle"} className="size-9" />
         <div className="min-w-0 flex-1">
@@ -111,9 +173,11 @@ export function AssistantChat({ role, models, initial }: { role: "faculty" | "of
             {role === "faculty" ? "Only the subjects you teach" : "Your whole campus"} · reads data, never changes it
           </p>
         </div>
-        {turns.length > 0 && (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setTurns([])}><SquarePen className="size-4" aria-hidden />New chat</Button>
-        )}
+        <Popover>
+          <PopoverTrigger render={<Button variant="ghost" size="sm" className="lg:hidden" />}><History className="size-4" aria-hidden />Chats</PopoverTrigger>
+          <PopoverContent align="end" className="w-72 p-2">{list}</PopoverContent>
+        </Popover>
+        <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => open(null)}><SquarePen className="size-4" aria-hidden />New</Button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5" aria-live="polite">
@@ -152,7 +216,7 @@ export function AssistantChat({ role, models, initial }: { role: "faculty" | "of
       <form onSubmit={(e) => { e.preventDefault(); void ask(text); }} className="shrink-0 border-t border-rule p-3">
         <div className="mx-auto max-w-3xl rounded-xl bg-background p-2 shadow-field focus-within:ring-3 focus-within:ring-ring/30">
           <textarea ref={box} value={text} onChange={(e) => setText(e.target.value)} rows={1} maxLength={500}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void ask(text); } }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!busy) void ask(text); } }}
             aria-label="Ask Termy" placeholder={turns.length ? "Ask a follow-up, like “only CSE-2024”" : "Ask Termy a question"}
             className="field-sizing-content max-h-40 min-h-10 w-full resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground" />
           <div className="flex flex-wrap items-center gap-2">
@@ -168,10 +232,13 @@ export function AssistantChat({ role, models, initial }: { role: "faculty" | "of
             </div>
             <span className="hidden flex-1 truncate text-xs text-muted-foreground sm:block">{current?.hint}{current && " · "}Enter to send, Shift+Enter for a new line</span>
             <span className="flex-1 sm:hidden" />
-            <Button type="submit" size="icon-sm" disabled={busy || text.trim().length < 3} aria-label="Send"><ArrowUp /></Button>
+            {busy
+              ? <Button type="button" size="icon-sm" variant="outline" onClick={stop} aria-label="Stop" title="Stop (Esc)"><Square className="fill-current" /></Button>
+              : <Button type="submit" size="icon-sm" disabled={text.trim().length < 3} aria-label="Send"><ArrowUp /></Button>}
           </div>
         </div>
       </form>
+      </div>
     </div>
   );
 }
@@ -193,6 +260,12 @@ function Reply({ r, onRetry }: { r: Result; onRetry: () => void }) {
   if (r.kind === "answer") return <><Answer a={r} />{meta}</>;
   if (r.kind === "clarify") return <><Bubble>{r.message}</Bubble>{meta}</>;
   if (r.kind === "refused") return <><Bubble tone="warn">{r.message}</Bubble>{meta}</>;
+  if (r.kind === "stopped") return (
+    <Bubble>
+      <p className="text-muted-foreground">Stopped.</p>
+      <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}><RotateCcw className="size-3.5" aria-hidden />Ask again</Button>
+    </Bubble>
+  );
   return (
     <Bubble tone="warn" alert>
       <p>{r.kind === "unavailable" ? r.message : "Couldn't reach Termy."}</p>
@@ -269,5 +342,21 @@ function Answer({ a }: { a: Extract<AssistantAnswer, { kind: "answer" }> }) {
       </div>
       {sql && <pre className="overflow-x-auto rounded-xl bg-muted/70 p-3 font-code text-xs whitespace-pre-wrap">{a.sql}</pre>}
     </div>
+  );
+}
+
+function ChatList({ chats, current, onOpen, onDelete }: { chats: Chat[]; current: string; onOpen: (c: Chat) => void; onDelete: (id: string) => void }) {
+  if (!chats.length) return <p className="px-2 py-3 text-xs text-muted-foreground">Past chats on this device show here.</p>;
+  return (
+    <ul className="space-y-0.5">
+      {chats.map((c) => (
+        <li key={c.id} className="group flex items-center">
+          <button type="button" onClick={() => onOpen(c)} aria-current={c.id === current || undefined}
+            className={cn("min-w-0 flex-1 truncate rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-muted", c.id === current && "bg-muted font-medium")}>{c.title}</button>
+          <button type="button" onClick={() => onDelete(c.id)} aria-label={`Delete chat: ${c.title}`}
+            className="ml-0.5 grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 max-lg:opacity-100"><Trash2 className="size-3.5" /></button>
+        </li>
+      ))}
+    </ul>
   );
 }
