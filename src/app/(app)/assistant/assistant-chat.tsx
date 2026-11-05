@@ -20,7 +20,7 @@ export type ModelOption = { id: string; label: string; hint: string };
 
 const ASKS = {
   office_admin: "students, attendance, marks and fees", faculty: "students, attendance, marks",
-  admissions: "students", exams: "students and marks", accounts: "students and fees",
+  hod: "your department's students, attendance, marks and risk flags", admissions: "students", exams: "students and marks", accounts: "students and fees",
 };
 
 const EXAMPLES = {
@@ -35,6 +35,12 @@ const EXAMPLES = {
     "Who scored under half in my latest test?",
     "Which of my students are flagged at risk?",
     "My subjects' attendance this week",
+  ],
+  hod: [
+    "Which students in my department are below 75% this month?",
+    "Who is flagged at risk in my department?",
+    "Average internal marks by subject",
+    "Which subjects have the lowest attendance this week?",
   ],
   admissions: [
     "How many students are in each batch?",
@@ -201,7 +207,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: keyof t
         <div className="min-w-0 flex-1">
           <h1 className="font-semibold leading-tight">Termy</h1>
           <p className="truncate text-xs text-muted-foreground">
-            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : role === "hr" ? "Nothing to query for HR yet" : "Your whole campus"} · reads data, never changes it
+            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : role === "hr" ? "Nothing to query for HR yet" : role === "hod" ? "Only your department" : "Your whole campus"} · reads data, never changes it
           </p>
         </div>
         <Popover>

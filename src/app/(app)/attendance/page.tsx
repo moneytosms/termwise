@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { PageHeader, SectionHeading, StatCard, StatStrip, StatusPill } from "@/components/page";
 import { EmptyState } from "@/components/states";
 import { cn } from "@/lib/utils";
-import { requireCan } from "@/server/access";
+import { can } from "@/domain/roles";
+import { requireViewer } from "@/server/access";
 import { ConflictPanel } from "./conflict-panel";
 import { ConflictsTable } from "./conflicts-table";
 import { getConflictDetail, getSessionDetail, listConflicts, listSessions, openConflictCount, sessionStats } from "./queries";
@@ -15,7 +17,9 @@ const isUuid = (s?: string) => !!s && z.uuid().safeParse(s).success;
 export default async function AttendancePage({ searchParams }: {
   searchParams: Promise<{ tab?: string; filter?: string; session?: string; conflict?: string }>;
 }) {
-  const v = await requireCan("attendance");
+  const v = await requireViewer();
+  if (!can(v.role, "attendance") && !can(v.role, "attendance_view")) redirect("/home");
+  const viewOnly = !can(v.role, "attendance");
   const { tab, filter, session, conflict } = await searchParams;
   const onConflicts = tab === "conflicts";
   const base = new URLSearchParams({ tab: onConflicts ? "conflicts" : "sessions" });
@@ -45,7 +49,7 @@ export default async function AttendancePage({ searchParams }: {
 
   return (
     <>
-      <PageHeader title="Attendance" description="Sessions marked across the campus and sync conflicts to resolve." />
+      <PageHeader title="Attendance" description={viewOnly ? "Sessions marked in your department. View only." : "Sessions marked across the campus and sync conflicts to resolve."} />
       <nav aria-label="Attendance tabs" className="mb-6 flex gap-1 border-b">
         {tabLink("sessions", "Sessions")}
         {tabLink("conflicts", "Conflicts", open)}
@@ -81,7 +85,7 @@ export default async function AttendancePage({ searchParams }: {
           <SectionHeading title="Sessions" count={sessions.length} />
           <SessionsTable rows={sessions} base={baseQs} />
           {!onConflicts && session && (
-            <SessionPanel key={session} detail={sessionDetail} base={baseQs} />
+            <SessionPanel key={session} detail={sessionDetail} base={baseQs} readOnly={viewOnly} />
           )}
         </>
       )}
@@ -90,7 +94,7 @@ export default async function AttendancePage({ searchParams }: {
         <>
           <SectionHeading title="Sync conflicts" count={conflicts.length} />
           <ConflictsTable rows={conflicts} base={baseQs} />
-          {conflict && <ConflictPanel key={conflict} detail={conflictDetail} base={baseQs} />}
+          {conflict && <ConflictPanel key={conflict} detail={conflictDetail} base={baseQs} readOnly={viewOnly} />}
         </>
       )}
     </>

@@ -19,8 +19,9 @@ export default async function LeavePage() {
     <>
       <PageHeader title="Leave" description={can(v.role, "staff_leave")
         ? "Leave waiting for the office, and your own leave."
+        : can(v.role, "dept_leave") ? "Leave waiting for you from your department's faculty, and your own leave."
         : "Apply for casual, medical and on-duty leave. The office approves it."} />
-      {can(v.role, "staff_leave") && <OfficeQueue v={v} />}
+      {(can(v.role, "staff_leave") || can(v.role, "dept_leave")) && <OfficeQueue v={v} />}
       <SectionHeading title={`Your leave in ${year}`} />
       <Balances leaves={mine} year={year} />
       <div className="mt-4 rounded-xl bg-card p-4 shadow-sheet">
@@ -61,7 +62,7 @@ async function OfficeQueue({ v }: { v: Viewer }) {
   };
   return (
     <>
-      <SectionHeading title="Waiting for the office" count={pending.length} />
+      <SectionHeading title={can(v.role, "staff_leave") ? "Waiting for the office" : "Waiting for you"} count={pending.length} />
       {pending.length === 0 ? <EmptyState title="No leave waiting." /> : (
         <ul className="space-y-3">
           {pending.map((p) => (

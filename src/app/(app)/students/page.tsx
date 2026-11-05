@@ -12,9 +12,9 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
   const detail = student && /^\d+$/.test(student) ? await getStudentDetail(v, Number(student)).catch(() => null) : null;
   return (
     <>
-      <PageHeader title="Students" description={<>{can(v.role, "teach") ? "Your subjects and mentees" : `${rows.length} on this campus`} · <span className="text-foreground">{rows.filter((r) => r.shortage).length} below the attendance line</span></>} />
+      <PageHeader title="Students" description={<>{can(v.role, "teach") ? "Your subjects and mentees" : can(v.role, "dept_students") ? `${rows.length} in your department` : `${rows.length} on this campus`} · <span className="text-foreground">{rows.filter((r) => r.shortage).length} below the attendance line</span></>} />
       <StudentsTable rows={rows} isAdmin={can(v.role, "campus_students")} initialFilters={{ ...(batch && { Batch: batch }), ...(flag && { "At risk": "Flagged" }), ...(attendance === "Shortage" && { Attendance: "Shortage" }) }} />
-      {student && <StudentPanel detail={detail} isAdmin={can(v.role, "campus_students")} />}
+      {student && <StudentPanel detail={detail} isAdmin={can(v.role, "campus_students")} viewOnly={can(v.role, "dept_students")} />}
     </>
   );
 }

@@ -2,7 +2,7 @@ import { auditLog } from "./schema";
 import type { Tx } from "./db";
 import type { Viewer } from "./access";
 
-const OFFICE_LABEL: Record<string, string> = { admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR" };
+const OFFICE_LABEL: Record<string, string> = { admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", hod: "HoD" };
 
 /** Write inside the same transaction as the change it records. */
 export function audit(

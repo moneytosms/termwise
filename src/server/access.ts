@@ -7,6 +7,7 @@ import { getPortalViewer } from "./portal";
 import { batch, programme, staff, student, subject } from "./schema";
 import { CAMPUS_COOKIE, resolveActiveRow } from "@/domain/active-campus";
 import { can, type Capability, type StaffRole } from "@/domain/roles";
+import { departmentLimit } from "@/domain/department-scope";
 
 export type Viewer = {
   userId: string;
@@ -83,13 +84,24 @@ export async function requireCan(cap: Capability): Promise<Viewer> {
 }
 
 /**
+ * Programmes this viewer may see, as a Drizzle condition on `programme`: their campus,
+ * and for a head of department only their own department.
+ */
+export function programmeScope(v: Viewer) {
+  const onCampus = eq(programme.campusId, v.campusId);
+  const limit = departmentLimit(v);
+  if (limit === null) return onCampus;
+  return and(onCampus, limit === "none" ? sql`false` : eq(programme.departmentId, limit));
+}
+
+/**
  * Students this viewer may see, as a Drizzle condition on `student`.
  * Admin: everyone on their campus. Faculty: their subjects' batches plus their mentees.
  * Join `batch` and `programme` when using it.
  */
 export function studentScope(v: Viewer) {
-  const onCampus = eq(programme.campusId, v.campusId);
-  if (can(v.role, "campus_students")) return onCampus;
+  const onCampus = programmeScope(v);
+  if (can(v.role, "campus_students") || can(v.role, "dept_students")) return onCampus;
   const teaches = db.select({ id: subject.batchId }).from(subject).where(eq(subject.facultyId, v.staffId));
   return and(onCampus, or(inArray(student.batchId, teaches), eq(student.mentorId, v.staffId)));
 }
@@ -111,4 +123,14 @@ export async function assertSubjectAccess(v: Viewer, subjectId: number) {
     .where(eq(subject.id, subjectId));
   if (!row || row.campusId !== v.campusId) throw new AccessError("Not on your campus");
   if (!can(v.role, "moderate_marks") && row.facultyId !== v.staffId) throw new AccessError("Not your subject");
+}
+
+/** Read access to a subject: as assertSubjectAccess, and a head of department also sees subjects of their department. */
+export async function assertSubjectView(v: Viewer, subjectId: number) {
+  if (!can(v.role, "marks_view")) return assertSubjectAccess(v, subjectId);
+  const [row] = await db.select({ n: sql<number>`1` }).from(subject)
+    .innerJoin(batch, eq(subject.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(subject.id, subjectId), programmeScope(v)));
+  if (!row) throw new AccessError("Not in your department");
 }

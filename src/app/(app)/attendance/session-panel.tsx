@@ -19,7 +19,7 @@ const STATUS_OPTIONS = [
   { value: "late", label: "Late" },
 ];
 
-export function SessionPanel({ detail, base }: { detail: SessionDetail | null; base: string }) {
+export function SessionPanel({ detail, base, readOnly = false }: { detail: SessionDetail | null; base: string; readOnly?: boolean }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const [statuses, setStatuses] = useState<Record<number, AttendanceStatus>>(() =>
@@ -44,7 +44,7 @@ export function SessionPanel({ detail, base }: { detail: SessionDetail | null; b
       description={d && `${d.batch} · ${d.date} · Period ${d.period} · ${d.faculty} · Last edited ${d.editedAt}`}
       nav={d ? { key: "sessions", id: d.id, href: (id) => `/attendance?${base}&session=${id}` } : undefined}
       onClose={close}
-      footer={d && (
+      footer={d && !readOnly && (
         <>
           <span className="mr-auto self-center text-sm text-muted-foreground">{changed} changed</span>
           <Button onClick={save} disabled={busy || changed === 0 || !reason.trim()}>Save correction</Button>
@@ -56,15 +56,15 @@ export function SessionPanel({ detail, base }: { detail: SessionDetail | null; b
             {d.entries.map((e) => (
               <li key={e.studentId} className="flex items-center justify-between gap-3 px-3 py-2">
                 <span className="min-w-0"><span className="block tabular-nums text-xs text-muted-foreground">{e.rollNo}</span>{e.name}</span>
-                <SelectField aria-label={`Status for ${e.name}`} options={STATUS_OPTIONS} value={statuses[e.studentId]}
-                  onValueChange={(v) => { if (!busy) setStatuses((s) => ({ ...s, [e.studentId]: v as AttendanceStatus })); }} />
+                {readOnly ? <span className="text-sm">{STATUS_OPTIONS.find((o) => o.value === e.status)?.label}</span> : <SelectField aria-label={`Status for ${e.name}`} options={STATUS_OPTIONS} value={statuses[e.studentId]}
+                  onValueChange={(v) => { if (!busy) setStatuses((s) => ({ ...s, [e.studentId]: v as AttendanceStatus })); }} />}
               </li>
             ))}
           </ul>
-          <div className="space-y-2">
+          {!readOnly && <div className="space-y-2">
             <Label htmlFor="reason">Reason for correction (required)</Label>
             <Textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} />
-          </div>
+          </div>}
         </div>
       )}
     </RecordModal>
