@@ -62,8 +62,14 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
     label: weekLabel(w.weekStart), pct: w.pct,
     title: `Week of ${weekLabel(w.weekStart)}: ${w.pct === null ? "no sessions" : `${w.pct}%`}`,
   }));
+  // Drop weeks before the term's first session so the line uses the full width.
+  const first = trend.findIndex((w) => w.pct !== null);
+  if (first > 0) trend.splice(0, Math.min(first, trend.length - 2));
   const trendNow = trend[trend.length - 1].pct;
-  const hasTrend = trend.some((w) => w.pct !== null);
+  const hasTrend = first >= 0;
+  const held = trend.flatMap((w) => (w.pct === null ? [] : [w.pct]));
+  const line = programme?.cutoff ?? LINE;
+  const prev = trend.length > 1 ? trend[trend.length - 2].pct : null;
   const toggles = [{ code: "All", href: "/home", on: !programme }, ...programmes.map((p) => ({ code: p.code, href: `/home?programme=${p.id}`, on: programme?.id === p.id }))];
 
   const subjectGroups = shortageByGroup(subjects);
@@ -89,7 +95,7 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
       </StatStrip>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        <Panel className="lg:col-span-2" title="Attendance, last 8 weeks"
+        <Panel className="lg:col-span-2" title={`Attendance by week, last ${trend.length}`}
           figure={trendNow === null ? "–" : <>{trendNow}<span className="text-base text-muted-foreground">%</span></>}
           action={programmes.length > 1 && (
             <nav aria-label="Trend by programme" className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
@@ -101,7 +107,21 @@ export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; progr
           )}>
           {hasTrend ? (
             <>
-              <TrendLine points={trend} reference={programme?.cutoff ?? LINE} label={`${programme?.code ?? "Campus"} attendance by week`} />
+              <TrendLine className="flex-1" points={trend} reference={line} label={`${programme?.code ?? "Campus"} attendance by week`} />
+              <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-rule text-sm sm:grid-cols-4">
+                {[
+                  ["This week", trendNow === null ? "–" : `${trendNow}%`, trendNow !== null && prev !== null ? `${trendNow >= prev ? "+" : ""}${Math.round((trendNow - prev) * 10) / 10} pts vs last week` : "No previous week"],
+                  ["Best week", `${Math.max(...held)}%`, `${held.length} ${held.length === 1 ? "week" : "weeks"} with classes`],
+                  ["Lowest week", `${Math.min(...held)}%`, `${Math.round((Math.min(...held) - line) * 10) / 10} pts from the line`],
+                  ["Weeks below line", String(held.filter((v) => v < line).length), held.some((v) => v < line) ? "Check the subjects panel" : "All weeks above the line"],
+                ].map(([k, v, hint]) => (
+                  <div key={k} className="bg-card px-3 py-2.5">
+                    <dt className="text-xs text-muted-foreground">{k}</dt>
+                    <dd className="mt-0.5 text-lg font-medium tabular-nums">{v}</dd>
+                    <dd className="text-xs text-muted-foreground">{hint}</dd>
+                  </div>
+                ))}
+              </dl>
               <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-foreground/60" aria-hidden />{programme?.cutoff ?? LINE}% shortage line</span>
                 <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-absent" aria-hidden />Week below the line</span>

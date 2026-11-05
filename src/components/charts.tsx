@@ -66,11 +66,13 @@ export function Progress({ filled, needed }: { filled: number; needed: number })
  * Weekly percentages as one line on a fixed scale, with a dashed reference line (the shortage line).
  * Each week is a dot carrying its value on hover; a week with no sessions leaves a gap in the line.
  */
-export function TrendLine({ points, reference, label }: {
-  points: { label: string; pct: number | null; title: string }[]; reference: number; label: string;
+/** `className` can make it grow (e.g. flex-1) to fill a stretched panel. */
+export function TrendLine({ points, reference, label, className }: {
+  points: { label: string; pct: number | null; title: string }[]; reference: number; label: string; className?: string;
 }) {
   const vals = points.flatMap((p) => (p.pct === null ? [] : [p.pct]));
-  const lo = Math.min(50, Math.floor(Math.min(reference, ...vals) / 10) * 10);
+  // Zoom to the data: a 5-point margin under the lowest of the line and the values, in steps of 5.
+  const lo = Math.max(0, Math.floor((Math.min(reference, ...vals) - 5) / 5) * 5);
   const y = (v: number) => 100 - ((v - lo) / (100 - lo)) * 100;
   const x = (i: number) => ((i + 0.5) / points.length) * 100;
   const segments: string[] = [];
@@ -80,16 +82,21 @@ export function TrendLine({ points, reference, label }: {
     cur += `${cur ? "L" : "M"}${x(i)} ${y(p.pct)} `;
   });
   if (cur) segments.push(cur);
+  const areas = segments.map((d) => {
+    const xs = [...d.matchAll(/[ML]([\d.]+) /g)].map((m) => m[1]);
+    return `${d}L${xs[xs.length - 1]} 100 L${xs[0]} 100 Z`;
+  });
   const summary = `${label}: ${points.map((p) => `${p.label} ${p.pct === null ? "no sessions" : `${p.pct}%`}`).join(", ")}`;
   return (
-    <div className="grid grid-cols-[2.25rem_1fr] gap-x-2">
-      <div className="relative h-44 text-[11px] text-muted-foreground tabular-nums" aria-hidden>
+    <div className={cn("grid grid-cols-[2.25rem_1fr] grid-rows-[1fr_auto] gap-x-2", className)}>
+      <div className="relative h-full min-h-56 text-[11px] text-muted-foreground tabular-nums" aria-hidden>
         {[100, reference, lo].map((t) => <span key={t} className="absolute right-0 -translate-y-1/2" style={{ top: `${y(t)}%` }}>{t}%</span>)}
       </div>
-      <div role="img" aria-label={summary} className="relative h-44">
+      <div role="img" aria-label={summary} className="relative h-full min-h-56">
         <span className="absolute inset-x-0 h-px bg-rule" style={{ top: `${y(100)}%` }} aria-hidden />
         <span className="absolute inset-x-0 border-t border-dashed border-foreground/45" style={{ top: `${y(reference)}%` }} aria-hidden />
         <svg className="absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+          {areas.map((d, i) => <path key={`a${i}`} d={d} className="fill-data/10" />)}
           {segments.map((d, i) => <path key={i} d={d} fill="none" className="stroke-data" strokeWidth={2} vectorEffect="non-scaling-stroke" />)}
         </svg>
         {points.map((p, i) => p.pct !== null && (
