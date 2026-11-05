@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
 import { TodayCarousel } from "../today-carousel";
+import { AcademicCalendar } from "./academic-calendar";
 import { getCalendar, getSlots, getTodayMarks, type Slot } from "./queries";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -15,14 +16,8 @@ const MARK: Record<AttendanceStatus, { tone: Tone; label: string }> = {
   late: { tone: "late", label: "Late" },
   absent: { tone: "absent", label: "Absent" },
 };
-const KIND: Record<"holiday" | "exam" | "event", { tone: Tone; label: string }> = {
-  holiday: { tone: "ok", label: "Holiday" },
-  exam: { tone: "late", label: "Exam" },
-  event: { tone: "default", label: "Event" },
-};
 
 const subjectName = (x: Slot) => x.name ?? x.label ?? "Other";
-const shortDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
 export default async function TimetablePage() {
   const v = await requirePortal();
@@ -31,7 +26,7 @@ export default async function TimetablePage() {
   const dow = istDayOfWeek();
   const now = istTime();
   const [slots, marks, calendar] = await Promise.all([
-    getSlots(s.batchId), getTodayMarks(s.batchId, v.studentId, today), getCalendar(v.campusId, today),
+    getSlots(s.batchId), getTodayMarks(s.batchId, v.studentId, today), getCalendar(v.campusId),
   ]);
   const holiday = calendar.find((d) => d.date === today && d.kind === "holiday");
   const todays = slots.filter((x) => x.day === dow);
@@ -101,18 +96,8 @@ export default async function TimetablePage() {
         </div>
       )}
 
-      <SectionHeading title="Coming up" count={calendar.length} />
-      {calendar.length === 0 ? <EmptyState title="Nothing on the campus calendar." /> : (
-        <ul className="overflow-hidden rounded-xl bg-card shadow-sheet">
-          {calendar.map((c, i) => (
-            <li key={i} className="flex items-center gap-3 border-b border-rule px-4 py-3 last:border-0">
-              <span className="w-24 shrink-0 text-sm text-muted-foreground tabular-nums">{shortDate(c.date)}</span>
-              <span className="min-w-0 flex-1 truncate">{c.label}</span>
-              <StatusPill tone={KIND[c.kind].tone}>{KIND[c.kind].label}</StatusPill>
-            </li>
-          ))}
-        </ul>
-      )}
+      <SectionHeading title="Academic calendar" />
+      <AcademicCalendar entries={calendar} today={today} />
     </>
   );
 }

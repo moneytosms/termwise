@@ -1,4 +1,4 @@
-import { and, asc, eq, gte } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import { attendanceEntry, attendanceSession, calendarDay, staff, subject, timetableSlot } from "@/server/schema";
 
@@ -29,9 +29,9 @@ export async function getTodayMarks(batchId: number, studentId: number, date: st
   return new Map(rows.map((r) => [`${r.subjectId}:${r.period}`, r.status]));
 }
 
-/** Campus calendar from `from` onwards, soonest first. */
-export function getCalendar(campusId: number, from: string) {
+/** The whole campus calendar, soonest first. */
+export function getCalendar(campusId: number) {
   return db.select({ date: calendarDay.date, kind: calendarDay.kind, label: calendarDay.label }).from(calendarDay)
-    .where(and(eq(calendarDay.campusId, campusId), gte(calendarDay.date, from)))
-    .orderBy(asc(calendarDay.date)).limit(5);
+    .where(eq(calendarDay.campusId, campusId))
+    .orderBy(asc(calendarDay.date));
 }
