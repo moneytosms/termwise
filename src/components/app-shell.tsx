@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BookOpenCheck, CalendarDays, CalendarOff, ClipboardCheck, History, Home, Inbox, IndianRupee, LogOut,
+  BookOpenCheck, CalendarDays, CalendarOff, ClipboardCheck, FileText, History, Home, Inbox, IndianRupee, LogOut,
   Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, UserRound, Users,
 } from "lucide-react";
 import { createAuthClient } from "better-auth/react";
@@ -45,6 +45,7 @@ const ADMIN: Group[] = [
   ] },
   { label: "Office", items: [
     { href: "/setup", label: "College setup", icon: Settings2, short: "Setup" },
+    { href: "/reports", label: "Reports", icon: FileText },
     { href: "/audit", label: "Audit log", icon: History, short: "Audit" },
   ] },
 ];
