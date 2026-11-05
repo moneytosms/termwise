@@ -5,7 +5,7 @@ import { applicableDocs } from "../src/domain/applicants";
 
 // Idempotent backfill for the applicant pipeline. Each part runs only while its table is still empty, so existing rows are never touched.
 
-const FEE_PAISE: Record<string, number> = { CSE: 9000000, ME: 9000000, MBA: 12000000 };
+const FEE_PAISE: Record<string, number> = { CSE: 9000000, ME: 9000000, MBA: 12000000, BPH: 5500000 };
 
 const DOCS: { name: string; categories: string[] | null }[] = [
   { name: "10th marksheet", categories: null },
@@ -18,7 +18,7 @@ const DOCS: { name: string; categories: string[] | null }[] = [
 ];
 
 // One letter per applicable document, in DOCS order: v verified, r received, p pending.
-type Spec = { name: string; programme: "CSE" | "MBA"; category: string; birthDate: string; consent?: boolean; docs: string };
+type Spec = { name: string; programme: "CSE" | "MBA" | "BPH"; category: string; birthDate: string; consent?: boolean; docs: string };
 const SPECS: Spec[] = [
   { name: "Ritika Nayak", programme: "CSE", category: "general", birthDate: "2005-06-18", docs: "vvvvv" },
   { name: "Sanjay Pradhan", programme: "CSE", category: "general", birthDate: "2005-02-09", docs: "vvvvr" },
@@ -36,6 +36,9 @@ const SPECS: Spec[] = [
   { name: "Subhasini Patra", programme: "MBA", category: "obc", birthDate: "2004-09-05", docs: "vvvpvp" },
   { name: "Abhishek Dash", programme: "MBA", category: "general", birthDate: "2003-08-28", docs: "rvppv" },
   { name: "Nilima Sahu", programme: "MBA", category: "ews", birthDate: "2004-05-11", docs: "vvpvvr" },
+  { name: "Sushree Dash", programme: "BPH", category: "general", birthDate: "2005-04-14", docs: "vvvvv" },
+  { name: "Bibhuti Sahoo", programme: "BPH", category: "obc", birthDate: "2004-08-22", docs: "vvpvvv" },
+  { name: "Kiran Pattanaik", programme: "BPH", category: "ews", birthDate: "2006-02-11", docs: "vvvvvr" },
 ];
 const GUARDIAN_FIRST = ["Prakash", "Ramesh", "Sarat", "Biswanath", "Dillip", "Kailash", "Manoj", "Pradeep"];
 const STATUS: Record<string, "verified" | "received" | "pending"> = { v: "verified", r: "received", p: "pending" };
@@ -58,8 +61,8 @@ export async function seedApplicants(password: string) {
   const [{ applicants }] = await db.select({ applicants: count() }).from(t.applicant);
   if (applicants > 0) return;
 
-  const programmes = await db.select().from(t.programme).where(inArray(t.programme.code, ["CSE", "MBA"]));
-  const batches = await db.select().from(t.batch).where(inArray(t.batch.code, ["CSE-2024", "MBA-2025"]));
+  const programmes = await db.select().from(t.programme).where(inArray(t.programme.code, ["CSE", "MBA", "BPH"]));
+  const batches = await db.select().from(t.batch).where(inArray(t.batch.code, ["CSE-2024", "MBA-2025", "BPH-2024"]));
   const required = await db.select().from(t.requiredDocument);
   const batchFor = (programme: string) => {
     const p = programmes.find((x) => x.code === programme)!;

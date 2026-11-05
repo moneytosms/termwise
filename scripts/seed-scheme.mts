@@ -29,6 +29,12 @@ const PROFILES: Record<string, Partial<typeof t.campus.$inferInsert>> = {
     phone: "+91 674 255 0190", email: "office@tsm-bbsr.example", website: "https://tsm-bbsr.example",
     affiliation: AFFILIATION, registrationNo: "AICTE-OR-2011-0233", gstin: "21AAGCT0000M1Z3", receiptFooter: RECEIPT_FOOTER,
   },
+  PHR: {
+    legalName: "Termwise College of Pharmacy", tagline: "Care, backed by science",
+    addressLine1: "Plot 22, Kalinga Vihar", city: "Bhubaneswar", state: "Odisha", pincode: "751019",
+    phone: "+91 674 255 0220", email: "office@tcp-bbsr.example", website: "https://tcp-bbsr.example",
+    affiliation: AFFILIATION, registrationNo: "PCI-OR-2013-0581", gstin: "21AAHCT0000P1Z1", receiptFooter: RECEIPT_FOOTER,
+  },
 };
 
 async function seedProfiles() {

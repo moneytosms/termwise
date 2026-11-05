@@ -34,14 +34,16 @@ async function person(campusId: number, departmentId: number | null, name: strin
   return s;
 }
 
-const [eng, mgmt] = await db.insert(t.campus).values([
+const [eng, mgmt, phr] = await db.insert(t.campus).values([
   { code: "ENG", name: "Engineering College" },
   { code: "MGT", name: "Management School" },
+  { code: "PHR", name: "Pharmacy College" },
 ]).returning();
 const [cseDept, meDept] = await db.insert(t.department).values([
   { campusId: eng.id, name: "Computer Science" }, { campusId: eng.id, name: "Mechanical" },
 ]).returning();
 const [mbaDept] = await db.insert(t.department).values([{ campusId: mgmt.id, name: "Management" }]).returning();
+const [phrDept] = await db.insert(t.department).values([{ campusId: phr.id, name: "Pharmaceutical Sciences" }]).returning();
 
 const admin = await person(eng.id, null, "Sunita Rath", "admin@termwise.demo", "office_admin");
 const faculty = await person(eng.id, cseDept.id, "Bibhu Prasad Sahoo", "faculty@termwise.demo", "faculty");
@@ -49,17 +51,22 @@ const faculty2 = await person(eng.id, cseDept.id, "Madhusmita Nayak", "faculty2@
 const meFaculty = await person(eng.id, meDept.id, "Ranjan Kumar Jena", "me.faculty@termwise.demo", "faculty");
 const mbaAdmin = await person(mgmt.id, null, "Lopamudra Das", "mba.admin@termwise.demo", "office_admin");
 const mbaFaculty = await person(mgmt.id, mbaDept.id, "Sandeep Mishra", "mba.faculty@termwise.demo", "faculty");
-void admin; void mbaAdmin;
+const phrAdmin = await person(phr.id, null, "Sasmita Behera", "phr.admin@termwise.demo", "office_admin");
+const phrFaculty = await person(phr.id, phrDept.id, "Debasis Mohapatra", "phr.faculty@termwise.demo", "faculty");
+const phrFaculty2 = await person(phr.id, phrDept.id, "Itishree Swain", "phr.faculty2@termwise.demo", "faculty");
+void admin; void mbaAdmin; void phrAdmin;
 
 const [cse, me] = await db.insert(t.programme).values([
   { campusId: eng.id, departmentId: cseDept.id, code: "CSE", name: "B.Tech CSE" },
   { campusId: eng.id, departmentId: meDept.id, code: "ME", name: "B.Tech Mechanical" },
 ]).returning();
 const [mba] = await db.insert(t.programme).values([{ campusId: mgmt.id, departmentId: mbaDept.id, code: "MBA", name: "MBA" }]).returning();
-const [cseB, meB, mbaB] = await db.insert(t.batch).values([
+const [bph] = await db.insert(t.programme).values([{ campusId: phr.id, departmentId: phrDept.id, code: "BPH", name: "B.Pharm" }]).returning();
+const [cseB, meB, mbaB, bphB] = await db.insert(t.batch).values([
   { programmeId: cse.id, code: "CSE-2024", admissionYear: 2024, year: 2, semester: 3 },
   { programmeId: me.id, code: "ME-2024", admissionYear: 2024, year: 2, semester: 3 },
   { programmeId: mba.id, code: "MBA-2025", admissionYear: 2025, year: 1, semester: 1 },
+  { programmeId: bph.id, code: "BPH-2024", admissionYear: 2024, year: 2, semester: 3 },
 ]).returning();
 
 async function subjects(batchId: number, rows: [string, string, number][]) {
@@ -71,6 +78,10 @@ const cseSubs = await subjects(cseB.id, [
 ]);
 const meSubs = await subjects(meB.id, [["ME301", "Thermodynamics", meFaculty.id], ["ME302", "Strength of Materials", meFaculty.id]]);
 const mbaSubs = await subjects(mbaB.id, [["MB101", "Managerial Economics", mbaFaculty.id], ["MB102", "Financial Accounting", mbaFaculty.id]]);
+const bphSubs = await subjects(bphB.id, [
+  ["BP301T", "Pharmaceutical Organic Chemistry II", phrFaculty.id], ["BP302T", "Physical Pharmaceutics I", phrFaculty2.id],
+  ["BP303T", "Pharmaceutical Microbiology", phrFaculty.id], ["BP304T", "Pharmaceutical Engineering", phrFaculty2.id],
+]);
 
 // 9-period grid. Sunday carries an extra class so the demo always has a class to mark.
 const PERIODS: [string, string][] = [["09:00", "09:50"], ["09:50", "10:40"], ["10:50", "11:40"], ["11:40", "12:30"], ["13:15", "14:05"], ["14:05", "14:55"], ["15:05", "15:55"], ["15:55", "16:45"], ["16:45", "17:35"]];
@@ -95,6 +106,7 @@ async function grid(batchId: number, subs: typeof cseSubs) {
 const cseSlots = await grid(cseB.id, cseSubs);
 const meSlots = await grid(meB.id, meSubs);
 const mbaSlots = await grid(mbaB.id, mbaSubs);
+const bphSlots = await grid(bphB.id, bphSubs);
 
 const today = new Date(istDate() + "T00:00:00Z");
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -102,6 +114,10 @@ const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
 await db.insert(t.calendarDay).values([
   { campusId: eng.id, date: iso(addDays(today, 12)), kind: "exam", label: "Mid-term exams begin" },
   { campusId: eng.id, date: iso(addDays(today, 25)), kind: "holiday", label: "Institute holiday" },
+  { campusId: mgmt.id, date: iso(addDays(today, 12)), kind: "exam", label: "Mid-term exams begin" },
+  { campusId: mgmt.id, date: iso(addDays(today, 25)), kind: "holiday", label: "Institute holiday" },
+  { campusId: phr.id, date: iso(addDays(today, 12)), kind: "exam", label: "Mid-term exams begin" },
+  { campusId: phr.id, date: iso(addDays(today, 25)), kind: "holiday", label: "Institute holiday" },
 ]);
 
 // Students: the brief's three keep their exact figures.
@@ -118,11 +134,24 @@ const cseStudents = await db.insert(t.student).values([
 ]).returning();
 const meStudents = await db.insert(t.student).values([
   { rollNo: "ENG-24-ME-0177", name: "Ankit Panda", batchId: meB.id, mentorId: meFaculty.id, birthDate: "2006-07-02", guardianName: "Sarat Panda", guardianPhone: "+91 90000 00177" },
-  ...Array.from({ length: 9 }, (_, i) => ({ rollNo: `ENG-24-ME-${String(i + 1).padStart(4, "0")}`, ...family(), batchId: meB.id, mentorId: meFaculty.id, birthDate: dob(2006), guardianPhone: `+91 90000 1000${i}` })),
+  ...Array.from({ length: 59 }, (_, i) => {
+    const num = String(i + 1).padStart(4, "0");
+    return { rollNo: `ENG-24-ME-${num}`, ...family(), batchId: meB.id, mentorId: meFaculty.id, birthDate: dob(2006), guardianPhone: `+91 90001 1${num}` };
+  }),
 ]).returning();
 const mbaStudents = await db.insert(t.student).values([
   { rollNo: "MBA-25-0093", name: "Farheen Ali", batchId: mbaB.id, mentorId: mbaFaculty.id, birthDate: "2003-11-21", guardianName: "Imran Ali", guardianPhone: "+91 90000 00093" },
+  ...Array.from({ length: 59 }, (_, i) => {
+    const num = String(i + 1).padStart(4, "0");
+    return { rollNo: `MBA-25-${num}`, ...family(), batchId: mbaB.id, mentorId: mbaFaculty.id, birthDate: dob(2003), guardianPhone: `+91 90001 2${num}` };
+  }),
 ]).returning();
+const bphStudents = await db.insert(t.student).values(
+  Array.from({ length: 40 }, (_, i) => {
+    const num = String(i + 1).padStart(4, "0");
+    return { rollNo: `PHR-24-BPH-${num}`, ...family(), batchId: bphB.id, mentorId: i % 2 ? phrFaculty2.id : phrFaculty.id, birthDate: dob(2006), guardianPhone: `+91 90001 3${num}` };
+  }),
+).returning();
 
 /**
  * Walks back from yesterday until exactly `targetPeriods` are held. Each student's absences are
@@ -161,6 +190,7 @@ async function history(slots: typeof cseSlots, batchId: number, subs: typeof cse
 await history(cseSlots, cseB.id, cseSubs, cseStudents, 200, new Map([[cseStudents[0].id, 81.5]]));
 await history(meSlots, meB.id, meSubs, meStudents, 220, new Map([[meStudents[0].id, 68.2]]));
 await history(mbaSlots, mbaB.id, mbaSubs, mbaStudents, 200, new Map([[mbaStudents[0].id, 92]]));
+await history(bphSlots, bphB.id, bphSubs, bphStudents, 200, new Map());
 
 // Marks: Mid-term 20, Assignment 10, Quiz 5, Attendance 5.
 const SPLIT = (total: number): number[] => {
@@ -192,6 +222,7 @@ const eqId = (id: number) => eq(t.subject.id, id);
 await marks(cseSubs, cseStudents, new Map([[cseStudents[0].id, 33]]), ["draft", "submitted", "locked", "submitted", "draft", "draft"]);
 await marks(meSubs, meStudents, new Map([[meStudents[0].id, 21]]), ["submitted", "submitted"]);
 await marks(mbaSubs, mbaStudents, new Map([[mbaStudents[0].id, 36]]), ["submitted", "submitted"]);
+await marks(bphSubs, bphStudents, new Map(), ["submitted", "locked", "draft", "submitted"]);
 
 // Fees: two instalments; the brief's dues are exact.
 async function fees(students: typeof cseStudents, pinnedDue: Map<number, number>, semesterFee: number) {
@@ -213,6 +244,7 @@ async function fees(students: typeof cseStudents, pinnedDue: Map<number, number>
 await fees(cseStudents, new Map([[cseStudents[0].id, 0]]), 90000);
 await fees(meStudents, new Map([[meStudents[0].id, 45000]]), 90000);
 await fees(mbaStudents, new Map([[mbaStudents[0].id, 0]]), 120000);
+await fees(bphStudents, new Map(), 55000);
 
 // One open conflict so the queue isn't empty in the demo: a second teacher's sheet for a session already saved.
 const [someSession] = await db.select().from(t.attendanceSession).where(eq(t.attendanceSession.subjectId, cseSubs[0].id)).limit(1);
@@ -231,7 +263,7 @@ await seedPortal(PASSWORD);
 // Rule-based reasons only at seed time, so a fresh demo has flags, mentor tasks and messages.
 delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 delete process.env.GROQ_API_KEY;
-for (const c of [eng, mgmt]) console.log(c.code, await runDailyJob(c.id, "schedule"));
+for (const c of [eng, mgmt, phr]) console.log(c.code, await runDailyJob(c.id, "schedule"));
 await seedScheme();
 await seedTrust(PASSWORD);
 await seedResults();
