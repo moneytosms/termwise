@@ -1,5 +1,5 @@
 import { SOURCE, TASK } from "./labels";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { istDate } from "@/domain/attendance";
 import { studentScope, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
@@ -23,7 +23,7 @@ export async function listRisk(v: Viewer): Promise<RiskRow[]> {
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .leftJoin(mentorTask, eq(mentorTask.flagId, riskFlag.id))
     .leftJoin(staff, eq(mentorTask.mentorId, staff.id))
-    .where(and(eq(riskFlag.active, true), studentScope(v)))
+    .where(and(eq(riskFlag.active, true), studentScope(v), isNull(student.graduatedOn)))
     .orderBy(desc(riskFlag.createdAt), desc(riskFlag.id));
 
   return rows.map((r) => ({

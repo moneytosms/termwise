@@ -6,7 +6,7 @@ import { z } from "zod";
 import { canAppeal, validateReason } from "@/domain/appeals";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { requirePortal } from "@/server/portal";
+import { ALUMNI_READ_ONLY, requirePortal } from "@/server/portal";
 import { portalStudent } from "@/server/portal-data";
 import { appeal, attendanceEntry, attendanceSession, mark, markComponent, subject } from "@/server/schema";
 
@@ -21,6 +21,7 @@ const input = z.object({
 export async function raiseAppeal(formData: FormData): Promise<{ error?: string }> {
   const v = await requirePortal();
   if (v.role !== "student") return { error: "Only the student can raise an appeal." };
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = input.safeParse({
     kind: formData.get("kind"),
     componentId: formData.get("componentId") || undefined,

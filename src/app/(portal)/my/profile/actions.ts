@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { requireParent, requirePortal } from "@/server/portal";
+import { ALUMNI_READ_ONLY, requireParent, requirePortal } from "@/server/portal";
 import { message, portalRequest, student } from "@/server/schema";
 
 const correctionSchema = z.object({
@@ -17,6 +17,7 @@ const correctionSchema = z.object({
 /** Asks the office to correct the student's profile. The student comes from the session, never the client. */
 export async function requestCorrection(body: string): Promise<{ error?: string }> {
   const v = await requirePortal();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = correctionSchema.safeParse({ body });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -34,6 +35,7 @@ export async function requestCorrection(body: string): Promise<{ error?: string 
 /** Parent consent for the active child. Giving it releases held messages; withdrawing only stops new ones being sent. */
 export async function setConsent(given: boolean): Promise<{ error?: string }> {
   const v = await requireParent();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
 
   const error = await db.transaction(async (tx) => {
     const [before] = await tx.select({ parentConsentAt: student.parentConsentAt }).from(student).where(eq(student.id, v.studentId));

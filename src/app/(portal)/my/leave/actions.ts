@@ -6,7 +6,7 @@ import { z } from "zod";
 import { istDate } from "@/domain/attendance";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { requireParent, requireStudent } from "@/server/portal";
+import { ALUMNI_READ_ONLY, requireParent, requireStudent } from "@/server/portal";
 import { leaveRequest } from "@/server/schema";
 import { dayCount, PENDING, shiftDate } from "./shared";
 
@@ -29,6 +29,7 @@ const applySchema = z.object({
 
 export async function applyLeave(input: { kind: string; fromDate: string; toDate: string; reason: string }): Promise<{ error?: string }> {
   const v = await requireStudent();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = applySchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
@@ -49,6 +50,7 @@ const idSchema = z.number().int().positive();
 /** Student withdraws their own request while a parent or mentor still has it. */
 export async function withdrawLeave(id: number): Promise<{ error?: string }> {
   const v = await requireStudent();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { error: "Request not found." };
 
@@ -75,6 +77,7 @@ const decideSchema = z.object({
 /** Parent approves (to mentor) or rejects a request for their active child. */
 export async function parentDecide(id: number, approve: boolean, note?: string): Promise<{ error?: string }> {
   const v = await requireParent();
+  if (v.alumni) return { error: ALUMNI_READ_ONLY };
   const parsed = decideSchema.safeParse({ id, note });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const text = parsed.data.note || null;

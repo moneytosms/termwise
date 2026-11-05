@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { attendancePercent, istDate, type AttendanceStatus } from "@/domain/attendance";
 import { dues } from "@/domain/fees";
 import { evaluateRisk } from "@/domain/risk";
@@ -33,14 +33,18 @@ export async function runDailyJob(campusId: number, trigger: "schedule" | "manua
 
   const students = await db.select({
     id: student.id, name: student.name, mentorId: student.mentorId, birthDate: student.birthDate, consent: student.parentConsentAt, cutoff: programme.attendanceCutoff,
-  }).from(student).innerJoin(batch, eq(student.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id)).where(eq(programme.campusId, campusId));
+  }).from(student).innerJoin(batch, eq(student.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id)).where(and(eq(programme.campusId, campusId), isNull(student.graduatedOn)));
   const ids = students.map((s) => s.id);
   const summary = { flagged: 0, cleared: 0, notEnoughData: 0, messagesLogged: 0, messagesBlocked: 0, llmReasons: 0, ruleReasons: 0 };
   if (!ids.length) return summary;
 
   const att = await db.select({ studentId: attendanceEntry.studentId, status: attendanceEntry.status, periods: attendanceSession.periodCount, date: attendanceSession.date, subject: subject.name, sessionId: attendanceSession.id })
     .from(attendanceEntry).innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id)).innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
-    .where(inArray(attendanceEntry.studentId, ids));
+    .where(and(
+      inArray(attendanceEntry.studentId, ids),
+      // Only the batch's current subjects: its own, and those not stamped with an earlier semester
+      sql`${attendanceSession.subjectId} in (select s.id from subject s join batch b on b.id = s.batch_id where b.id = ${attendanceSession.batchId} and (s.semester is null or s.semester = b.semester))`,
+    ));
   const marks = await db.select({ studentId: mark.studentId, marks: mark.marks, max: markComponent.maxMarks }).from(mark).innerJoin(markComponent, eq(mark.componentId, markComponent.id)).where(and(inArray(mark.studentId, ids), eq(markComponent.section, "internal")));
   const instalments = await db.select({
     studentId: feeInstalment.studentId, id: feeInstalment.id, dueDate: feeInstalment.dueDate, amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise,

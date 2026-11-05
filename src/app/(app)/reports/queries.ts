@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { istDate } from "@/domain/attendance";
 import type { Instalment } from "@/domain/fees";
 import { sectionsFor, type Scheme, type Section } from "@/domain/marks";
@@ -23,7 +23,7 @@ function loadStrength(campusId: number, programmeId: number | null) {
   return db.select({ programme: programme.code, year: batch.year, batch: batch.code, category: student.category, gender: student.gender }).from(student)
     .innerJoin(batch, eq(student.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId), isNull(student.graduatedOn)));
 }
 
 function loadShortage(campusId: number, month: string, programmeId: number | null): Promise<SubjectAttendance[]> {
@@ -38,7 +38,9 @@ function loadShortage(campusId: number, month: string, programmeId: number | nul
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .where(and(
       eq(programme.campusId, campusId), gte(attendanceSession.date, `${month}-01`), lte(attendanceSession.date, lastDay(month)),
-      programmeFilter(programmeId),
+      programmeFilter(programmeId), isNull(student.graduatedOn),
+      // Only the batch's current subjects: its own, and those not stamped with an earlier semester
+      sql`${attendanceSession.subjectId} in (select s.id from subject s where s.batch_id = batch.id and (s.semester is null or s.semester = batch.semester))`,
     ))
     .groupBy(student.id, subject.id, programme.id);
 }
