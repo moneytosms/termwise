@@ -5,7 +5,7 @@ import { istDate } from "@/domain/attendance";
 import { assertStudentAccess, studentScope, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import {
-  attendanceEntry, attendanceSession, auditLog, batch, feeInstalment, feePayment, mark, markComponent, mentorTask, programme, riskFlag, staff, student, subject,
+  attendanceEntry, attendanceSession, auditLog, batch, feeInstalment, feePayment, mark, markComponent, mentorTask, programme, riskFlag, staff, student, studentDocument, subject,
 } from "@/server/schema";
 import { can } from "@/domain/roles";
 
@@ -78,6 +78,9 @@ export async function getStudentDetail(v: Viewer, id: number) {
   const flags = await db.select({ reason: riskFlag.reasonText, source: riskFlag.reasonSource, at: riskFlag.createdAt, taskId: mentorTask.id, taskStatus: mentorTask.status })
     .from(riskFlag).leftJoin(mentorTask, eq(mentorTask.flagId, riskFlag.id)).where(and(eq(riskFlag.studentId, id), eq(riskFlag.active, true)));
 
+  const documents = await db.select({ id: studentDocument.id, name: studentDocument.name, status: studentDocument.status, fileId: studentDocument.fileId })
+    .from(studentDocument).where(eq(studentDocument.studentId, id)).orderBy(studentDocument.id);
+
   const isAdmin = can(v.role, "campus_students");
   const instalments = isAdmin ? await db.select({
     id: feeInstalment.id, label: feeInstalment.label, dueDate: feeInstalment.dueDate, amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise,
@@ -86,6 +89,6 @@ export async function getStudentDetail(v: Viewer, id: number) {
 
   const history = isAdmin ? await db.select().from(auditLog).where(and(eq(auditLog.entity, "student"), eq(auditLog.entityId, String(id)))).orderBy(sql`${auditLog.at} desc`).limit(20) : [];
 
-  return { student: s, overall: attendancePercent(att), subjects, marks, flags, instalments, history };
+  return { student: s, overall: attendancePercent(att), subjects, marks, flags, documents, instalments, history };
 }
 export type StudentDetail = Awaited<ReturnType<typeof getStudentDetail>>;

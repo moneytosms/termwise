@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,24 @@ const STATUS: Record<ApplicantDetail["status"], { label: string; tone: Tone }> =
 const DOC_LABEL: Record<DocStatus, string> = { pending: "Pending", received: "Received", verified: "Verified" };
 const DOC_STATES: DocStatus[] = ["pending", "received", "verified"];
 const card = "rounded-xl bg-card p-3.5 text-sm shadow-sheet";
+
+/** Attach or replace the file for one document. The hidden input keeps the accessible label. */
+function AttachFile({ doc, hasFile, disabled, onFile }: { doc: string; hasFile: boolean; disabled: boolean; onFile: (f: File) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <Button size="sm" variant="outline" disabled={disabled} onClick={() => input.current?.click()}>
+        {hasFile ? "Replace" : "Attach"}
+      </Button>
+      <input ref={input} type="file" accept="application/pdf,image/jpeg,image/png" aria-label={`Attach file for ${doc}`} className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onFile(file);
+        }} />
+    </>
+  );
+}
 
 /** Whole years on `today`, using the IST calendar dates as YYYY-MM-DD strings. */
 function ageOn(birthDate: string, today: string) {
@@ -63,6 +81,16 @@ export function ApplicantPanel({ detail }: { detail: ApplicantDetail | null }) {
     fd.set("status", status);
     const r = await updateApplicantDocument(fd);
     if (r.error) toast.error(r.error); else router.refresh();
+  });
+
+  const attach = (name: string, file: File) => start(async () => {
+    const fd = new FormData();
+    fd.set("applicantId", String(d.id));
+    fd.set("name", name);
+    fd.set("file", file);
+    const res = await fetch("/api/documents", { method: "POST", body: fd });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) toast.error(body.error ?? "The file couldn't be attached."); else router.refresh();
   });
 
   const blocker = confirmBlocker({ items: d.checklist, birthDate: d.birthDate, parentConsentAt: d.parentConsentAt, status: d.status }, today);
@@ -155,6 +183,10 @@ export function ApplicantPanel({ detail }: { detail: ApplicantDetail | null }) {
               {d.checklist.map((item) => (
                 <li key={item.name} className={`flex flex-wrap items-center justify-between gap-2 ${card}`}>
                   <span className="min-w-0 font-medium">{item.name}</span>
+                  <span className="flex flex-wrap items-center gap-2">
+                    {item.fileId && <a href={`/api/documents/${item.fileId}`} target="_blank" rel="noreferrer" className="text-sm underline underline-offset-4">View</a>}
+                    {editable && <AttachFile doc={item.name} hasFile={!!item.fileId} disabled={busy} onFile={(f) => attach(item.name, f)} />}
+                  </span>
                   {editable ? (
                     <span role="group" aria-label={`Status of ${item.name}`} className="flex flex-wrap gap-1">
                       {DOC_STATES.map((s) => (

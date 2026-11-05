@@ -43,6 +43,13 @@
       "when": 1793907763674,
       "tag": "0005_ambiguous_spirit",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793912568701,
+      "tag": "0006_steady_slipstream",
+      "breakpoints": true
     }
   ]
 }
