@@ -7,7 +7,8 @@ import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveBatch } from "./actions";
-import { editColumn, Field, FormDialog, fieldCls } from "./shared";
+import { SelectField } from "@/components/select-field";
+import { editColumn, Field, FormDialog } from "./shared";
 
 type Row = {
   id: number; code: string; programmeId: number; programme: string;
@@ -39,10 +40,8 @@ export function BatchesTab({ rows, programmes }: { rows: Row[]; programmes: { id
           <Input name="code" required defaultValue={current?.code} />
         </Field>
         <Field label="Programme">
-          <select name="programmeId" required defaultValue={current?.programmeId ?? ""} className={fieldCls}>
-            <option value="" disabled>Pick a programme</option>
-            {programmes.map((p) => <option key={p.id} value={p.id}>{p.code} · {p.name}</option>)}
-          </select>
+          <SelectField name="programmeId" required placeholder="Pick a programme" aria-label="Programme" defaultValue={String(current?.programmeId ?? "")}
+            options={programmes.map((p) => ({ value: String(p.id), label: `${p.code} · ${p.name}` }))} />
         </Field>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Admission year">

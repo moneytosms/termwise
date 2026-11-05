@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { deleteCalendarDay, saveCalendarDay } from "./actions";
-import { Field, FormDialog, fieldCls } from "./shared";
+import { SelectField } from "@/components/select-field";
+import { Field, FormDialog } from "./shared";
 
 type Row = { id: number; date: string; kind: "holiday" | "exam" | "event"; label: string };
 
@@ -53,11 +54,8 @@ export function CalendarTab({ rows }: { rows: Row[] }) {
         title={current ? "Edit day" : "Add day"} submitLabel="Save" action={saveCalendarDay}>
         <Field label="Date"><Input name="date" type="date" required defaultValue={current?.date} /></Field>
         <Field label="Kind">
-          <select name="kind" required defaultValue={current?.kind ?? "holiday"} className={fieldCls}>
-            <option value="holiday">Holiday</option>
-            <option value="exam">Exam</option>
-            <option value="event">Event</option>
-          </select>
+          <SelectField name="kind" required aria-label="Kind" defaultValue={current?.kind ?? "holiday"}
+            options={Object.entries(KIND).map(([value, label]) => ({ value, label }))} />
         </Field>
         <Field label="Label"><Input name="label" required defaultValue={current?.label} /></Field>
       </FormDialog>

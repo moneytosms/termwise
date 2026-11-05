@@ -8,7 +8,8 @@ import { StatusPill, type Tone } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveSubject } from "./actions";
-import { editColumn, Field, FormDialog, fieldCls } from "./shared";
+import { SelectField } from "@/components/select-field";
+import { editColumn, Field, FormDialog } from "./shared";
 
 type Row = {
   id: number; batchId: number; batch: string; code: string; name: string;
@@ -50,18 +51,14 @@ export function SubjectsTab({ rows, batches, faculty }: {
         title={current ? "Edit subject" : "Add subject"} submitLabel="Save" action={saveSubject}
         description="Marks status changes from the Marks screen, not here.">
         <Field label="Batch">
-          <select name="batchId" required defaultValue={current?.batchId ?? ""} className={fieldCls}>
-            <option value="" disabled>Pick a batch</option>
-            {batches.map((b) => <option key={b.id} value={b.id}>{b.code}</option>)}
-          </select>
+          <SelectField name="batchId" required placeholder="Pick a batch" aria-label="Batch" defaultValue={String(current?.batchId ?? "")}
+            options={batches.map((b) => ({ value: String(b.id), label: b.code }))} />
         </Field>
         <Field label="Code"><Input name="code" required defaultValue={current?.code} /></Field>
         <Field label="Name"><Input name="name" required defaultValue={current?.name} /></Field>
         <Field label="Faculty">
-          <select name="facultyId" defaultValue={current?.facultyId ?? ""} className={fieldCls}>
-            <option value="">Unassigned</option>
-            {faculty.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+          <SelectField name="facultyId" searchable aria-label="Faculty" defaultValue={String(current?.facultyId ?? "")}
+            options={[{ value: "", label: "Unassigned" }, ...faculty.map((f) => ({ value: String(f.id), label: f.name }))]} />
         </Field>
       </FormDialog>
     </>

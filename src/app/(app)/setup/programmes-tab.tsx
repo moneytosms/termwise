@@ -7,7 +7,8 @@ import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveProgramme } from "./actions";
-import { editColumn, Field, FormDialog, fieldCls } from "./shared";
+import { SelectField } from "@/components/select-field";
+import { editColumn, Field, FormDialog } from "./shared";
 
 type Row = { id: number; code: string; name: string; departmentId: number | null; department: string | null; cutoff: number };
 
@@ -33,10 +34,8 @@ export function ProgrammesTab({ rows, departments }: { rows: Row[]; departments:
         <Field label="Code"><Input name="code" required defaultValue={current?.code} /></Field>
         <Field label="Name"><Input name="name" required defaultValue={current?.name} /></Field>
         <Field label="Department">
-          <select name="departmentId" defaultValue={current?.departmentId ?? ""} className={fieldCls}>
-            <option value="">No department</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          <SelectField name="departmentId" aria-label="Department" defaultValue={String(current?.departmentId ?? "")}
+            options={[{ value: "", label: "No department" }, ...departments.map((d) => ({ value: String(d.id), label: d.name }))]} />
         </Field>
         <Field label="Attendance cutoff (%)" hint="Below this, a student is in attendance shortage. 1 to 100.">
           <Input name="attendanceCutoff" type="number" min={1} max={100} required defaultValue={current?.cutoff ?? 75} />

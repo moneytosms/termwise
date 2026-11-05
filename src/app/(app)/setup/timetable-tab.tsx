@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteSlot, saveSlot } from "./actions";
-import { Field, FormDialog, fieldCls } from "./shared";
+import { SelectField } from "@/components/select-field";
+import { Field, FormDialog } from "./shared";
 
 type Slot = {
   id: number; dayOfWeek: number; period: number; periodCount: number; startTime: string; endTime: string;
@@ -51,9 +52,8 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
     <>
       <label className="mb-4 flex items-center gap-2 text-sm font-medium">
         Batch
-        <select value={batchId} onChange={(e) => router.push(`/setup?tab=timetable&batch=${e.target.value}`)} className={`${fieldCls} w-auto`}>
-          {batches.map((b) => <option key={b.id} value={b.id}>{b.code}</option>)}
-        </select>
+        <SelectField aria-label="Batch" className="w-auto" value={String(batchId)} onValueChange={(v) => router.push(`/setup?tab=timetable&batch=${v}`)}
+          options={batches.map((b) => ({ value: String(b.id), label: b.code }))} />
       </label>
 
       <div className="overflow-x-auto rounded-xl bg-card shadow-sheet">
@@ -101,10 +101,8 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
         <input type="hidden" name="dayOfWeek" value={editing?.dayOfWeek ?? 1} />
         <input type="hidden" name="period" value={editing?.period ?? 1} />
         <Field label="Subject">
-          <select name="subjectId" defaultValue={slot?.subjectId ?? ""} className={fieldCls}>
-            <option value="">No subject (label only)</option>
-            {subjects.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
-          </select>
+          <SelectField name="subjectId" aria-label="Subject" searchable defaultValue={String(slot?.subjectId ?? "")}
+            options={[{ value: "", label: "No subject (label only)" }, ...subjects.map((s) => ({ value: String(s.id), label: `${s.code} · ${s.name}` }))]} />
         </Field>
         <Field label="Label" hint="For club, sports or interaction slots with no subject.">
           <Input name="label" placeholder="Club activity" maxLength={60} defaultValue={slot?.label ?? ""} />
