@@ -79,9 +79,9 @@ Faculty enter marks per component on one sheet per subject, with each cell check
 
 Instalments per student (the seed uses two per year with some scholarships) produce dues and overdue amounts. The office admin records bank counter payments against an instalment; a payment over the remaining due or of zero is refused. Fee reminders go to students with dues. Receipts for a date range download as Tally receipt vouchers in XML **[A: format based on Tally ERP 9 import samples, not confirmed against TallyPrime]**.
 
-### 4.4 Parent link (Tier 2)
+### 4.4 Student and parent portal (Tier 2)
 
-Shortage alerts and fee reminders carry a signed link valid for 30 days. It opens a read-only page with the student's attendance by subject and dues, a test-mode Pay button that records a payment with no real money, and a printable receipt. The link is an HMAC over the student id and expiry, so changing the id breaks it. The pages are not indexed and send no referrer. There are no parent accounts in this phase.
+Students and parents sign in like staff and get the same sidebar layout with their own menu. A student sees today's classes and the week's timetable, attendance per subject with a planner ("attend the next N in a row to reach 75%" or "you can miss N"), a day-by-day register, internal marks by component with a printable mark sheet once moderation locks them, fees with a test-mode Pay button and receipts, leave requests, their profile with the admission document checklist, and Termy scoped to their own rows. A parent sees the same for each linked child (switcher in the sidebar), approves the child's leave before the mentor does, reads the college's messages in English or Odia, writes to the mentor, and gives or withdraws DPDP consent for a minor. Every portal query uses the signed-in student, or a child linked to the signed-in parent; no student id is taken from the browser. Mentors decide leave and answer parent notes, and the office answers record corrections, on a Requests page. Approved leave is shown on the register but still counts as absent.
 
 ### 4.5 Messages and consent
 
@@ -115,10 +115,10 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 
 ## 7. Testing and security
 
-- **Unit tests (Vitest)** cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts and per-role view lists, the assistant views' role scoping against a seeded database, Tally XML and the parent link signature.
-- **End-to-end tests (Playwright, phone viewport)** cover offline marking then sync, the conflict queue, the shared-phone rejection, the marks lock and audited reopen, campus and role limits, fee payments and reminders, the at-risk run, the assistant with no provider, College setup edits, attendance correction, and the parent link with tampered and expired tokens.
+- **Unit tests (Vitest)** cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts and per-role view lists, the assistant views' role scoping against a seeded database, Tally XML, and the attendance planner.
+- **End-to-end tests (Playwright, phone viewport)** cover offline marking then sync, the conflict queue, the shared-phone rejection, the marks lock and audited reopen, campus and role limits, fee payments and reminders, the at-risk run, the assistant with no provider, College setup edits, attendance correction, and the student and parent portal (role pages, child switch, leave from student to parent to mentor).
 - **CI** runs all of it on every push against a fresh Postgres.
-- **Security:** no secrets in the repository (only local-only defaults); every input validated with zod at the server; role and campus checked on every query and action; audit log on every change; auth rate-limited; the assistant on a read-only role; parent links signed and time-limited; offline data limited to names and roll numbers and cleared on sign-out.
+- **Security:** no secrets in the repository (only local-only defaults); every input validated with zod at the server; role and campus checked on every query and action; audit log on every change; auth rate-limited; the assistant on a read-only role; students and parents sign in and every portal query is pinned to their own (or their linked children's) record; offline data limited to names and roll numbers and cleared on sign-out.
 
 ## 8. What was cut, and what comes next
 

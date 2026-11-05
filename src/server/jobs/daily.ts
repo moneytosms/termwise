@@ -4,7 +4,6 @@ import { attendancePercent, istDate, type AttendanceStatus } from "@/domain/atte
 import { dues } from "@/domain/fees";
 import { evaluateRisk } from "@/domain/risk";
 import { feeMessage, isMinor, shortageMessage } from "@/domain/templates";
-import { parentUrl } from "@/server/parent-link";
 import { rupees } from "@/lib/utils";
 import { db } from "../db";
 import { llmModel, takeLlmQuota } from "../llm";
@@ -55,7 +54,7 @@ export async function runDailyJob(campusId: number, trigger: "schedule" | "manua
     if (sentToday.some((m) => m.studentId === s.id && m.kind === kind)) return; // a second run the same day doesn't repeat
     const status = isMinor(s.birthDate, today) && !s.consent ? "blocked_no_consent" as const : "logged" as const;
     summary[status === "logged" ? "messagesLogged" : "messagesBlocked"] += 2;
-    const link = `\n${parentUrl(s.id)}`;
+    const link = `\n${process.env.BETTER_AUTH_URL ?? ""}/sign-in`;
     msgs.push({ studentId: s.id, kind, language: "en", body: en + link, status }, { studentId: s.id, kind, language: "or", body: or + link, status });
   };
 

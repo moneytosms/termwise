@@ -13,10 +13,8 @@ const client = createAuthClient();
 const DEMO = [
   { label: "Faculty", email: "faculty@termwise.demo" },
   { label: "Office admin", email: "admin@termwise.demo" },
-];
-const PORTAL = [
-  { label: "Student", href: "/demo/student" },
-  { label: "Parent", href: "/demo/parent" },
+  { label: "Student", email: "student@termwise.demo" },
+  { label: "Parent", email: "parent@termwise.demo" },
 ];
 
 export default function SignInPage() {
@@ -71,13 +69,7 @@ export default function SignInPage() {
                   {d.label}
                 </Button>
               ))}
-              {PORTAL.map((d) => (
-                <Button key={d.href} variant="outline" className="h-10" nativeButton={false} render={<a href={d.href} />}>
-                  {d.label}
-                </Button>
-              ))}
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">No password: opens the portal link they&apos;d get by message.</p>
           </div>
         </div>
       </section>

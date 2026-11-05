@@ -31,6 +31,12 @@ const EXAMPLES = {
     "Which of my students are flagged at risk?",
     "My subjects' attendance this week",
   ],
+  student: [
+    "Which subjects am I below 75% in?",
+    "My attendance this month by subject",
+    "My mid-term marks in every subject",
+    "How much fee do I still owe?",
+  ],
 };
 const EFFORTS: { id: Effort; label: string; hint: string }[] = [
   { id: "low", label: "Quick", hint: "Fast answers for simple lookups" },
@@ -51,7 +57,7 @@ function save(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* full or blocked: chat still works, just not kept */ }
 }
 
-export function AssistantChat({ role, userId, models, initial }: { role: "faculty" | "office_admin"; userId: string; models: ModelOption[]; initial?: string }) {
+export function AssistantChat({ role, userId, models, initial }: { role: "faculty" | "office_admin" | "student"; userId: string; models: ModelOption[]; initial?: string }) {
   const CHATS = `termwise:termy-chats:${userId}`;
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -171,7 +177,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: "facult
         <div className="min-w-0 flex-1">
           <h1 className="font-semibold leading-tight">Termy</h1>
           <p className="truncate text-xs text-muted-foreground">
-            {role === "faculty" ? "Only the subjects you teach" : "Your whole campus"} · reads data, never changes it
+            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : "Your whole campus"} · reads data, never changes it
           </p>
         </div>
         <Popover>
@@ -186,7 +192,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: "facult
           <div className="mx-auto flex max-w-xl flex-col items-center pt-6 text-center md:pt-12">
             <Termy className="size-24 md:size-28" />
             <p className="mt-3 text-xl font-semibold">Hi, I&apos;m Termy.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Ask about students, attendance, marks{role === "office_admin" && " and fees"} in plain words. I show the filters and query I used, so you can check them.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{role === "student" ? "Ask about your attendance, marks and fees" : <>Ask about students, attendance, marks{role === "office_admin" && " and fees"}</>} in plain words. I show the filters and query I used, so you can check them.</p>
             <div className="mt-6 grid w-full gap-2 sm:grid-cols-2">
               {EXAMPLES[role].map((ex) => (
                 <button key={ex} type="button" disabled={busy} onClick={() => void ask(ex)}

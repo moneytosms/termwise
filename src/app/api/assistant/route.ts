@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getViewer } from "@/server/access";
-import { askAssistant } from "@/server/assistant/ask";
+import { askAssistant, type Asker } from "@/server/assistant/ask";
+import { getPortalViewer } from "@/server/portal";
 import { MODEL_IDS } from "@/server/llm";
 
 const Body = z.object({
@@ -12,7 +13,10 @@ const Body = z.object({
 
 /** A route, not a server action, so the chat's Stop button can abort it: req.signal reaches the model call. */
 export async function POST(req: Request) {
-  const v = await getViewer();
+  const staff = await getViewer();
+  // Students ask about themselves; parents have no Termy.
+  const p = staff ? null : await getPortalViewer();
+  const v: Asker | null = staff ?? (p?.role === "student" ? { campusId: p.campusId, staffId: 0, studentId: p.studentId, role: "student" } : null);
   if (!v) return Response.json({ error: "Sign in again." }, { status: 401 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });

@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { PRESETS } from "@/lib/settings-boot";
-import { requireViewer } from "@/server/access";
+import { getViewer } from "@/server/access";
+import { getPortalViewer } from "@/server/portal";
 import { db } from "@/server/db";
 import { userSetting } from "@/server/schema";
 
@@ -12,7 +13,7 @@ const schema = z.object({
   reduceMotion: z.boolean(),
   density: z.enum(["comfortable", "compact"]),
   sidebarCollapsed: z.boolean(),
-  landing: z.string().regex(/^\/[a-z]+$/),
+  landing: z.string().regex(/^\/[a-z/]+$/),
   pageSize: z.union([z.literal(10), z.literal(20), z.literal(50)]),
   confirmAttendance: z.boolean(),
   shortcuts: z.boolean(),
@@ -20,7 +21,8 @@ const schema = z.object({
 
 /** Saves the signed-in user's preferences so they follow them to other devices. */
 export async function saveSettings(input: unknown) {
-  const v = await requireViewer();
+  const v = (await getViewer()) ?? (await getPortalViewer());
+  if (!v) return;
   const parsed = schema.safeParse(input);
   if (!parsed.success) return;
   await db.insert(userSetting).values({ userId: v.userId, data: parsed.data })

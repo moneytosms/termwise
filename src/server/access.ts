@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "./auth";
 import { db } from "./db";
+import { getPortalViewer } from "./portal";
 import { batch, programme, staff, student, subject } from "./schema";
 
 export type Viewer = {
@@ -28,9 +29,11 @@ export async function getViewer(): Promise<Viewer | null> {
   };
 }
 
-/** For pages and server actions: redirects to sign-in when signed out. */
+/** For pages and server actions: redirects to sign-in when signed out, and students/parents to their portal. */
 export async function requireViewer(): Promise<Viewer> {
-  return (await getViewer()) ?? redirect("/sign-in");
+  const v = await getViewer();
+  if (v) return v;
+  redirect((await getPortalViewer()) ? "/my" : "/sign-in");
 }
 
 /** For office-admin-only pages and actions. */

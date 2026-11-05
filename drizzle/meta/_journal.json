@@ -15,6 +15,13 @@
       "when": 1793878384233,
       "tag": "0001_familiar_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793888392804,
+      "tag": "0002_daily_patriot",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, IndianRupee, LogOut, Moon, Palette, PanelLeft, Rows3, Search, Settings, ShieldAlert, ClipboardCheck, Sun, Users } from "lucide-react";
 import { TermyIcon, type NavIcon } from "@/components/termy";
+import type { ShellRole } from "@/components/app-shell";
 import { useTheme } from "next-themes";
 import { searchStudents } from "@/app/(app)/palette-actions";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -23,7 +24,7 @@ const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
 
 /** Ctrl/Cmd+K palette. Prefix ">" jumps to Actions, "@" to Students. Tab cycles modes. */
 export function CommandPalette({ open, onOpenChange, nav, role, onSettings, onSignOut }: {
-  open: boolean; onOpenChange: (o: boolean) => void; nav: Nav[]; role: "faculty" | "office_admin";
+  open: boolean; onOpenChange: (o: boolean) => void; nav: Nav[]; role: ShellRole;
   onSettings: () => void; onSignOut: () => void;
 }) {
   const s = useSettings();
@@ -48,7 +49,7 @@ export function CommandPalette({ open, onOpenChange, nav, role, onSettings, onSi
 
 // Mounted only while open, so mode, query and results reset on each open.
 function Body({ nav, role, onSettings, onSignOut, done }: {
-  nav: Nav[]; role: "faculty" | "office_admin"; onSettings: () => void; onSignOut: () => void; done: () => void;
+  nav: Nav[]; role: ShellRole; onSettings: () => void; onSignOut: () => void; done: () => void;
 }) {
   const router = useRouter();
   const s = useSettings();
@@ -58,7 +59,7 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const [pick, setPick] = useState(0);
   const [people, setPeople] = useState<{ term: string; rows: Person[] }>({ term: "", rows: [] });
 
-  const prefix = q.startsWith(">") ? "actions" : q.startsWith("@") ? "students" : null;
+  const prefix = q.startsWith(">") ? "actions" : q.startsWith("@") && (role === "faculty" || role === "office_admin") ? "students" : null;
   const m = prefix ?? mode;
   const term = (prefix ? q.slice(1) : q).trim().toLowerCase();
 
@@ -100,18 +101,22 @@ function Body({ nav, role, onSettings, onSignOut, done }: {
   const byTerm = (rows: Row[]) => rows.filter((r) => r.label.toLowerCase().includes(term));
   // Anything typed in Go to or Actions can also be asked of Termy, last in the list.
   const raw = (prefix ? q.slice(1) : q).trim();
-  const askRow: Row[] = (m === "go" || m === "actions") && raw.length >= 3
-    ? [{ key: "ask", label: `Ask Termy: ${raw}`, icon: TermyIcon, run: () => go(`/assistant?q=${encodeURIComponent(raw)}`) }] : [];
+  const termy = nav.find((n) => n.label === "Termy")?.href;
+  const askRow: Row[] = termy && (m === "go" || m === "actions") && raw.length >= 3
+    ? [{ key: "ask", label: `Ask Termy: ${raw}`, icon: TermyIcon, run: () => go(`${termy}?q=${encodeURIComponent(raw)}`) }] : [];
   const rows = m === "go" ? [...byTerm(navRows), ...askRow] : m === "actions" ? [...byTerm(actions), ...askRow] : m === "settings" ? byTerm(settingRows) : people.term === term ? personRows : [];
   const searching = m === "students" && !!term && people.term !== term;
   const at = Math.min(pick, rows.length - 1);
 
-  const cycle = () => { setMode(MODES[(MODES.findIndex(([id]) => id === mode) + 1) % MODES.length][0]); setQ(""); setPick(0); };
+  // Student search and Termy's staff page are staff-only.
+  const staff = role === "faculty" || role === "office_admin";
+  const modes = staff ? MODES : MODES.filter(([id]) => id !== "students");
+  const cycle = () => { setMode(modes[(modes.findIndex(([id]) => id === mode) + 1) % modes.length][0]); setQ(""); setPick(0); };
 
   return (
     <>
       <div role="tablist" aria-label="Palette mode" className="flex gap-1 border-b border-border p-2">
-        {MODES.map(([id, label]) => (
+        {modes.map(([id, label]) => (
           <button key={id} role="tab" aria-selected={m === id} onClick={() => { setMode(id); setQ(""); setPick(0); }}
             className={cn("h-7 flex-1 rounded-md text-xs font-medium text-muted-foreground transition-colors hover:text-foreground", m === id && "bg-card text-foreground shadow-raised")}>
             {label}

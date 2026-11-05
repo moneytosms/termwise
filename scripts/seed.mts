@@ -5,15 +5,17 @@ import { db, pool } from "../src/server/db";
 import * as t from "../src/server/schema";
 import { istDate } from "../src/domain/attendance";
 import { runDailyJob } from "../src/server/jobs/daily";
+import { seedPortal } from "./seed-portal.mjs";
 
 // Synthetic data only. Re-run on an empty database; skipped if campuses already exist.
+const PASSWORD = "termwise-demo";
 const [{ n }] = await db.select({ n: count() }).from(t.campus);
-if (n > 0) { console.log("already seeded"); await pool.end(); process.exit(0); }
+if (n > 0) { await seedPortal(PASSWORD); console.log("already seeded"); await pool.end(); process.exit(0); }
 
 let seed = 42;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
 const pick = <A,>(xs: A[]) => xs[Math.floor(rnd() * xs.length)];
-const PASSWORD = "termwise-demo";
+
 
 const FIRST = ["Aarav", "Aditi", "Amrita", "Anil", "Arpita", "Bikash", "Chinmay", "Debasish", "Deepika", "Gyana", "Ipsita", "Jyoti", "Kajal", "Lipsa", "Manas", "Monalisa", "Nihar", "Pallavi", "Pradeep", "Priya", "Rakesh", "Rashmi", "Rohan", "Sagar", "Sasmita", "Satya", "Smruti", "Soumya", "Sushant", "Tapas"];
 const LAST = ["Behera", "Biswal", "Das", "Dash", "Jena", "Mishra", "Mohapatra", "Nayak", "Panda", "Patnaik", "Pradhan", "Rath", "Rout", "Sahoo", "Samal", "Sethi", "Swain", "Tripathy"];
@@ -216,6 +218,8 @@ await db.insert(t.syncConflict).values({
     editedAt: new Date(someSession.date + "T07:00:00Z").toISOString(),
   },
 });
+
+await seedPortal(PASSWORD);
 
 // Rule-based reasons only at seed time, so a fresh demo has flags, mentor tasks and messages.
 delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;

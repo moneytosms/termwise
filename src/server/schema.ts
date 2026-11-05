@@ -123,7 +123,59 @@ export const student = pgTable("student", {
   guardianName: text("guardian_name"),
   guardianPhone: text("guardian_phone"),
   parentConsentAt: timestamp("parent_consent_at"),
+  userId: text("user_id").unique().references(() => user.id), // student's own login
 }, (t) => [index("student_batch_idx").on(t.batchId)]);
+
+// Parent logins; one guardian can have several children
+export const guardian = pgTable("guardian", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().unique().references(() => user.id),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  language: text("language", { enum: ["en", "or"] }).notNull().default("en"),
+});
+export const guardianStudent = pgTable("guardian_student", {
+  guardianId: integer("guardian_id").notNull().references(() => guardian.id),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  relation: text("relation").notNull(), // "Father", "Mother", ...
+}, (t) => [primaryKey({ columns: [t.guardianId, t.studentId] })]);
+
+// Student applies, parent approves, then mentor approves
+export const leaveRequest = pgTable("leave_request", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  kind: text("kind", { enum: ["leave", "medical"] }).notNull(),
+  fromDate: date("from_date").notNull(),
+  toDate: date("to_date").notNull(),
+  reason: text("reason").notNull(),
+  status: text("status", { enum: ["pending_parent", "pending_mentor", "approved", "rejected", "withdrawn"] }).notNull().default("pending_parent"),
+  parentNote: text("parent_note"),
+  mentorNote: text("mentor_note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+}, (t) => [index("leave_request_student_idx").on(t.studentId)]);
+
+// From the portal: a parent's note to the mentor, or a request to correct the student's record
+export const portalRequest = pgTable("portal_request", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  kind: text("kind", { enum: ["mentor_note", "profile_correction"] }).notNull(),
+  fromUserId: text("from_user_id").notNull().references(() => user.id),
+  fromName: text("from_name").notNull(),
+  body: text("body").notNull(),
+  status: text("status", { enum: ["open", "done"] }).notNull().default("open"),
+  reply: text("reply"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+});
+
+// Admission document checklist
+export const studentDocument = pgTable("student_document", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id").notNull().references(() => student.id),
+  name: text("name").notNull(),
+  status: text("status", { enum: ["pending", "received", "verified"] }).notNull().default("pending"),
+}, (t) => [index("student_document_student_idx").on(t.studentId)]);
 
 // Attendance
 export const attendanceSession = pgTable("attendance_session", {

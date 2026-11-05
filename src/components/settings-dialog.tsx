@@ -1,5 +1,6 @@
 "use client";
 
+import type { ShellRole } from "@/components/app-shell";
 import { useTheme } from "next-themes";
 import { SelectField } from "@/components/select-field";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -61,7 +62,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function SettingsDialog({ open, onOpenChange, role, pages }: {
-  open: boolean; onOpenChange: (o: boolean) => void; role: "faculty" | "office_admin"; pages: { href: string; label: string }[];
+  open: boolean; onOpenChange: (o: boolean) => void; role: ShellRole; pages: { href: string; label: string }[];
 }) {
   const s = useSettings();
   const { theme, setTheme } = useTheme();

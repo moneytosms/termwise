@@ -60,7 +60,7 @@ Names only. `env.example` holds local-only defaults.
 | --- | --- |
 | `DATABASE_URL` | App database connection |
 | `ASSISTANT_DATABASE_URL` | Read-only role the assistant's queries run as |
-| `BETTER_AUTH_SECRET` | Signs sessions and parent links |
+| `BETTER_AUTH_SECRET` | Signs sessions |
 | `BETTER_AUTH_URL` | Public URL of the app |
 | `CRON_SECRET` | Shared secret for the daily job endpoint |
 | `LLM_PROVIDER` | `google` (Gemini) or `groq` |

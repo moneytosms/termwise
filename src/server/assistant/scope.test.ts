@@ -9,12 +9,12 @@ describe.skipIf(!owner || !assistant)("assistant views scope by role in the data
   const ro = new Pool({ connectionString: assistant, max: 1 });
   afterAll(() => Promise.all([admin.end(), ro.end()]));
 
-  async function asViewer(sql: string, campusId: number, role: string, staffId: number) {
+  async function asViewer(sql: string, campusId: number, role: string, staffId: number, studentId = 0) {
     const c = await ro.connect();
     try {
       await c.query("BEGIN READ ONLY");
-      await c.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true)",
-        [String(campusId), role, String(staffId)]);
+      await c.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true), set_config('app.student_id', $4, true)",
+        [String(campusId), role, String(staffId), String(studentId)]);
       return (await c.query(sql)).rows;
     } finally {
       await c.query("ROLLBACK");
@@ -43,6 +43,15 @@ describe.skipIf(!owner || !assistant)("assistant views scope by role in the data
     expect(facultyStudents[0].n).toBeGreaterThan(0);
     expect(facultyStudents[0].n).toBeLessThan(adminStudents[0].n);
     expect((await asViewer("SELECT count(*)::int AS n FROM v_fee_dues", a.campus_id, "office_admin", a.id))[0].n).toBeGreaterThan(0);
+  });
+
+  it("a student sees only their own rows and no flags", async () => {
+    const { rows: [me] } = await admin.query(`SELECT s.id, p.campus_id FROM student s JOIN "user" u ON u.id = s.user_id JOIN batch b ON b.id = s.batch_id JOIN programme p ON p.id = b.programme_id WHERE u.email = 'student@termwise.demo'`);
+    for (const view of ["v_students", "v_subject_attendance", "v_marks", "v_fee_dues"]) {
+      const rows = await asViewer(`SELECT DISTINCT student_id FROM ${view}`, me.campus_id, "student", 0, me.id);
+      expect(rows.map((r) => r.student_id), view).toEqual([me.id]);
+    }
+    expect(await asViewer("SELECT * FROM v_risk_flags", me.campus_id, "student", 0, me.id)).toHaveLength(0);
   });
 
   it("fails closed when the role isn't set", async () => {
