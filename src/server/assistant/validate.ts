@@ -19,9 +19,9 @@ const nameOf = (fn: Node) => ((fn.funcname as { String: { sval: string } }[]) ??
 
 /**
  * First line of defence: exactly one plain SELECT over allowlisted views and functions.
- * The database is the real boundary: a read-only role that can only see the campus-filtered views.
+ * The database is the real boundary: a read-only role that can only see the campus- and role-filtered views.
  */
-export async function validateQuery(query: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function validateQuery(query: string, views: string[] = ALLOWED_VIEWS): Promise<{ ok: true } | { ok: false; reason: string }> {
   let tree: { stmts: { stmt: Node }[] };
   try { tree = (await parse(query)) as unknown as typeof tree; } catch { return { ok: false, reason: "not valid SQL" }; }
   if (tree.stmts.length !== 1) return { ok: false, reason: "must be one statement" };
@@ -37,7 +37,7 @@ export async function validateQuery(query: string): Promise<{ ok: true } | { ok:
     if (problem) return;
     if (k === "RangeVar") {
       const rel = v.relname as string;
-      if (v.schemaname || (!ALLOWED_VIEWS.includes(rel) && !cteNames.has(rel))) problem = `relation ${rel} is not allowed`;
+      if (v.schemaname || (!views.includes(rel) && !cteNames.has(rel))) problem = `relation ${rel} is not allowed`;
     }
     if (k === "FuncCall" && !ALLOWED_FUNCTIONS.has(nameOf(v))) problem = `function ${nameOf(v)} is not allowed`;
     if (k === "CommonTableExpr" && !(v.ctequery as Node)?.SelectStmt) problem = "only SELECT is allowed";

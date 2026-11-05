@@ -1,5 +1,6 @@
--- The assistant's only surface. These views filter themselves by the campus set for the
--- transaction, and the role can read nothing else, so a validated query can't widen its scope.
+-- The assistant's only surface. These views filter themselves by the campus, role and staff id set
+-- for the transaction (faculty: only subjects they teach, no fees), and the role can read nothing
+-- else, so a validated query can't widen its scope. An unset setting errors, so scope fails closed.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'termwise_assistant') THEN
     CREATE ROLE termwise_assistant LOGIN PASSWORD 'termwise_assistant_dev' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
@@ -12,7 +13,8 @@ FROM student s
 JOIN batch b ON b.id = s.batch_id
 JOIN programme p ON p.id = b.programme_id
 LEFT JOIN department d ON d.id = p.department_id
-WHERE p.campus_id = current_setting('app.campus_id')::int;
+WHERE p.campus_id = current_setting('app.campus_id')::int
+  AND (current_setting('app.role') = 'office_admin' OR b.id IN (SELECT batch_id FROM subject WHERE faculty_id = current_setting('app.staff_id')::int));
 
 CREATE OR REPLACE VIEW v_subject_attendance WITH (security_barrier = true) AS
 SELECT s.id AS student_id, s.roll_no, s.name, b.code AS batch, b.year, p.code AS programme, sub.code AS subject_code, sub.name AS subject_name,
@@ -23,7 +25,8 @@ JOIN student s ON s.id = e.student_id
 JOIN subject sub ON sub.id = a.subject_id
 JOIN batch b ON b.id = a.batch_id
 JOIN programme p ON p.id = b.programme_id
-WHERE p.campus_id = current_setting('app.campus_id')::int;
+WHERE p.campus_id = current_setting('app.campus_id')::int
+  AND (current_setting('app.role') = 'office_admin' OR sub.faculty_id = current_setting('app.staff_id')::int);
 
 CREATE OR REPLACE VIEW v_student_subject_attendance WITH (security_barrier = true) AS
 SELECT student_id, roll_no, name, batch, year, programme, subject_code, subject_name,
@@ -40,7 +43,8 @@ JOIN subject sub ON sub.id = c.subject_id
 JOIN student s ON s.id = m.student_id
 JOIN batch b ON b.id = s.batch_id
 JOIN programme p ON p.id = b.programme_id
-WHERE p.campus_id = current_setting('app.campus_id')::int;
+WHERE p.campus_id = current_setting('app.campus_id')::int
+  AND (current_setting('app.role') = 'office_admin' OR sub.faculty_id = current_setting('app.staff_id')::int);
 
 CREATE OR REPLACE VIEW v_fee_dues WITH (security_barrier = true) AS
 SELECT s.id AS student_id, s.roll_no, s.name, b.code AS batch, b.year, p.code AS programme, i.label AS instalment, i.due_date,
@@ -49,7 +53,8 @@ FROM fee_instalment i
 JOIN student s ON s.id = i.student_id
 JOIN batch b ON b.id = s.batch_id
 JOIN programme p ON p.id = b.programme_id
-WHERE p.campus_id = current_setting('app.campus_id')::int;
+WHERE p.campus_id = current_setting('app.campus_id')::int
+  AND current_setting('app.role') = 'office_admin';
 
 CREATE OR REPLACE VIEW v_risk_flags WITH (security_barrier = true) AS
 SELECT s.id AS student_id, s.roll_no, s.name, b.code AS batch, b.year, p.code AS programme, r.reason_text, r.created_at
@@ -57,7 +62,8 @@ FROM risk_flag r
 JOIN student s ON s.id = r.student_id
 JOIN batch b ON b.id = s.batch_id
 JOIN programme p ON p.id = b.programme_id
-WHERE r.active AND p.campus_id = current_setting('app.campus_id')::int;
+WHERE r.active AND p.campus_id = current_setting('app.campus_id')::int
+  AND (current_setting('app.role') = 'office_admin' OR b.id IN (SELECT batch_id FROM subject WHERE faculty_id = current_setting('app.staff_id')::int));
 
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM termwise_assistant;
 GRANT USAGE ON SCHEMA public TO termwise_assistant;

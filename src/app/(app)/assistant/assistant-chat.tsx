@@ -6,23 +6,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, ErrorState } from "@/components/states";
+import { ErrorState } from "@/components/states";
+import { Termy, type TermyPose } from "@/components/termy";
 import type { AssistantAnswer } from "@/server/assistant/ask";
 import { askAction } from "./actions";
 
 type Turn = { id: number; question: string; result: AssistantAnswer | { kind: "error" } | null };
 
-const EXAMPLES = [
-  "How many second-year students are below 75% this month?",
-  "Which students have overdue fees?",
-  "Who is flagged at risk in CSE-2024?",
-];
+const EXAMPLES = {
+  office_admin: [
+    "How many second-year students are below 75% this month?",
+    "Which students have overdue fees?",
+    "Who is flagged at risk in CSE-2024?",
+  ],
+  faculty: [
+    "Which of my students are below 75% this month?",
+    "Who scored under half in my latest test?",
+    "Which of my students are flagged at risk?",
+  ],
+};
 const CHECK_FILTERS = "Check the filters. If they're not what you meant, reword the question.";
 const FIGURE = /^[-+]?[\d,.]+%?$/;
 
 const cell = (v: unknown) => (v === null || v === undefined ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
 
-export function AssistantChat() {
+const POSE: Record<string, TermyPose> = { answer: "answer", clarify: "idle", refused: "refused", unavailable: "error", error: "error" };
+
+export function AssistantChat({ role }: { role: "faculty" | "office_admin" }) {
   const [text, setText] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
@@ -38,7 +48,7 @@ export function AssistantChat() {
     try {
       const r = await askAction(question);
       if (r.error || !r.answer) {
-        toast.error(r.error ?? "Couldn't reach the assistant.");
+        toast.error(r.error ?? "Couldn't reach Termy.");
         if (id === undefined) drop();
         else setTurns((t) => t.map((x) => (x.id === id ? { ...x, result: { kind: "error" } } : x)));
         return;
@@ -62,23 +72,32 @@ export function AssistantChat() {
         <Button type="submit" disabled={busy}>Ask</Button>
       </form>
       <div className="mt-3 flex flex-wrap gap-2">
-        {EXAMPLES.map((ex) => (
+        {EXAMPLES[role].map((ex) => (
           <Button key={ex} variant="outline" size="sm" disabled={busy} className="h-auto whitespace-normal py-1.5 text-left"
             onClick={() => { setText(ex); void ask(ex); }}>{ex}</Button>
         ))}
       </div>
 
       <div className="mt-6 space-y-8">
-        {turns.length === 0 && <EmptyState title="No questions yet. Ask one above or try an example." />}
+        {turns.length === 0 && (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-input px-6 py-8 text-center">
+            <Termy className="size-24" />
+            <p className="font-medium">Hi, I&apos;m Termy.</p>
+            <p className="text-sm text-muted-foreground">Ask a question in plain words above, or try an example.</p>
+          </div>
+        )}
         {turns.map((t) => (
-          <section key={t.id} aria-label={`Question: ${t.question}`} aria-busy={t.result === null} className="space-y-3">
-            <p className="text-sm text-muted-foreground">You asked: {t.question}</p>
-            {t.result === null && <Skeleton className="h-40 w-full rounded-xl" />}
-            {t.result?.kind === "answer" && <Answer a={t.result} />}
-            {t.result?.kind === "clarify" && <Note label="Needs more detail" message={t.result.message} />}
-            {t.result?.kind === "refused" && <Note label="Can't answer this" message={t.result.message} />}
-            {t.result?.kind === "unavailable" && <ErrorState message={t.result.message} onRetry={() => void ask(t.question, t.id)} />}
-            {t.result?.kind === "error" && <ErrorState message="Couldn't reach the assistant." onRetry={() => void ask(t.question, t.id)} />}
+          <section key={t.id} aria-label={`Question: ${t.question}`} aria-busy={t.result === null} className="flex gap-3">
+            <Termy pose={t.result === null ? "thinking" : POSE[t.result.kind]} className="size-11 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <p className="text-sm text-muted-foreground">You asked: {t.question}</p>
+              {t.result === null && <Skeleton className="h-40 w-full rounded-xl" />}
+              {t.result?.kind === "answer" && <Answer a={t.result} />}
+              {t.result?.kind === "clarify" && <Note label="Needs more detail" message={t.result.message} />}
+              {t.result?.kind === "refused" && <Note label="Can't answer this" message={t.result.message} />}
+              {t.result?.kind === "unavailable" && <ErrorState message={t.result.message} onRetry={() => void ask(t.question, t.id)} />}
+              {t.result?.kind === "error" && <ErrorState message="Couldn't reach Termy." onRetry={() => void ask(t.question, t.id)} />}
+            </div>
           </section>
         ))}
       </div>

@@ -39,7 +39,7 @@ Daily job: GitHub Actions schedule → POST /api/cron/daily (shared secret)
 - **Dexie (IndexedDB) and a hand-written service worker** for offline. A plugin-generated worker could not reliably serve the app's dynamic pages offline on Next 16, so the worker is about 70 lines that precache exactly three screens and their assets.
 - **Vercel AI SDK** with a structured output schema, so the LLM returns a plan object, never free text that is executed.
 
-**Access control.** Every query on a screen goes through `getViewer()`, which resolves the signed-in user to a staff row with a role and a campus. Office admins see their campus; faculty see the subjects they teach and the students they mentor. Faculty visiting an admin screen are sent to Home. The assistant runs as a separate database role that can only read campus-filtered views.
+**Access control.** Every query on a screen goes through `getViewer()`, which resolves the signed-in user to a staff row with a role and a campus. Office admins see their campus; faculty see the subjects they teach and the students they mentor. Faculty visiting an admin screen are sent to Home. The assistant, Termy, runs as a separate database role that can only read views filtered by campus, role and teacher.
 
 ## 3. Data model
 
@@ -99,7 +99,7 @@ Office staff ask questions such as "how many second-year students are below 75% 
 
 1. The LLM receives the question and a description of six campus-filtered views, and must return a structured plan: query, clarify or refuse, the SQL, the filters in plain English, and a one-sentence summary.
 2. The SQL is parsed with the Postgres parser (libpg-query) and checked against an allowlist: one SELECT, only the six views, no functions outside a safe list, no writes, no comments or multiple statements.
-3. It runs as the `termwise_assistant` role, which can read only those views, inside a read-only transaction with a statement timeout and a row limit. The views filter themselves by the campus set for that transaction, so even a query that passes validation cannot see another campus.
+3. It runs as the `termwise_assistant` role, which can read only those views, inside a read-only transaction with a statement timeout and a row limit. The views filter themselves by the campus, role and staff id set for that transaction: admins see their campus, faculty see only the subjects they teach and those batches' students, and never fees. Even a query that passes validation cannot widen that, and an unset role makes the views error rather than show everything.
 4. **When it is wrong or unsure:** the answer always shows the filters it used, the row count and the SQL, so staff can see what was counted. An unclear question gets a clarifying question back. A request to change data is refused. Invalid SQL is rejected with a plain message. With no provider or a spent daily cap, the screen says so and points to the normal lists.
 
 ## 6. UI and design decisions
@@ -111,11 +111,11 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 - **Type.** Figtree for text, IBM Plex Mono for roll numbers, percentages and money, so figures line up in tables.
 - **Mark attendance.** Built for one thumb: large rows, everyone present by default, a running present and absent count on the Submit button, and a confirm sheet that lists the absent and late names before saving. A class of 60 with five absentees takes five taps, Submit and Confirm.
 - **States.** Every list has a loading skeleton, an empty state that says what to do next, and an error state with retry. Offline screens say what is queued and what needs a connection.
-- **Key screens:** faculty Home (today's classes and queued sheets), Mark attendance, Marks sheet; admin Home (campus counts and to-dos), Attendance (sessions and conflict queue), Marks (subjects by status, lock and reopen), Fees (dues, payments, reminders, Tally export), Risk (flags and mentor tasks), Assistant, College setup, Audit log.
+- **Key screens:** faculty Home (today's classes and queued sheets), Mark attendance, Marks sheet; admin Home (campus counts and to-dos), Attendance (sessions and conflict queue), Marks (subjects by status, lock and reopen), Fees (dues, payments, reminders, Tally export), Risk (flags and mentor tasks), Termy (the assistant, for admin and faculty), College setup, Audit log.
 
 ## 7. Testing and security
 
-- **Unit tests (Vitest)** cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts, Tally XML and the parent link signature.
+- **Unit tests (Vitest)** cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts and per-role view lists, the assistant views' role scoping against a seeded database, Tally XML and the parent link signature.
 - **End-to-end tests (Playwright, phone viewport)** cover offline marking then sync, the conflict queue, the shared-phone rejection, the marks lock and audited reopen, campus and role limits, fee payments and reminders, the at-risk run, the assistant with no provider, College setup edits, attendance correction, and the parent link with tampered and expired tokens.
 - **CI** runs all of it on every push against a fresh Postgres.
 - **Security:** no secrets in the repository (only local-only defaults); every input validated with zod at the server; role and campus checked on every query and action; audit log on every change; auth rate-limited; the assistant on a read-only role; parent links signed and time-limited; offline data limited to names and roll numbers and cleared on sign-out.

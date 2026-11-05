@@ -9,7 +9,7 @@ import { llmUsage } from "./schema";
 export function llmModel() {
   const provider = process.env.LLM_PROVIDER ?? "google";
   if (provider === "groq") return process.env.GROQ_API_KEY ? groq("llama-3.3-70b-versatile") : null;
-  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ? google("gemini-2.5-flash") : null;
+  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ? google("gemini-3.8-flash") : null;
 }
 
 /** Counts one call against the daily cap; false once the cap is reached. */

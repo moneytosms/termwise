@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateQuery } from "./validate";
+import { ALLOWED_VIEWS, validateQuery } from "./validate";
 
 const ok = (q: string) => validateQuery(q).then((r) => r.ok);
 
@@ -26,4 +26,9 @@ describe("validateQuery", () => {
     "select (select password from account limit 1)",
     "not sql at all",
   ])("rejects %s", async (q) => expect(await ok(q)).toBe(false));
+  it("rejects views outside the role's list", async () => {
+    const faculty = ALLOWED_VIEWS.filter((v) => v !== "v_fee_dues");
+    expect((await validateQuery("select * from v_fee_dues", faculty)).ok).toBe(false);
+    expect((await validateQuery("select * from v_marks", faculty)).ok).toBe(true);
+  });
 });

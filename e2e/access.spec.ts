@@ -32,7 +32,7 @@ test("office admin screens all load without errors", async ({ page }) => {
   await signIn(page, "admin@termwise.demo");
   for (const [path, heading] of [
     ["/home", "Today"], ["/students", "Students"], ["/attendance", "Attendance"], ["/attendance?tab=conflicts", "Attendance"], ["/marks", "Marks"], ["/fees", "Fees"], ["/risk", "Risk"],
-    ["/messages", "Messages"], ["/assistant", "Assistant"], ["/setup", "College setup"], ["/setup?tab=timetable", "College setup"], ["/setup?tab=rules", "College setup"], ["/audit", "Audit log"],
+    ["/messages", "Messages"], ["/assistant", "Termy"], ["/setup", "College setup"], ["/setup?tab=timetable", "College setup"], ["/setup?tab=rules", "College setup"], ["/audit", "Audit log"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();

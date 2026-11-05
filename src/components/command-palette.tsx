@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, IndianRupee, LogOut, Moon, Palette, PanelLeft, Rows3, Search, Settings, ShieldAlert, ClipboardCheck, Sun, Users, type LucideIcon } from "lucide-react";
+import { CornerDownLeft, IndianRupee, LogOut, Moon, Palette, PanelLeft, Rows3, Search, Settings, ShieldAlert, ClipboardCheck, Sun, Users } from "lucide-react";
+import type { NavIcon } from "@/components/termy";
 import { useTheme } from "next-themes";
 import { searchStudents } from "@/app/(app)/palette-actions";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PRESETS, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
-type Nav = { href: string; label: string; icon: LucideIcon };
+type Nav = { href: string; label: string; icon: NavIcon };
 type Mode = "go" | "actions" | "students" | "settings";
-type Row = { key: string; label: string; icon?: LucideIcon; hint?: string; run: () => void };
+type Row = { key: string; label: string; icon?: NavIcon; hint?: string; run: () => void };
 type Person = { id: number; rollNo: string; name: string; programme: string };
 
 const MODES: [Mode, string][] = [["go", "Go to"], ["actions", "Actions"], ["students", "Students"], ["settings", "Settings"]];

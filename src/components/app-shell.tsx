@@ -5,18 +5,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpenCheck, CalendarDays, ClipboardCheck, History, Home, IndianRupee, LogOut,
-  Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, Sparkles, Users, type LucideIcon,
+  Menu, MessageSquare, PanelLeft, Search, Settings, Settings2, ShieldAlert, Users,
 } from "lucide-react";
 import { createAuthClient } from "better-auth/react";
 import { CommandPalette } from "@/components/command-palette";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Mark } from "@/components/mark";
+import { TermyIcon, type NavIcon } from "@/components/termy";
 import { readSettings, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { clearOfflineData } from "@/offline/db";
 
-type Item = { href: string; label: string; icon: LucideIcon; short?: string };
+type Item = { href: string; label: string; icon: NavIcon; short?: string };
 type Group = { label?: string; items: Item[] };
 
 const FACULTY: Group[] = [{ items: [
@@ -24,6 +25,7 @@ const FACULTY: Group[] = [{ items: [
   { href: "/classes", label: "Classes", icon: CalendarDays },
   { href: "/marks", label: "Marks", icon: BookOpenCheck },
   { href: "/students", label: "Students", icon: Users },
+  { href: "/assistant", label: "Termy", icon: TermyIcon },
 ] }];
 const ADMIN: Group[] = [
   { items: [
@@ -36,7 +38,7 @@ const ADMIN: Group[] = [
   { label: "Follow-up", items: [
     { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk" },
     { href: "/messages", label: "Messages", icon: MessageSquare },
-    { href: "/assistant", label: "Assistant", icon: Sparkles },
+    { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
     { href: "/setup", label: "College setup", icon: Settings2, short: "Setup" },
