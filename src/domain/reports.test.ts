@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asOfDate, feeRows, lastDay, marksRows, previousMonth, shortageRows, strengthRows, toCsv, REPORTS } from "./reports";
+import { aicteFacultyRows, asOfDate, cadreRows, feeRows, intakeRows, lastDay, marksRows, previousMonth, sfrRows, shortageRows, strengthRows, toCsv, REPORTS } from "./reports";
 import type { Scheme } from "./marks";
 
 const scheme: Scheme = { kind: "theory", internalMax: 40, midMax: 20, endMax: 40, theoryScale: 100, labExamMax: 15, vivaMax: 10, ceMax: 5 };
@@ -93,5 +93,94 @@ describe("toCsv", () => {
   });
   it("gives every report a column for each row key", () => {
     for (const r of REPORTS) expect(new Set(r.columns.map((c) => c.key)).size).toBe(r.columns.length);
+  });
+});
+
+describe("intakeRows", () => {
+  it("counts admissions per programme and year by category and gender, alumni included", () => {
+    expect(intakeRows(
+      [
+        { programme: "CSE", sanctioned: 120, year: 2024 },
+        { programme: "CSE", sanctioned: 120, year: 2025 },
+        { programme: "ME", sanctioned: 60, year: 2024 },
+      ],
+      [
+        { programme: "CSE", year: 2024, category: "general", gender: "male" },
+        { programme: "CSE", year: 2024, category: "obc", gender: "female" },
+        { programme: "CSE", year: 2024, category: "general", gender: null },
+        { programme: "ME", year: 2024, category: "sc", gender: "other" },
+        { programme: "ME", year: 2023, category: "general", gender: "male" },
+      ],
+    )).toEqual([
+      { programme: "CSE", year: 2024, sanctioned: 120, admitted: 3, general: 2, obc: 1, sc: 0, st: 0, ews: 0, male: 1, female: 1, other: 0, genderNotRecorded: 1 },
+      { programme: "CSE", year: 2025, sanctioned: 120, admitted: 0, general: 0, obc: 0, sc: 0, st: 0, ews: 0, male: 0, female: 0, other: 0, genderNotRecorded: 0 },
+      { programme: "ME", year: 2024, sanctioned: 60, admitted: 1, general: 0, obc: 0, sc: 1, st: 0, ews: 0, male: 0, female: 0, other: 1, genderNotRecorded: 0 },
+    ]);
+  });
+});
+
+describe("aicteFacultyRows", () => {
+  it("lists faculty and HODs by department and name, with blanks as Not recorded", () => {
+    expect(aicteFacultyRows([
+      { department: "CSE", name: "Ravi", role: "faculty", designation: "professor", qualification: "Ph.D." },
+      { department: "CSE", name: "Asha", role: "faculty", designation: null, qualification: null },
+      { department: "ME", name: "Kiran", role: "hod", designation: "associate_professor", qualification: "M.E." },
+      { department: "CSE", name: "Office", role: "office_admin", designation: null, qualification: null },
+    ])).toEqual([
+      { department: "CSE", name: "Asha", designation: "Not recorded", qualification: "Not recorded" },
+      { department: "CSE", name: "Ravi", designation: "Professor", qualification: "Ph.D." },
+      { department: "ME", name: "Kiran", designation: "Associate Professor", qualification: "M.E." },
+    ]);
+  });
+});
+
+describe("sfrRows", () => {
+  const students = (programme: string, n: number) => Array.from({ length: n }, () => ({ programme }));
+  it("divides students by the faculty of the programme's department and flags ratios above 20", () => {
+    const rows = sfrRows(
+      [
+        { code: "CSE", departmentId: 1 },
+        { code: "ME", departmentId: 2 },
+        { code: "MBA", departmentId: null },
+        { code: "BPH", departmentId: 3 },
+      ],
+      [...students("CSE", 41), ...students("ME", 3), ...students("MBA", 1), ...students("BPH", 40)],
+      [
+        { departmentId: 1, role: "faculty", designation: null },
+        { departmentId: 1, role: "faculty", designation: null },
+        { departmentId: 1, role: "office_admin", designation: null },
+        { departmentId: 2, role: "faculty", designation: null },
+        { departmentId: 2, role: "hod", designation: null },
+        { departmentId: 3, role: "faculty", designation: null },
+        { departmentId: 3, role: "faculty", designation: null },
+      ],
+    );
+    expect(rows).toEqual([
+      { programme: "BPH", students: 40, faculty: 2, ratio: "1:20.0", norm: "1:20", status: "OK" },
+      { programme: "CSE", students: 41, faculty: 2, ratio: "1:20.5", norm: "1:20", status: "Below norm" },
+      { programme: "MBA", students: 1, faculty: 0, ratio: "—", norm: "1:20", status: "Below norm" },
+      { programme: "ME", students: 3, faculty: 1, ratio: "1:3.0", norm: "1:20", status: "OK" },
+    ]);
+  });
+});
+
+describe("cadreRows", () => {
+  const s = (departmentId: number, designation: string | null) => ({ departmentId, role: "faculty", designation });
+  it("counts designations per department and flags departments short of the 1:2:6 norm", () => {
+    const rows = cadreRows(
+      [{ id: 1, name: "CSE" }, { id: 2, name: "ME" }, { id: 3, name: "EEE" }],
+      [
+        s(1, "professor"), s(1, "associate_professor"), s(1, "associate_professor"), s(1, null),
+        ...Array.from({ length: 7 }, () => s(1, "assistant_professor")),
+        s(3, "professor"), s(3, "associate_professor"), ...Array.from({ length: 6 }, () => s(3, "assistant_professor")),
+        ...Array.from({ length: 6 }, () => s(2, "assistant_professor")),
+        { departmentId: 2, role: "hod", designation: "professor" },
+      ],
+    );
+    expect(rows).toEqual([
+      { department: "CSE", professors: 1, associates: 2, assistants: 7, ratio: "1:2:7", norm: "1:2:6", status: "OK" },
+      { department: "EEE", professors: 1, associates: 1, assistants: 6, ratio: "1:1:6", norm: "1:2:6", status: "Below norm" },
+      { department: "ME", professors: 0, associates: 0, assistants: 6, ratio: "0:0:6", norm: "1:2:6", status: "Below norm" },
+    ]);
   });
 });

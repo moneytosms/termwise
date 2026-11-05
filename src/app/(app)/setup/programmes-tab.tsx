@@ -10,7 +10,7 @@ import { saveProgramme } from "./actions";
 import { SelectField } from "@/components/select-field";
 import { editColumn, Field, FormDialog } from "./shared";
 
-type Row = { id: number; code: string; name: string; departmentId: number | null; department: string | null; cutoff: number };
+type Row = { id: number; code: string; name: string; departmentId: number | null; department: string | null; cutoff: number; sanctionedIntake: number };
 
 export function ProgrammesTab({ rows, departments }: { rows: Row[]; departments: { id: number; name: string }[] }) {
   const [editing, setEditing] = useState<Row | "new" | null>(null);
@@ -39,6 +39,9 @@ export function ProgrammesTab({ rows, departments }: { rows: Row[]; departments:
         </Field>
         <Field label="Attendance cutoff (%)" hint="Below this, a student is in attendance shortage. 1 to 100.">
           <Input name="attendanceCutoff" type="number" min={1} max={100} required defaultValue={current?.cutoff ?? 75} />
+        </Field>
+        <Field label="Sanctioned intake" hint="Seats approved for this programme each year. 1 to 1000.">
+          <Input name="sanctionedIntake" type="number" min={1} max={1000} required defaultValue={current?.sanctionedIntake ?? 60} />
         </Field>
       </FormDialog>
     </>

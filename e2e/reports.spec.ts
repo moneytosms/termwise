@@ -28,6 +28,14 @@ test("export downloads a CSV with the report's header row", async ({ page }) => 
   expect((await res.text()).split("\n")[0]).toBe("Programme,Year,Batch,Category,Gender,Students");
 });
 
+test("AICTE SFR shows its norm note and exports the matching header", async ({ page }) => {
+  await page.goto("/reports?report=aicte_sfr");
+  await expect(page.getByText("Students not yet alumni per faculty member", { exact: false }).filter({ visible: true })).toBeVisible();
+  const res = await page.request.get("/reports/aicte_sfr/export");
+  expect(res.status()).toBe(200);
+  expect((await res.text()).split("\n")[0]).toBe("Programme,Students,Faculty,Ratio,Norm,Status");
+});
+
 test("an unknown report or a bad month is refused", async ({ page }) => {
   expect((await page.request.get("/reports/nope/export")).status()).toBe(404);
   expect((await page.request.get("/reports/fees/export?month=2026-13")).status()).toBe(400);
