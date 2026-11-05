@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
 import { PageHeader, SectionHeading } from "@/components/page";
 import { EmptyState } from "@/components/states";
-import { istDayOfWeek } from "@/domain/attendance";
+import { istDayOfWeek, istTime } from "@/domain/attendance";
 import { cn } from "@/lib/utils";
 import { requireViewer } from "@/server/access";
-import { getPastSessions, getSessionDetail, getWeek } from "./queries";
+import { getPastSessions, getSessionDetail, getWeek, type WeekSlot } from "./queries";
 import { OnlineOnly } from "./online-only";
 import { PastSessions } from "./past-sessions";
 import { Today } from "./today";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
+const SHORT = DAYS.map((d) => d.slice(0, 3));
 
 export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ session?: string }> }) {
   const v = await requireViewer();
@@ -22,6 +23,10 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
     session && /^[0-9a-f-]{36}$/i.test(session) ? getSessionDetail(v, session) : null,
   ]);
   const today = istDayOfWeek();
+  const now = istTime();
+  const days = MON_FIRST.filter((d) => week.some((s) => s.day === d));
+  const times = [...new Set(week.map((s) => s.startTime))].sort();
+  const isNow = (s: WeekSlot) => s.startTime <= now && now < s.endTime;
 
   return (
     <>
@@ -31,19 +36,39 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
         <section>
           <SectionHeading title="This week" />
           {week.length === 0 ? <EmptyState title="No timetable classes for you." /> : (
-            <ol className="divide-y rounded-xl bg-card shadow-sheet">
-              {MON_FIRST.map((d) => {
-                const slots = week.filter((s) => s.day === d);
-                return slots.length === 0 ? null : (
-                  <li key={d} className={cn("px-4 py-3", d === today && "bg-data-soft/60")}>
-                    <p className="text-sm font-medium">{DAYS[d]}{d === today && <span className="ml-2 text-xs font-medium text-data">Today</span>}</p>
-                    <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
-                      {slots.map((s, i) => <li key={i}><span className="tabular-nums">{s.startTime}</span> {s.subject} · {s.batch}</li>)}
-                    </ul>
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="overflow-x-auto rounded-xl bg-card shadow-sheet">
+              <table className="w-full min-w-[36rem] text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground">
+                    <th scope="col" className="px-3 py-2.5 font-medium">Time</th>
+                    {days.map((d) => (
+                      <th key={d} scope="col" className={cn("px-3 py-2.5 font-medium", d === today && "bg-data-soft/40 text-data")}>{d === today ? "Today" : SHORT[d]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {times.map((t, r) => (
+                    <tr key={t} className={cn(r % 2 === 1 && "bg-muted/30")}>
+                      <th scope="row" className="px-3 py-2 text-left font-normal whitespace-nowrap text-muted-foreground tabular-nums">{t}</th>
+                      {days.map((d) => {
+                        const slots = week.filter((s) => s.day === d && s.startTime === t);
+                        return (
+                          <td key={d} className={cn("p-1.5 align-top", d === today && "bg-data-soft/40")}>
+                            {slots.length === 0 ? <span aria-hidden className="mx-auto mt-3 block size-1 rounded-full bg-border" /> : slots.map((s, i) => (
+                              <div key={i} title={`${s.startTime}–${s.endTime} · ${s.subject} · ${s.batch}`}
+                                className={cn("rounded-lg px-2.5 py-2 transition-colors hover:bg-muted", d === today && isNow(s) && "ring-2 ring-data")}>
+                                <span className="block font-medium">{s.subject}</span>
+                                <span className="block text-xs text-muted-foreground">{s.batch}</span>
+                              </div>
+                            ))}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
