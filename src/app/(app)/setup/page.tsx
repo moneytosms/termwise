@@ -56,7 +56,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   } else if (current === "subjects") {
     body = <SubjectsTab rows={await listSubjects(c)} batches={await listBatches(c)} faculty={await listFaculty(c)} />;
   } else if (current === "faculty") {
-    body = <FacultyTab rows={await listStaff(c)} />;
+    body = <FacultyTab rows={await listStaff(c)} canEdit={full} />;
   } else if (current === "calendar") {
     body = <CalendarTab rows={await listCalendar(c)} />;
   } else if (current === "timetable") {

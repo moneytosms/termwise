@@ -61,6 +61,7 @@ export default async function ReportsPage({ searchParams }: {
         {meta.title}: {rows.length} {rows.length === 1 ? "row" : "rows"}
         {rows.length > PREVIEW_ROWS && ` (first ${PREVIEW_ROWS} shown; the CSV has all of them)`}.
       </p>
+      {meta.note && <p className="mb-3 text-sm text-muted-foreground">{meta.note}</p>}
       {rows.length === 0 ? (
         <EmptyState title="Nothing to report for this month." />
       ) : (

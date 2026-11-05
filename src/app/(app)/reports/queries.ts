@@ -1,13 +1,13 @@
-import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from "drizzle-orm";
 import { istDate } from "@/domain/attendance";
 import type { Instalment } from "@/domain/fees";
 import { sectionsFor, type Scheme, type Section } from "@/domain/marks";
 import {
-  asOfDate, feeRows, lastDay, marksRows, REPORTS, shortageRows, strengthRows, type Column, type ReportKey, type Row,
-  type StudentFees, type SubjectAttendance, type SubjectMarks,
+  aicteFacultyRows, asOfDate, cadreRows, feeRows, intakeRows, lastDay, marksRows, REPORTS, sfrRows, shortageRows, strengthRows, type Column,
+  type ReportKey, type Row, type StudentFees, type SubjectAttendance, type SubjectMarks,
 } from "@/domain/reports";
 import { db } from "@/server/db";
-import { attendanceEntry, attendanceSession, batch, feeInstalment, feePayment, mark, markComponent, programme, student, subject } from "@/server/schema";
+import { attendanceEntry, attendanceSession, batch, department, feeInstalment, feePayment, mark, markComponent, programme, staff, student, subject } from "@/server/schema";
 
 const DAY = 86_400_000;
 const heldSum = sql<number>`coalesce(sum(${attendanceSession.periodCount}), 0)`.mapWith(Number);
@@ -107,6 +107,42 @@ async function loadFees(campusId: number, asOf: string, programmeId: number | nu
   return students.map((s) => ({ programme: s.programme, instalments: byStudent.get(s.id) ?? [] }));
 }
 
+function loadIntake(campusId: number, programmeId: number | null) {
+  const batches = db.select({ programme: programme.code, sanctioned: programme.sanctionedIntake, year: batch.admissionYear }).from(batch)
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
+  // Alumni are counted: everyone admitted that year.
+  const students = db.select({ programme: programme.code, year: batch.admissionYear, category: student.category, gender: student.gender }).from(student)
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
+  return Promise.all([batches, students]);
+}
+
+/** All staff on the campus except the trust's; the builders pick the teaching roles they count. */
+const campusStaff = (campusId: number) => db.select({
+  departmentId: staff.departmentId, department: department.name, name: staff.name, role: staff.role,
+  designation: staff.designation, qualification: staff.qualification,
+}).from(staff)
+  .leftJoin(department, eq(staff.departmentId, department.id))
+  .where(and(eq(staff.campusId, campusId), ne(staff.role, "trust")));
+
+function loadSfr(campusId: number, programmeId: number | null) {
+  const programmes = db.select({ code: programme.code, departmentId: programme.departmentId }).from(programme)
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId)));
+  const students = db.select({ programme: programme.code }).from(student)
+    .innerJoin(batch, eq(student.batchId, batch.id))
+    .innerJoin(programme, eq(batch.programmeId, programme.id))
+    .where(and(eq(programme.campusId, campusId), programmeFilter(programmeId), isNull(student.graduatedOn)));
+  return Promise.all([programmes, students, campusStaff(campusId)]);
+}
+
+function loadCadre(campusId: number) {
+  const departments = db.select({ id: department.id, name: department.name }).from(department)
+    .where(eq(department.campusId, campusId));
+  return Promise.all([departments, campusStaff(campusId)]);
+}
+
 export type ReportOptions = { month: string; programmeId?: number | null; today?: string };
 
 /** One report's columns and rows for a campus. `month` is YYYY-MM; fees are as at its end, or today for the current month. */
@@ -119,6 +155,10 @@ export async function runReport(v: { campusId: number }, key: ReportKey, o: Repo
   else if (key === "shortage") rows = shortageRows(await loadShortage(v.campusId, o.month, programmeId));
   else if (key === "marks") rows = marksRows(await loadMarks(v.campusId, programmeId));
   else if (key === "fees") rows = feeRows(await loadFees(v.campusId, asOf, programmeId), asOf);
+  else if (key === "aicte_intake") { const [batches, students] = await loadIntake(v.campusId, programmeId); rows = intakeRows(batches, students); }
+  else if (key === "aicte_faculty") rows = aicteFacultyRows(await campusStaff(v.campusId));
+  else if (key === "aicte_sfr") { const [programmes, students, staffRows] = await loadSfr(v.campusId, programmeId); rows = sfrRows(programmes, students, staffRows); }
+  else if (key === "aicte_cadre") { const [departments, staffRows] = await loadCadre(v.campusId); rows = cadreRows(departments, staffRows); }
   else throw new Error(`Unknown report: ${key}`);
   return { columns, rows };
 }

@@ -7,14 +7,17 @@ import { finalScore, type MarksStatus, type Scheme, type Section } from "./marks
 export type Row = Record<string, string | number | null>;
 export type Column = { key: string; label: string };
 
-export const REPORT_KEYS = ["strength", "shortage", "marks", "fees"] as const;
+export const REPORT_KEYS = ["strength", "shortage", "marks", "fees", "aicte_intake", "aicte_faculty", "aicte_sfr", "aicte_cadre"] as const;
 export type ReportKey = (typeof REPORT_KEYS)[number];
 
 /** The capability that opens each report: the fees return is for accounts, the rest for exams. */
-export const REPORT_CAP: Record<ReportKey, Capability> = { strength: "reports", shortage: "reports", marks: "reports", fees: "fee_reports" };
+export const REPORT_CAP: Record<ReportKey, Capability> = {
+  strength: "reports", shortage: "reports", marks: "reports", fees: "fee_reports",
+  aicte_intake: "reports", aicte_faculty: "reports", aicte_sfr: "reports", aicte_cadre: "reports",
+};
 
 /** University, AICTE and NAAC returns. Column keys are row keys; labels go in the CSV header. */
-export const REPORTS: { key: ReportKey; title: string; columns: Column[] }[] = [
+export const REPORTS: { key: ReportKey; title: string; columns: Column[]; note?: string }[] = [
   { key: "strength", title: "Strength", columns: [
     { key: "programme", label: "Programme" }, { key: "year", label: "Year" }, { key: "batch", label: "Batch" },
     { key: "category", label: "Category" }, { key: "gender", label: "Gender" }, { key: "students", label: "Students" },
@@ -31,6 +34,22 @@ export const REPORTS: { key: ReportKey; title: string; columns: Column[] }[] = [
   { key: "fees", title: "Fees", columns: [
     { key: "programme", label: "Programme" }, { key: "students", label: "Students" }, { key: "billed", label: "Billed (INR)" },
     { key: "collected", label: "Collected (INR)" }, { key: "due", label: "Due (INR)" }, { key: "overdue", label: "Overdue (INR)" },
+  ] },
+  { key: "aicte_intake", title: "AICTE intake", note: "[A] Sanctioned seats against everyone admitted in each admission year, alumni included. Pharmacy reports to PCI; same layout used.", columns: [
+    { key: "programme", label: "Programme" }, { key: "year", label: "Admission year" }, { key: "sanctioned", label: "Sanctioned" }, { key: "admitted", label: "Admitted" },
+    { key: "general", label: "General" }, { key: "obc", label: "OBC" }, { key: "sc", label: "SC" }, { key: "st", label: "ST" }, { key: "ews", label: "EWS" },
+    { key: "male", label: "Male" }, { key: "female", label: "Female" }, { key: "other", label: "Other" }, { key: "genderNotRecorded", label: "Gender not recorded" },
+  ] },
+  { key: "aicte_faculty", title: "AICTE faculty", note: "[A] Faculty and HODs by department, with designation and qualification as recorded in College setup.", columns: [
+    { key: "department", label: "Department" }, { key: "name", label: "Name" }, { key: "designation", label: "Designation" }, { key: "qualification", label: "Qualification" },
+  ] },
+  { key: "aicte_sfr", title: "AICTE student-faculty ratio", note: "[A] Students not yet alumni per faculty member of the programme's department, against a 1:20 norm. Below norm when over 20 students per faculty or no faculty.", columns: [
+    { key: "programme", label: "Programme" }, { key: "students", label: "Students" }, { key: "faculty", label: "Faculty" },
+    { key: "ratio", label: "Ratio" }, { key: "norm", label: "Norm" }, { key: "status", label: "Status" },
+  ] },
+  { key: "aicte_cadre", title: "AICTE cadre ratio", note: "[A] Professors, associate and assistant professors per department, against 1:2:6. Below norm when professors or associates fall short of 1 and 2 per 6 assistants.", columns: [
+    { key: "department", label: "Department" }, { key: "professors", label: "Professors" }, { key: "associates", label: "Associate professors" },
+    { key: "assistants", label: "Assistant professors" }, { key: "ratio", label: "Ratio" }, { key: "norm", label: "Norm" }, { key: "status", label: "Status" },
   ] },
 ];
 
@@ -125,6 +144,87 @@ export function feeRows(students: StudentFees[], asOf: string): Row[] {
   return [...groups.values()]
     .sort((a, b) => a.programme.localeCompare(b.programme))
     .map((g) => ({ programme: g.programme, students: g.students, billed: rupees(g.billed), collected: rupees(g.collected), due: rupees(g.due), overdue: rupees(g.overdue) }));
+}
+
+const DESIGNATION_LABEL: Record<string, string> = { professor: "Professor", associate_professor: "Associate Professor", assistant_professor: "Assistant Professor" };
+
+export type IntakeBatch = { programme: string; sanctioned: number; year: number };
+export type IntakeStudent = { programme: string; year: number; category: string; gender: string | null };
+
+/** Sanctioned seats and admissions per programme and admission year, by category and gender. Alumni count as admitted. */
+export function intakeRows(batches: IntakeBatch[], students: IntakeStudent[]): Row[] {
+  type Group = { programme: string; year: number; sanctioned: number; admitted: number; counts: Record<string, number> };
+  const groups = new Map<string, Group>();
+  const blank = (): Record<string, number> => ({ general: 0, obc: 0, sc: 0, st: 0, ews: 0, male: 0, female: 0, other: 0, genderNotRecorded: 0 });
+  for (const b of batches) {
+    const key = `${b.programme}|${b.year}`;
+    if (!groups.has(key)) groups.set(key, { programme: b.programme, year: b.year, sanctioned: b.sanctioned, admitted: 0, counts: blank() });
+  }
+  for (const s of students) {
+    const g = groups.get(`${s.programme}|${s.year}`);
+    if (!g) continue;
+    g.admitted++;
+    g.counts[s.category] = (g.counts[s.category] ?? 0) + 1;
+    const gk = s.gender ?? "genderNotRecorded";
+    g.counts[gk] = (g.counts[gk] ?? 0) + 1;
+  }
+  return [...groups.values()]
+    .sort((a, b) => a.programme.localeCompare(b.programme) || a.year - b.year)
+    .map((g) => ({ programme: g.programme, year: g.year, sanctioned: g.sanctioned, admitted: g.admitted, ...g.counts }));
+}
+
+export type FacultyStaff = { department: string | null; name: string; role: string; designation: string | null; qualification: string | null };
+
+/** Faculty and HODs by department, name. Missing designation or qualification reads "Not recorded". */
+export function aicteFacultyRows(staff: FacultyStaff[]): Row[] {
+  return staff
+    .filter((s) => s.role === "faculty" || s.role === "hod")
+    .sort((a, b) => (a.department ?? "").localeCompare(b.department ?? "") || a.name.localeCompare(b.name))
+    .map((s) => ({
+      department: s.department, name: s.name,
+      designation: s.designation ? DESIGNATION_LABEL[s.designation] ?? s.designation : "Not recorded",
+      qualification: s.qualification ?? "Not recorded",
+    }));
+}
+
+export type SfrProgramme = { code: string; departmentId: number | null };
+export type TeachingStaff = { departmentId: number | null; role: string; designation: string | null };
+
+/** Students not alumni per faculty member of the programme's department. */
+export function sfrRows(programmes: SfrProgramme[], students: { programme: string }[], staff: TeachingStaff[]): Row[] {
+  const studentCount = new Map<string, number>();
+  for (const s of students) studentCount.set(s.programme, (studentCount.get(s.programme) ?? 0) + 1);
+  return [...programmes]
+    .sort((a, b) => a.code.localeCompare(b.code))
+    .map((p) => {
+      const count = studentCount.get(p.code) ?? 0;
+      const faculty = p.departmentId === null ? 0 : staff.filter((s) => s.role === "faculty" && s.departmentId === p.departmentId).length;
+      const low = faculty === 0 || count / faculty > 20;
+      return {
+        programme: p.code, students: count, faculty,
+        ratio: faculty ? `1:${(count / faculty).toFixed(1)}` : "—",
+        norm: "1:20", status: low ? "Below norm" : "OK",
+      };
+    });
+}
+
+/** Professors, associate and assistant professors per department. Below norm when short of 1 and 2 per 6 assistants. */
+export function cadreRows(departments: { id: number; name: string }[], staff: TeachingStaff[]): Row[] {
+  return [...departments]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((d) => {
+      const mine = staff.filter((s) => s.role === "faculty" && s.departmentId === d.id);
+      const count = (designation: string) => mine.filter((s) => s.designation === designation).length;
+      const professors = count("professor");
+      const associates = count("associate_professor");
+      const assistants = count("assistant_professor");
+      const unit = Math.floor(assistants / 6);
+      const low = professors < unit || associates < unit * 2;
+      return {
+        department: d.name, professors, associates, assistants,
+        ratio: `${professors}:${associates}:${assistants}`, norm: "1:2:6", status: low ? "Below norm" : "OK",
+      };
+    });
 }
 
 const csvCell = (v: string | number | null) => (v === null ? "" : /[",\r\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v));

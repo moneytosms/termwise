@@ -15,7 +15,7 @@ export const listDepartments = (campusId: number) =>
 export const listProgrammes = (campusId: number) =>
   db.select({
     id: programme.id, code: programme.code, name: programme.name, departmentId: programme.departmentId,
-    department: department.name, cutoff: programme.attendanceCutoff,
+    department: department.name, cutoff: programme.attendanceCutoff, sanctionedIntake: programme.sanctionedIntake,
   }).from(programme)
     .leftJoin(department, eq(programme.departmentId, department.id))
     .where(eq(programme.campusId, campusId)).orderBy(programme.code);
@@ -78,6 +78,7 @@ export const listFaculty = (campusId: number) =>
 export const listStaff = (campusId: number) =>
   db.select({
     id: staff.id, name: staff.name, department: department.name, role: sql<StaffRole>`${staff.role}`,
+    designation: staff.designation, qualification: staff.qualification,
     hasAccount: sql<boolean>`${staff.userId} is not null`,
     subjects: sql<number>`(select count(*) from ${subject} where ${subject.facultyId} = ${staff.id})`.mapWith(Number),
     mentees: sql<number>`(select count(*) from ${student} where ${student.mentorId} = ${staff.id})`.mapWith(Number),

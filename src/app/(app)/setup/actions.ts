@@ -34,6 +34,12 @@ const programmeInput = z.object({
   name: text("Name", 120),
   departmentId: optId,
   attendanceCutoff: range("Attendance cutoff", 1, 100),
+  sanctionedIntake: range("Sanctioned intake", 1, 1000),
+});
+const staffProfileInput = z.object({
+  id: pick("Pick a staff member."),
+  designation: z.preprocess((x) => (x === "" || x == null ? null : x), z.enum(["professor", "associate_professor", "assistant_professor"], { error: "Pick a designation from the list." }).nullable()),
+  qualification: z.string().trim().max(80, "Qualification is too long.").transform((q) => q || null),
 });
 const batchInput = z.object({
   id: optId,
@@ -146,6 +152,23 @@ export async function saveProgramme(fd: FormData): Promise<Result> {
       const [row] = await tx.insert(programme).values({ ...values, campusId: v.campusId }).returning();
       await audit(tx, v, { action: "setup.programme.create", entity: "programme", entityId: row.id, newValue: row });
     }
+    return null;
+  });
+  if (error) return { error };
+  revalidatePath("/setup");
+  return {};
+}
+
+export async function saveStaffProfile(fd: FormData): Promise<Result> {
+  const v = await requireCan("setup");
+  const p = parse(staffProfileInput, fd);
+  if (!p.ok) return { error: p.error };
+  const { id, designation, qualification } = p.data;
+  const error = await db.transaction(async (tx) => {
+    const [old] = await tx.select().from(staff).where(and(eq(staff.id, id), eq(staff.campusId, v.campusId), ne(staff.role, "trust")));
+    if (!old) return "Staff member not found on this campus.";
+    const [row] = await tx.update(staff).set({ designation, qualification }).where(eq(staff.id, id)).returning();
+    await audit(tx, v, { action: "setup.staff.update", entity: "staff", entityId: id, oldValue: old, newValue: row });
     return null;
   });
   if (error) return { error };
