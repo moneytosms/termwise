@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireAdmin } from "@/server/access";
 import { BatchesTab } from "./batches-tab";
+import { CollegeTab } from "./college-tab";
 import { CalendarTab } from "./calendar-tab";
 import { FacultyTab } from "./faculty-tab";
 import { ProgrammesTab } from "./programmes-tab";
 import { RulesTab } from "./rules-tab";
-import { getRules, listBatches, listCalendar, listDepartments, listFaculty, listProgrammes, listSlots, listStaff, listSubjects } from "./queries";
+import { getCampus, getRules, listBatches, listCalendar, listDepartments, listFaculty, listProgrammes, listSlots, listStaff, listSubjects } from "./queries";
 import { SubjectsTab } from "./subjects-tab";
 import { TimetableTab } from "./timetable-tab";
 
@@ -21,6 +22,7 @@ const TABS = [
   { key: "calendar", label: "Calendar" },
   { key: "timetable", label: "Timetable" },
   { key: "rules", label: "Rules" },
+  { key: "college", label: "College" },
 ] as const;
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<{ tab?: string; batch?: string }> }) {
@@ -50,8 +52,10 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       <EmptyState title="Timetables are set per batch. Add a batch first."
         action={<Button size="sm" variant="outline" nativeButton={false} render={<Link href="/setup?tab=batches" />}>Go to Batches</Button>} />
     );
-  } else {
+  } else if (current === "rules") {
     body = <RulesTab rules={await getRules(c)} />;
+  } else {
+    body = <CollegeTab campus={await getCampus(c)} />;
   }
 
   return (
