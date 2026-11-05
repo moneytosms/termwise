@@ -29,7 +29,7 @@ export function RulesTab({ rules }: { rules: { riskDropPoints: number; riskMarks
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
         The attendance cutoff is set per programme on the{" "}
-        <Link href="/setup?tab=programmes" className="text-primary underline underline-offset-4">Programmes tab</Link>.
+        <Link href="/setup?tab=programmes" className="font-medium underline underline-offset-4">Programmes tab</Link>.
       </p>
 
       <SectionHeading title="At-risk rules" />

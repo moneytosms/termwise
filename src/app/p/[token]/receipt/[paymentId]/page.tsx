@@ -45,18 +45,18 @@ export default async function ReceiptPage({ params }: { params: Promise<{ token:
   return (
     <main className="mx-auto max-w-xl px-4 py-8">
       <div className="no-print mb-4 flex items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" render={<Link href={`/p/${token}`} />}>Back to fees</Button>
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/p/${token}`} />}>Back to fees</Button>
         <PrintButton />
       </div>
-      <article className="rounded-2xl border bg-card p-6">
+      <article className="rounded-xl bg-card p-6 shadow-sheet print:shadow-none">
         <p className="text-sm text-muted-foreground">{r.campus}</p>
-        <h1 className="text-xl font-semibold tracking-tight">Fee receipt</h1>
-        <p className="font-mono text-sm text-muted-foreground">R-{String(r.id).padStart(6, "0")}</p>
+        <h1 className="text-[1.75rem] leading-tight font-semibold tracking-[-0.02em] md:text-[2rem]">Fee receipt</h1>
+        <p className="tabular-nums text-sm text-muted-foreground">R-{String(r.id).padStart(6, "0")}</p>
         <dl className="mt-6 divide-y text-sm">
           {rows.map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 py-2">
               <dt className="text-muted-foreground">{k}</dt>
-              <dd className="text-right font-mono">{v}</dd>
+              <dd className="text-right tabular-nums">{v}</dd>
             </div>
           ))}
         </dl>

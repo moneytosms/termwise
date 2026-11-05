@@ -47,7 +47,7 @@ export default async function MarksSubjectPage({ params }: { params: Promise<{ s
                 {history.map((h) => (
                   <li key={h.id}>
                     <span className="text-muted-foreground">{new Date(h.at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</span>{" "}
-                    <span className="font-mono">{h.action}</span> by {h.actorName}{h.reason && `: ${h.reason}`}
+                    <span className="tabular-nums">{h.action}</span> by {h.actorName}{h.reason && `: ${h.reason}`}
                   </li>
                 ))}
               </ul>

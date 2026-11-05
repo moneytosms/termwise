@@ -52,14 +52,14 @@ export function ConflictPanel({ detail, base }: { detail: ConflictDetail | null;
 
               <SectionHeading title="Differences" count={d.diffs.length} />
               {d.diffs.length === 0 ? <EmptyState title="No students differ. Both versions match." /> : (
-                <div className="overflow-hidden rounded-xl border text-sm">
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-b bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                <div className="overflow-hidden rounded-lg bg-muted/60 text-sm">
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-b bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
                     <span>Student</span><span>Saved</span><span>Incoming</span>
                   </div>
                   <ul className="divide-y">
                     {d.diffs.map((x) => (
                       <li key={x.rollNo} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 px-3 py-2">
-                        <span className="min-w-0"><span className="block font-mono text-xs text-muted-foreground">{x.rollNo}</span>{x.name}</span>
+                        <span className="min-w-0"><span className="block tabular-nums text-xs text-muted-foreground">{x.rollNo}</span>{x.name}</span>
                         <StatusWord status={x.saved} />
                         <StatusWord status={x.incoming} />
                       </li>

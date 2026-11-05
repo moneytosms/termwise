@@ -28,9 +28,9 @@ export function Today() {
             const marked = Boolean(c.sessionId) || outbox.some((o) => o.key === c.key);
             return (
               <li key={c.key}>
-                <Link href={`/mark#${encodeURIComponent(c.key)}`} className="flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm">
+                <Link href={`/mark#${encodeURIComponent(c.key)}`} className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-3 text-sm shadow-sheet transition-colors hover:bg-muted/50 active:bg-muted">
                   <span className="min-w-0">
-                    <span className="font-mono">{c.startTime}</span> <span className="font-medium">{c.subjectName}</span>
+                    <span className="tabular-nums">{c.startTime}</span> <span className="font-medium">{c.subjectName}</span>
                     <span className="block truncate text-muted-foreground">{c.batchCode}</span>
                   </span>
                   <StatusPill tone={marked ? "ok" : "late"}>{marked ? "Marked" : "To mark"}</StatusPill>

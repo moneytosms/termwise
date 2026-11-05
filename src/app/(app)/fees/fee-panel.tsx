@@ -32,7 +32,7 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
           <>
             <SheetHeader>
               <SheetTitle>{detail.student.name}</SheetTitle>
-              <SheetDescription><span className="font-mono">{detail.student.rollNo}</span> · {detail.student.batch}</SheetDescription>
+              <SheetDescription><span className="tabular-nums">{detail.student.rollNo}</span> · {detail.student.batch}</SheetDescription>
             </SheetHeader>
             <div className="space-y-2 px-4 pb-8">
               <SectionHeading title="Instalments" count={detail.instalments.length} />
@@ -41,17 +41,17 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
                   {detail.instalments.map((i) => {
                     const due = instalmentDue(i);
                     return (
-                      <div key={i.id} className="rounded-xl border p-3 text-sm">
+                      <div key={i.id} className="rounded-lg bg-muted/60 p-3 text-sm">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium">{i.label}</span>
                           {due === 0 ? <StatusPill tone="ok">Paid</StatusPill> : i.dueDate < today ? <StatusPill tone="absent">Overdue</StatusPill> : <StatusPill tone="late">Due</StatusPill>}
                         </div>
                         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                          <dt className="text-muted-foreground">Amount</dt><dd className="text-right font-mono">{rupees(i.amountPaise)}</dd>
-                          <dt className="text-muted-foreground">Scholarship</dt><dd className="text-right font-mono">{rupees(i.scholarshipPaise)}</dd>
-                          <dt className="text-muted-foreground">Paid</dt><dd className="text-right font-mono">{rupees(i.paidPaise)}</dd>
-                          <dt className="text-muted-foreground">Due</dt><dd className="text-right font-mono">{rupees(due)}</dd>
-                          <dt className="text-muted-foreground">Due date</dt><dd className="text-right font-mono">{i.dueDate}</dd>
+                          <dt className="text-muted-foreground">Amount</dt><dd className="text-right tabular-nums">{rupees(i.amountPaise)}</dd>
+                          <dt className="text-muted-foreground">Scholarship</dt><dd className="text-right tabular-nums">{rupees(i.scholarshipPaise)}</dd>
+                          <dt className="text-muted-foreground">Paid</dt><dd className="text-right tabular-nums">{rupees(i.paidPaise)}</dd>
+                          <dt className="text-muted-foreground">Due</dt><dd className="text-right tabular-nums">{rupees(due)}</dd>
+                          <dt className="text-muted-foreground">Due date</dt><dd className="text-right tabular-nums">{i.dueDate}</dd>
                         </dl>
                         {due > 0 && <PaymentForm instalmentId={i.id} duePaise={due} />}
                       </div>
@@ -64,10 +64,10 @@ export function FeePanel({ detail }: { detail: FeeDetail | null }) {
               {detail.payments.length === 0 ? <p className="text-sm text-muted-foreground">No payments yet.</p> : (
                 <ul className="space-y-2 text-sm">
                   {detail.payments.map((p) => (
-                    <li key={p.id} className="rounded-xl border p-3">
-                      <div className="flex justify-between gap-2"><span className="font-mono">{rupees(p.amountPaise)}</span><span className="text-muted-foreground">{p.label}</span></div>
+                    <li key={p.id} className="rounded-lg bg-muted/60 p-3">
+                      <div className="flex justify-between gap-2"><span className="tabular-nums">{rupees(p.amountPaise)}</span><span className="text-muted-foreground">{p.label}</span></div>
                       <p className="text-muted-foreground">
-                        {p.mode === "bank_counter" ? "Bank counter" : p.mode} · Ref <span className="font-mono">{p.reference}</span> · {p.paidAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                        {p.mode === "bank_counter" ? "Bank counter" : p.mode} · Ref <span className="tabular-nums">{p.reference}</span> · {p.paidAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                       </p>
                     </li>
                   ))}

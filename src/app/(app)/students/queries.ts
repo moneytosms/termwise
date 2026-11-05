@@ -10,7 +10,7 @@ import {
 
 export type StudentRow = {
   id: number; rollNo: string; name: string; batch: string; programme: string; year: number;
-  attendance: number | null; shortage: boolean; marks: number | null; duePaise: number | null; flagged: boolean;
+  attendance: number | null; cutoff: number; shortage: boolean; marks: number | null; duePaise: number | null; flagged: boolean;
 };
 
 /** One row per student this viewer may see. `duePaise` is null for faculty, who get no fee data. */
@@ -42,7 +42,7 @@ export async function listStudents(v: Viewer): Promise<StudentRow[]> {
   return rows.map((r) => {
     const attendance = r.held ? Math.round((r.attended / r.held) * 1000) / 10 : null;
     return {
-      id: r.id, rollNo: r.rollNo, name: r.name, batch: r.batch, programme: r.programme, year: r.year,
+      id: r.id, rollNo: r.rollNo, name: r.name, batch: r.batch, programme: r.programme, year: r.year, cutoff: r.cutoff,
       attendance, shortage: isShortage(attendance, r.cutoff),
       marks: r.marksAvg === null ? null : Math.round(r.marksAvg * 10) / 10,
       duePaise: isAdmin ? due.get(r.id) ?? 0 : null, flagged: r.flagged,

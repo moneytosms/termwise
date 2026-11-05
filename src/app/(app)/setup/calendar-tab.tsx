@@ -23,7 +23,7 @@ export function CalendarTab({ rows }: { rows: Row[] }) {
   const current = editing && editing !== "new" ? editing : null;
 
   const columns: ColumnDef<Row>[] = [
-    { accessorKey: "date", header: "Date", cell: ({ row }) => <span className="font-mono text-sm">{fmtDate(row.original.date)}</span> },
+    { accessorKey: "date", header: "Date", cell: ({ row }) => <span className="tabular-nums text-sm">{fmtDate(row.original.date)}</span> },
     { accessorKey: "kind", header: "Kind", cell: ({ row }) => KIND[row.original.kind] },
     { accessorKey: "label", header: "Label" },
     { id: "actions", header: () => <span className="sr-only">Actions</span>, cell: ({ row }) => (

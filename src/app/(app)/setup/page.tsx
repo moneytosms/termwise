@@ -48,7 +48,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         subjects={(await listSubjects(c)).filter((s) => s.batchId === picked.id)} />
     ) : (
       <EmptyState title="Timetables are set per batch. Add a batch first."
-        action={<Button size="sm" variant="outline" render={<Link href="/setup?tab=batches" />}>Go to Batches</Button>} />
+        action={<Button size="sm" variant="outline" nativeButton={false} render={<Link href="/setup?tab=batches" />}>Go to Batches</Button>} />
     );
   } else {
     body = <RulesTab rules={await getRules(c)} />;
@@ -63,7 +63,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           return (
             <Link key={t.key} href={`/setup?tab=${t.key}`} aria-current={active ? "page" : undefined}
               className={cn("-mb-px shrink-0 border-b-2 px-3 py-2 text-sm transition-colors",
-                active ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                active ? "border-foreground font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
               {t.label}
             </Link>
           );

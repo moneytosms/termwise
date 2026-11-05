@@ -56,7 +56,7 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
         </select>
       </label>
 
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      <div className="overflow-x-auto rounded-xl bg-card shadow-sheet">
         <table className="w-full min-w-[52rem] border-collapse text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
@@ -67,7 +67,7 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
           <tbody>
             {PERIODS.map((p) => (
               <tr key={p} className="border-b last:border-0">
-                <th scope="row" className="p-2 text-left font-mono font-medium">{p}</th>
+                <th scope="row" className="p-2 text-left tabular-nums font-medium">{p}</th>
                 {DAYS.map((d) => {
                   if (covered.has(`${d.n}-${p}`)) return null;
                   const s = byCell.get(`${d.n}-${p}`);
@@ -75,11 +75,11 @@ export function TimetableTab({ batches, batchId, slots, subjects }: {
                     <td key={d.n} rowSpan={s?.periodCount ?? 1} className="p-1 align-top">
                       <button type="button" aria-label={`${d.long}, period ${p}${s ? `: ${s.subject ?? s.label}` : ""}`}
                         onClick={() => setEditing({ dayOfWeek: d.n, period: p, slot: s })}
-                        className="flex h-full min-h-14 w-full min-w-24 flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-colors hover:bg-muted">
+                        className="flex h-full min-h-14 w-full min-w-24 flex-col items-start gap-0.5 rounded-lg bg-muted/60 p-2 text-left transition-colors hover:bg-muted">
                         {s ? (
                           <>
                             <span className="font-medium">{s.subject ?? s.label}</span>
-                            <span className="font-mono text-xs text-muted-foreground">{s.startTime}</span>
+                            <span className="tabular-nums text-xs text-muted-foreground">{s.startTime}</span>
                           </>
                         ) : <span className="text-muted-foreground">Add</span>}
                       </button>

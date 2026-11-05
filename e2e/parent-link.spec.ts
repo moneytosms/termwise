@@ -6,7 +6,7 @@ import { parentToken } from "../src/server/parent-link";
 async function studentWithDue() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const { rows } = await pool.query(`select s.id from student s join fee_instalment i on i.student_id = s.id
-    left join fee_payment p on p.instalment_id = i.id where s.roll_no not in ('ENG-24-ME-0177', 'ENG-24-CSE-0412', 'MBA-25-0093') group by s.id, i.id
+    left join fee_payment p on p.instalment_id = i.id where s.roll_no not in ('ENG-24-ME-0177', 'ENG-24-CSE-0412', 'MBA-25-0093', 'ENG-24-CSE-0115') group by s.id, i.id
     having i.amount_paise - i.scholarship_paise - coalesce(sum(p.amount_paise), 0) > 0 order by s.id desc limit 1`);
   await pool.end();
   return rows[0].id as number;

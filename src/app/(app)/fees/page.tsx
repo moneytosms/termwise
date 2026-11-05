@@ -1,5 +1,4 @@
-import { AlertTriangle, IndianRupee, Users, Wallet } from "lucide-react";
-import { PageHeader, StatCard } from "@/components/page";
+import { PageHeader, StatCard, StatStrip } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { istDate } from "@/domain/attendance";
@@ -29,12 +28,12 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           <Button type="submit" variant="outline">Download Tally XML</Button>
         </form>
       } />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total due" value={rupees(totalDue)} icon={IndianRupee} />
-        <StatCard label="Overdue" value={rupees(overdue)} icon={AlertTriangle} tone="absent" href="/fees?status=Overdue" />
-        <StatCard label="Students with dues" value={withDues} icon={Users} tone="late" />
-        <StatCard label="Collected this month" value={rupees(collected)} icon={Wallet} tone="ok" />
-      </div>
+      <StatStrip cols={4}>
+        <StatCard label="Total due" value={rupees(totalDue)} />
+        <StatCard label="Overdue" value={rupees(overdue)} tone="absent" href="/fees?status=Overdue" />
+        <StatCard label="Students with dues" value={withDues} tone="late" />
+        <StatCard label="Collected this month" value={rupees(collected)} tone="ok" />
+      </StatStrip>
       <div className="mt-6">
         <FeesTable rows={rows} initialFilters={status && STATUSES.includes(status) ? { Status: status } : {}} />
       </div>

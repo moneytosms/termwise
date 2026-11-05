@@ -12,7 +12,7 @@ export function MessagePanel({ message: m }: { message: MessageRow }) {
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{m.name}</SheetTitle>
-          <SheetDescription><span className="font-mono">{m.rollNo}</span> · {m.kind} · {m.language}</SheetDescription>
+          <SheetDescription><span className="tabular-nums">{m.rollNo}</span> · {m.kind} · {m.language}</SheetDescription>
         </SheetHeader>
         <div className="space-y-3 px-4 pb-8">
           <StatusPill tone={m.status === "logged" ? "ok" : "absent"}>{m.status}</StatusPill>

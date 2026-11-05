@@ -15,7 +15,7 @@ export function PayButton({ token, instalmentId, duePaise }: { token: string; in
     if ("error" in r) toast.error(r.error);
     else router.push(`/p/${token}/receipt/${r.paymentId}`);
   });
-  return <Button className="mt-3 w-full" disabled={busy} onClick={pay}>Pay {rupees(duePaise)} (test mode)</Button>;
+  return <Button className="mt-4 h-11 w-full" disabled={busy} onClick={pay}>Pay {rupees(duePaise)} (test mode)</Button>;
 }
 
 export function PrintButton() {
