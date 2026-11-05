@@ -98,6 +98,7 @@ export const programme = pgTable("programme", {
   attendanceCutoff: integer("attendance_cutoff").notNull().default(75),
   semesterFeePaise: integer("semester_fee_paise").notNull().default(0),
   sanctionedIntake: integer("sanctioned_intake").notNull().default(60),
+  durationYears: integer("duration_years").notNull().default(4),
 });
 export const batch = pgTable("batch", {
   id: serial("id").primaryKey(),
@@ -115,6 +116,7 @@ export const subject = pgTable("subject", {
   name: text("name").notNull(),
   marksStatus: text("marks_status", { enum: ["draft", "submitted", "locked"] }).notNull().default("draft"),
   kind: text("kind", { enum: ["theory", "lab"] }).notNull().default("theory"),
+  semester: integer("semester"), // null = the batch's current semester
   // Mark caps per section; lab fields count only when kind is "lab"
   internalMax: integer("internal_max").notNull().default(40),
   midMax: integer("mid_max").notNull().default(20),
