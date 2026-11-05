@@ -92,6 +92,7 @@ export const programme = pgTable("programme", {
   code: text("code").notNull(),
   name: text("name").notNull(),
   attendanceCutoff: integer("attendance_cutoff").notNull().default(75),
+  semesterFeePaise: integer("semester_fee_paise").notNull().default(0),
 });
 export const batch = pgTable("batch", {
   id: serial("id").primaryKey(),
@@ -180,6 +181,21 @@ export const leaveRequest = pgTable("leave_request", {
   decidedAt: timestamp("decided_at", { withTimezone: true }),
 }, (t) => [index("leave_request_student_idx").on(t.studentId)]);
 
+// Staff leave: faculty apply, office admin of the same campus decides
+export const staffLeave = pgTable("staff_leave", {
+  id: serial("id").primaryKey(),
+  staffId: integer("staff_id").notNull().references(() => staff.id),
+  kind: text("kind", { enum: ["casual", "medical", "on_duty"] }).notNull(),
+  fromDate: date("from_date").notNull(),
+  toDate: date("to_date").notNull(),
+  reason: text("reason").notNull(),
+  status: text("status", { enum: ["pending", "approved", "rejected", "withdrawn"] }).notNull().default("pending"),
+  note: text("note"),
+  decidedById: integer("decided_by_id").references(() => staff.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+}, (t) => [index("staff_leave_staff_idx").on(t.staffId), index("staff_leave_status_idx").on(t.status)]);
+
 // From the portal: a parent's note to the mentor, or a request to correct the student's record
 export const portalRequest = pgTable("portal_request", {
   id: serial("id").primaryKey(),
@@ -216,6 +232,39 @@ export const studentDocument = pgTable("student_document", {
   name: text("name").notNull(),
   status: text("status", { enum: ["pending", "received", "verified"] }).notNull().default("pending"),
 }, (t) => [index("student_document_student_idx").on(t.studentId)]);
+
+// Applicants: people applying to a programme before admission; a confirmed applicant becomes a student
+export const applicant = pgTable("applicant", {
+  id: serial("id").primaryKey(),
+  programmeId: integer("programme_id").notNull().references(() => programme.id),
+  batchId: integer("batch_id").notNull().references(() => batch.id),
+  name: text("name").notNull(),
+  birthDate: date("birth_date").notNull(),
+  category: text("category", { enum: ["general", "obc", "sc", "st", "ews"] }).notNull().default("general"),
+  guardianName: text("guardian_name").notNull(),
+  guardianPhone: text("guardian_phone").notNull(),
+  guardianEmail: text("guardian_email"),
+  parentConsentAt: timestamp("parent_consent_at"),
+  status: text("status", { enum: ["applied", "confirmed", "rejected"] }).notNull().default("applied"),
+  rejectReason: text("reject_reason"),
+  studentId: integer("student_id").unique().references(() => student.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+}, (t) => [index("applicant_programme_idx").on(t.programmeId), index("applicant_status_idx").on(t.status)]);
+// Documents a programme requires; categories null means every category
+export const requiredDocument = pgTable("required_document", {
+  id: serial("id").primaryKey(),
+  programmeId: integer("programme_id").notNull().references(() => programme.id),
+  name: text("name").notNull(),
+  categories: text("categories").array(),
+}, (t) => [unique("required_document_natural").on(t.programmeId, t.name)]);
+export const applicantDocument = pgTable("applicant_document", {
+  id: serial("id").primaryKey(),
+  applicantId: integer("applicant_id").notNull().references(() => applicant.id),
+  name: text("name").notNull(),
+  status: text("status", { enum: ["pending", "received", "verified"] }).notNull().default("pending"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [unique("applicant_document_natural").on(t.applicantId, t.name)]);
 
 // Attendance
 export const attendanceSession = pgTable("attendance_session", {
