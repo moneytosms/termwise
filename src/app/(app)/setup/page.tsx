@@ -35,11 +35,12 @@ const TABS = [
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<{ tab?: string; batch?: string }> }) {
   const v = await requireViewer();
-  // HR sees the faculty list only; every other tab and every setup action needs the full setup capability.
+  // Full setup sees every tab; HR sees the faculty list; accounts sees fee structure and scholarships (their actions check "fees").
   const full = can(v.role, "setup");
-  if (!full && !can(v.role, "setup_faculty")) redirect("/home");
+  const partial = [...(can(v.role, "setup_faculty") ? ["faculty"] : []), ...(can(v.role, "fees") ? ["fee-structure", "scholarships"] : [])];
+  const tabs = full ? TABS : TABS.filter((t) => partial.includes(t.key));
+  if (tabs.length === 0) redirect("/home");
   const { tab, batch: batchParam } = await searchParams;
-  const tabs = full ? TABS : TABS.filter((t) => t.key === "faculty");
   const current = tabs.find((t) => t.key === tab)?.key ?? tabs[0].key;
   const c = v.campusId;
 

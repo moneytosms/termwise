@@ -49,7 +49,7 @@ const ADMIN: Group[] = [
     { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
-    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: ["setup", "setup_faculty"] },
+    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: ["setup", "setup_faculty", "fees"] },
     { href: "/reports", label: "Reports", icon: FileText, cap: ["reports", "fee_reports"] },
     { href: "/audit", label: "Audit log", icon: History, short: "Audit", cap: "audit" },
   ] },
