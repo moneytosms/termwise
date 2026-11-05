@@ -45,8 +45,10 @@ One Docker web service and one Postgres database on Render, defined in `render.y
    - `BETTER_AUTH_URL`: the service's public URL.
    - `ASSISTANT_DATABASE_URL`: the database's internal URL with the user and password replaced by `termwise_assistant` and a new random password. The migration sets that password on the read-only role.
    - `GOOGLE_GENERATIVE_AI_API_KEY`: a Gemini API key.
-3. The container migrates and seeds on start (the seed skips an already seeded database).
+3. The container migrates and seeds on start. On a seeded database the sample data is skipped, but portal logins and the marks scheme backfill still run; both are idempotent.
 4. Daily job: in GitHub repository settings, add secrets `APP_URL` (the public URL) and `CRON_SECRET` (copy from the Render service). The `Daily job` workflow calls it at 06:00 IST; run it by hand from the Actions tab.
+
+No new service or variable for receipts: the QR code is drawn on the server by the `qrcode` package, so no outside service is called.
 
 CI (`.github/workflows/ci.yml`) runs type checks, lint, unit tests, build and the end-to-end tests against Postgres on every push to `main`.
 
@@ -60,7 +62,7 @@ Names only. `env.example` holds local-only defaults.
 | --- | --- |
 | `DATABASE_URL` | App database connection |
 | `ASSISTANT_DATABASE_URL` | Read-only role the assistant's queries run as |
-| `BETTER_AUTH_SECRET` | Signs sessions |
+| `BETTER_AUTH_SECRET` | Signs sessions and receipt verification hashes. Changing it makes issued receipts fail verification |
 | `BETTER_AUTH_URL` | Public URL of the app |
 | `CRON_SECRET` | Shared secret for the daily job endpoint |
 | `LLM_PROVIDER` | `google` (Gemini) or `groq` |
@@ -80,5 +82,7 @@ Password for every account: `termwise-demo`. All data is synthetic.
 | `admin@termwise.demo` | Office admin | Engineering College |
 | `mba.admin@termwise.demo` | Office admin | Management School |
 | `mba.faculty@termwise.demo` | Faculty, MBA | Management School |
+
+Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent.
 
 Try first: sign in as `faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.

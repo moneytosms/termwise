@@ -1,0 +1,3 @@
+# Internal marks stay out of 40; the final score is out of 100
+
+The brief's marks table has an "Internal Marks of 40" column and the university upload uses an internal total, so the internal section keeps a maximum of 40 and the brief's figures and the at-risk marks rule count only that section. The final score is a separate figure out of 100: theory is internal 40, mid-term exam 20 and end-term exam 40, and a lab scales that theory to 70 and adds lab exam 15, viva 10 and continuous evaluation 5. We chose this over one 100-mark internal section because it keeps the brief's internal figure as it is and still gives labs their practical marks.
