@@ -22,13 +22,13 @@ test("unknown campus ids are not found", async ({ page }) => {
 });
 
 test("admin visiting /trust is sent home", async ({ page }) => {
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/trust");
   await page.waitForURL("**/home");
 });
 
 test("faculty visiting /trust is sent home", async ({ page }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   await page.goto("/trust");
   await page.waitForURL("**/home");
 });

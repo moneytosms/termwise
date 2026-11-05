@@ -6,7 +6,7 @@ const noHorizontalScroll = async (page: import("@playwright/test").Page) =>
 
 test("document checklist: verifying the last document completes it, and the change is audited", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
   await page.getByRole("row", { name: /Sanjay Pradhan/ }).click();
 
@@ -28,7 +28,7 @@ test("document checklist: verifying the last document completes it, and the chan
 
 test("documents: attach a PDF, open it, verify it; a text file is refused", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
   await page.getByRole("row", { name: /Deepika Swain/ }).click();
 
@@ -53,7 +53,7 @@ test("documents: attach a PDF, open it, verify it; a text file is refused", asyn
 
 test("import: a valid CSV adds applicants, a bad one lists its line errors and imports nothing", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
 
   await page.getByRole("button", { name: "Import CSV" }).click();
@@ -82,14 +82,14 @@ test("import: a valid CSV adds applicants, a bad one lists its line errors and i
 });
 
 test("faculty are sent home from applicants", async ({ page }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   await page.goto("/applicants");
   await page.waitForURL("**/home");
 });
 
 test("applicants list, record and documents setup fit a 375px phone", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
 
   await page.goto("/applicants");
   await expect(page.getByRole("heading", { level: 1, name: "Applicants" })).toBeVisible();

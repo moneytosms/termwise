@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signIn } from "./helpers";
 
 test("mark attendance offline, then it syncs and is saved on the server", async ({ page, context }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   // Roster downloaded and service worker has cached the offline pages.
   const firstClass = page.getByRole("list", { name: "Today's periods" }).getByRole("link").first();
   await expect(firstClass).toBeVisible();
@@ -46,7 +46,7 @@ test("mark attendance offline, then it syncs and is saved on the server", async 
 });
 
 test("expired sign-in keeps entries queued", async ({ page, context }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   await expect(page.getByRole("list", { name: "Today's periods" })).toBeVisible();
   await context.clearCookies();
   const r = await page.request.post("/api/sync", { data: { clientNow: new Date().toISOString(), items: [] } });
@@ -54,7 +54,7 @@ test("expired sign-in keeps entries queued", async ({ page, context }) => {
 });
 
 test("a second teacher's sheet for a saved class goes to the conflict queue", async ({ page, playwright }) => {
-  await signIn(page, "faculty@termwise.demo");
+  await signIn(page, "cse.faculty@termwise.demo");
   const { classes } = await (await page.request.get("/api/today")).json();
   const cls = classes[classes.length - 1];
   const item = {
@@ -65,7 +65,7 @@ test("a second teacher's sheet for a saved class goes to the conflict queue", as
   expect((await (await send(page.request)).json()).results[0].outcome).toMatch(/saved|stale/);
 
   const other = await playwright.request.newContext({ baseURL: "http://localhost:3100" });
-  await other.post("/api/auth/sign-in/email", { data: { email: "faculty2@termwise.demo", password: "termwise-demo" }, headers: { origin: "http://localhost:3100" } });
+  await other.post("/api/auth/sign-in/email", { data: { email: "cse.faculty2@termwise.demo", password: "termwise-demo" }, headers: { origin: "http://localhost:3100" } });
   const otherId = (await (await other.get("/api/today")).json()).staffId;
   const borrowed = await send(other, { ...item, sessionId: crypto.randomUUID() });
   expect((await borrowed.json()).results[0].outcome).toBe("rejected"); // the first teacher's sheet on the second teacher's sign-in

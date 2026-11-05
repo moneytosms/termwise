@@ -13,7 +13,7 @@ async function openFees(page: import("@playwright/test").Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
 });
 
 test("office admin records a payment and the due drops, then sends a reminder that lands on messages", async ({ page }) => {

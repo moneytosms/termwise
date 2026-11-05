@@ -91,23 +91,23 @@ Password for every account: `termwise-demo`. All data is synthetic.
 
 | Email | Role | Campus |
 | --- | --- | --- |
-| `faculty@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
-| `faculty2@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
+| `cse.faculty@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
+| `cse.faculty2@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
 | `me.faculty@termwise.demo` | Faculty, B.Tech Mechanical | Engineering College |
-| `admin@termwise.demo` | Office admin | Engineering College |
-| `mba.admin@termwise.demo` | Office admin | Management School |
+| `eng.admin@termwise.demo` | Office admin | Engineering College |
+| `mgt.admin@termwise.demo` | Office admin | Management School |
 | `mba.faculty@termwise.demo` | Faculty, MBA | Management School |
 | `trust@termwise.demo` | Trust secretary (all campuses, read-only) | All campuses |
 
 Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent. The guardian `pallavi.jena@termwise.demo` (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.
 
-Try first: sign in as `faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.
+Try first: sign in as `cse.faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `eng.admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.
 
 Admissions and staff leave:
 
-- **Confirm an admission (admin).** Sign in as `admin@termwise.demo` and open **Applicants**. The seeded applicant **Ritika Nayak** has every required document verified, so she is ready to confirm. Open her panel and choose **Confirm admission**. The student gets the next roll number in the batch, two fee instalments and a guardian login with the demo password. The other seeded applicants show what is missing, and one applicant can be rejected with a reason.
+- **Confirm an admission (admin).** Sign in as `eng.admin@termwise.demo` and open **Applicants**. The seeded applicant **Ritika Nayak** has every required document verified, so she is ready to confirm. Open her panel and choose **Confirm admission**. The student gets the next roll number in the batch, two fee instalments and a guardian login with the demo password. The other seeded applicants show what is missing, and one applicant can be rejected with a reason.
 - **Import applicants (admin).** On **Applicants**, choose **Import CSV**, pick the batch and a file (the template downloads from the dialog). Any bad line stops the whole file, and the dialog lists each line's error.
-- **Staff leave (faculty).** Sign in as `faculty@termwise.demo` and open **Leave**. Apply for leave, and see the balances and history. Withdraw the request while it is pending.
-- **Approve staff leave (admin).** Sign in as `admin@termwise.demo` and open **Leave**. Approve or reject the pending request from the Engineering campus, with a note. Nobody can decide their own leave.
+- **Staff leave (faculty).** Sign in as `cse.faculty@termwise.demo` and open **Leave**. Apply for leave, and see the balances and history. Withdraw the request while it is pending.
+- **Approve staff leave (admin).** Sign in as `eng.admin@termwise.demo` and open **Leave**. Approve or reject the pending request from the Engineering campus, with a note. Nobody can decide their own leave.
 
 To try the admission again, reset the database as above.

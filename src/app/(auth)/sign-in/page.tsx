@@ -5,17 +5,27 @@ import { createAuthClient } from "better-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Combobox, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxLabel, ComboboxList } from "@/components/ui/combobox";
 import { Mark } from "@/components/mark";
 import { FeatureShowcase } from "./feature-showcase";
+import { PERSONAS, type Persona } from "./personas";
 
 const client = createAuthClient();
 
-const DEMO = [
-  { label: "Faculty", email: "faculty@termwise.demo" },
-  { label: "Office admin", email: "admin@termwise.demo" },
-  { label: "Student", email: "ankit.panda@termwise.demo" },
-  { label: "Parent", email: "sarat.panda@termwise.demo" },
-];
+// One group per campus and role, in the order personas are listed.
+const GROUPS = PERSONAS.reduce<{ value: string; items: Persona[] }[]>((groups, p) => {
+  const value = `${p.campus} · ${p.role}`;
+  const group = groups.find((g) => g.value === value);
+  if (group) group.items.push(p);
+  else groups.push({ value, items: [p] });
+  return groups;
+}, []);
+
+// Typed text matches a persona's name, email, role or campus.
+function matches(p: Persona, query: string) {
+  const q = query.trim().toLowerCase();
+  return [p.name, p.email, p.role, p.campus].some((s) => s.toLowerCase().includes(q));
+}
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -63,13 +73,33 @@ export default function SignInPage() {
           <div className="mt-6 rounded-xl bg-card p-4 text-sm shadow-sheet">
             <p className="font-medium">Demo accounts</p>
             <p className="mt-0.5 text-muted-foreground">Password: termwise-demo. Every student and parent has one too, as firstname.lastname@termwise.demo.</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {DEMO.map((d) => (
-                <Button key={d.email} type="button" variant="outline" className="h-10" onClick={() => { setEmail(d.email); setPassword("termwise-demo"); }}>
-                  {d.label}
-                </Button>
-              ))}
-            </div>
+            <Combobox<Persona>
+              items={GROUPS}
+              filter={matches}
+              itemToStringLabel={(p) => p.name}
+              isItemEqualToValue={(a, b) => a.email === b.email}
+              onValueChange={(p) => { if (!p) return; setEmail(p.email); setPassword("termwise-demo"); }}
+            >
+              <ComboboxInput aria-label="Demo login" placeholder="Search by name, role or campus" className="mt-3 h-11 w-full" />
+              <ComboboxContent>
+                <ComboboxEmpty>No demo login matches.</ComboboxEmpty>
+                <ComboboxList>
+                  {(group: (typeof GROUPS)[number]) => (
+                    <ComboboxGroup key={group.value} items={group.items}>
+                      <ComboboxLabel>{group.value}</ComboboxLabel>
+                      <ComboboxCollection>
+                        {(p: Persona) => (
+                          <ComboboxItem key={p.email} value={p}>
+                            <span className="font-medium">{p.name}</span>
+                            <span className="text-muted-foreground">{p.role}, {p.campus}</span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxCollection>
+                    </ComboboxGroup>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </div>
         </div>
       </section>

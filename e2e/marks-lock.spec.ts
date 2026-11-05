@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test("office admin locks marks, the lock blocks edits, reopen needs a reason, all audited", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/marks?status=submitted");
   await page.getByRole("row", { name: /CS302/ }).click();
   await page.waitForURL(/\/marks\/\d+/);

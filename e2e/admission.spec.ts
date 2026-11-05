@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test("confirm admission creates the student with a roll number", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
   await page.getByRole("row", { name: /Ritika Nayak/ }).click();
 
@@ -26,7 +26,7 @@ test("confirm admission creates the student with a roll number", async ({ page }
 
 test("an incomplete checklist disables Confirm with the reason", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
   await page.getByRole("row", { name: /Deepika Swain/ }).click();
   const dialog = page.getByRole("dialog");
@@ -36,7 +36,7 @@ test("an incomplete checklist disables Confirm with the reason", async ({ page }
 
 test("applicant panel fits a phone", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
-  await signIn(page, "admin@termwise.demo");
+  await signIn(page, "eng.admin@termwise.demo");
   await page.goto("/applicants");
   await page.getByText("Deepika Swain").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
