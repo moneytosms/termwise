@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader, Panel, StatCard, StatStrip, StatusPill } from "@/components/page";
+import { buttonVariants } from "@/components/ui/button";
 import { HBars } from "@/components/charts";
 import { compare, type Metric } from "@/domain/trust";
 import { rupees } from "@/lib/utils";
@@ -22,7 +23,9 @@ export default async function TrustOverview() {
 
   return (
     <>
-      <PageHeader title="Trust overview" description="All campuses, read-only." />
+      <PageHeader title="Trust overview" description="All campuses, read-only." actions={
+        <Link href="/trust/naac" className={buttonVariants({ variant: "outline" })}>NAAC returns</Link>
+      } />
       <StatStrip cols={5}>
         <StatCard label="Students" value={totals.students} />
         <StatCard label="Attendance" value={pct(totals.attendance)} />

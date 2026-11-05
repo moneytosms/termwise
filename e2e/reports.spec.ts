@@ -36,6 +36,12 @@ test("AICTE SFR shows its norm note and exports the matching header", async ({ p
   expect((await res.text()).split("\n")[0]).toBe("Programme,Students,Faculty,Ratio,Norm,Status");
 });
 
+test("NAAC 2.4.1 shows its [A] note and the department rows", async ({ page }) => {
+  await page.goto("/reports?report=naac_2_4_1");
+  await expect(page.getByText("Full-time teachers (faculty and HODs) / sanctioned posts", { exact: false }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Computer Science", exact: true })).toBeVisible();
+});
+
 test("an unknown report or a bad month is refused", async ({ page }) => {
   expect((await page.request.get("/reports/nope/export")).status()).toBe(404);
   expect((await page.request.get("/reports/fees/export?month=2026-13")).status()).toBe(400);

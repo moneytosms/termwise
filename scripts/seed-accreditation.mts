@@ -14,8 +14,15 @@ function qualificationFor(id: number, campusCode: string): string {
   return campusCode === "PHR" ? "M.Pharm" : "M.E.";
 }
 
+// Sanctioned teaching posts per demo department, set only while the value is still the default 0.
+const SANCTIONED_POSTS: Record<string, number> = { "Computer Science": 30, Mechanical: 20, Management: 15, "Pharmaceutical Sciences": 15 };
+
 export async function seedAccreditation(password: string) {
   void password;
+  for (const [name, posts] of Object.entries(SANCTIONED_POSTS)) {
+    await db.update(t.department).set({ sanctionedPosts: posts })
+      .where(and(eq(t.department.name, name), eq(t.department.sanctionedPosts, 0)));
+  }
   for (const [code, sanctioned] of Object.entries(INTAKE)) {
     await db.update(t.programme).set({ sanctionedIntake: sanctioned })
       .where(and(eq(t.programme.code, code), eq(t.programme.sanctionedIntake, 60)));

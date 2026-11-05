@@ -36,6 +36,10 @@ const programmeInput = z.object({
   attendanceCutoff: range("Attendance cutoff", 1, 100),
   sanctionedIntake: range("Sanctioned intake", 1, 1000),
 });
+const departmentPostsInput = z.object({
+  id: pick("Pick a department."),
+  sanctionedPosts: range("Sanctioned posts", 0, 500),
+});
 const staffProfileInput = z.object({
   id: pick("Pick a staff member."),
   designation: z.preprocess((x) => (x === "" || x == null ? null : x), z.enum(["professor", "associate_professor", "assistant_professor"], { error: "Pick a designation from the list." }).nullable()),
@@ -152,6 +156,23 @@ export async function saveProgramme(fd: FormData): Promise<Result> {
       const [row] = await tx.insert(programme).values({ ...values, campusId: v.campusId }).returning();
       await audit(tx, v, { action: "setup.programme.create", entity: "programme", entityId: row.id, newValue: row });
     }
+    return null;
+  });
+  if (error) return { error };
+  revalidatePath("/setup");
+  return {};
+}
+
+export async function saveDepartmentPosts(fd: FormData): Promise<Result> {
+  const v = await requireCan("setup");
+  const p = parse(departmentPostsInput, fd);
+  if (!p.ok) return { error: p.error };
+  const { id, sanctionedPosts } = p.data;
+  const error = await db.transaction(async (tx) => {
+    const [old] = await tx.select().from(department).where(and(eq(department.id, id), eq(department.campusId, v.campusId)));
+    if (!old) return "Department not found on this campus.";
+    const [row] = await tx.update(department).set({ sanctionedPosts }).where(eq(department.id, id)).returning();
+    await audit(tx, v, { action: "setup.department.update", entity: "department", entityId: id, oldValue: old, newValue: row });
     return null;
   });
   if (error) return { error };
