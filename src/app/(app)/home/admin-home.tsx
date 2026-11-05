@@ -1,158 +1,166 @@
-import { and, count, eq, gte, isNotNull, sql } from "drizzle-orm";
-import { DayBars } from "@/components/charts";
-import { AttendanceMeter, PageHeader, Panel, PanelLink, StatCard, StatStrip, StatusPill } from "@/components/page";
-import { sameDayByDay, sameDayRate, sessionStats } from "../attendance/queries";
-import { isShortage, istDate, istDayOfWeek } from "@/domain/attendance";
-import { dues, type Instalment } from "@/domain/fees";
+import Link from "next/link";
+import { HBars, StackedBar, TrendLine } from "@/components/charts";
+import { PageHeader, Panel, PanelLink, StatCard, StatStrip, StatusPill } from "@/components/page";
+import { sessionStats } from "../attendance/queries";
+import { istDate } from "@/domain/attendance";
+import { dues } from "@/domain/fees";
 import type { Viewer } from "@/server/access";
-import { db } from "@/server/db";
+import { cn, rupees } from "@/lib/utils";
 import {
-  attendanceEntry, attendanceSession, batch, feeInstalment, programme, riskFlag, staff, student, subject, syncConflict, timetableSlot,
-} from "@/server/schema";
-import { rupees } from "@/lib/utils";
+  activeFlags, addDays, aging, campusProgrammes, countShort, dailyTotals, feeRows, feesToDate, flagsCreated, marksByStatus,
+  openConflicts, shortageByGroup, studentAttendance, subjectAttendance, weeklyTrend,
+} from "./queries";
 
-const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+const DAY = 86_400_000;
+const daysAgo = (n: number) => new Date(Date.now() - n * DAY);
+const LINE = 75;
+/** A subject turns red once this share of its students is below the line. */
+const RED_SHARE = 25;
 
-export async function AdminHome({ viewer }: { viewer: Viewer }) {
+/** "+3 vs last week", "−2 vs last week" or "same as last week". */
+const vsLastWeek = (now: number, then: number, fmt: (n: number) => string = String) =>
+  now === then ? "same as last week" : `${now > then ? "+" : "−"}${fmt(Math.abs(now - then))} vs last week`;
+
+const weekLabel = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">{children}</p>;
+}
+
+export async function AdminHome({ viewer, programmeId }: { viewer: Viewer; programmeId?: number }) {
   const today = istDate();
-  const newSince = daysAgo(7);
-  const onCampus = eq(programme.campusId, viewer.campusId);
+  const lastWeek = addDays(today, -7);
+  const weekAgo = daysAgo(7);
+  const twoWeeksAgo = daysAgo(14);
 
-  const [slots, markedToday, [conflicts], [moderation], [activeRisk], [newRisk], perDay, attendanceRows, instalments, stats] = await Promise.all([
-    db.select({ batchId: timetableSlot.batchId, subjectId: timetableSlot.subjectId, period: timetableSlot.period })
-      .from(timetableSlot)
-      .innerJoin(batch, eq(timetableSlot.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(and(onCampus, eq(timetableSlot.dayOfWeek, istDayOfWeek()), isNotNull(timetableSlot.subjectId))),
-    db.select({ batchId: attendanceSession.batchId, subjectId: attendanceSession.subjectId, period: attendanceSession.period })
-      .from(attendanceSession).where(eq(attendanceSession.date, today)),
-    db.select({ n: count() }).from(syncConflict)
-      .innerJoin(staff, eq(syncConflict.facultyId, staff.id))
-      .where(and(eq(syncConflict.status, "open"), eq(staff.campusId, viewer.campusId))),
-    db.select({ n: count() }).from(subject)
-      .innerJoin(batch, eq(subject.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(and(onCampus, eq(subject.marksStatus, "submitted"))),
-    db.select({ n: count() }).from(riskFlag)
-      .innerJoin(student, eq(riskFlag.studentId, student.id))
-      .innerJoin(batch, eq(student.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(and(onCampus, eq(riskFlag.active, true))),
-    db.select({ n: count() }).from(riskFlag)
-      .innerJoin(student, eq(riskFlag.studentId, student.id))
-      .innerJoin(batch, eq(student.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(and(onCampus, eq(riskFlag.active, true), gte(riskFlag.createdAt, newSince))),
-    sameDayByDay(viewer),
-    db.select({
-      id: student.id, name: student.name, rollNo: student.rollNo, cutoff: programme.attendanceCutoff,
-      held: sql<number>`coalesce(sum(${attendanceSession.periodCount}), 0)`.mapWith(Number),
-      attended: sql<number>`coalesce(sum(case when ${attendanceEntry.status} <> 'absent' then ${attendanceSession.periodCount} else 0 end), 0)`.mapWith(Number),
-    }).from(student)
-      .innerJoin(batch, eq(student.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .leftJoin(attendanceEntry, eq(attendanceEntry.studentId, student.id))
-      .leftJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id))
-      .where(onCampus)
-      .groupBy(student.id, student.name, student.rollNo, programme.attendanceCutoff),
-    db.select({
-      studentId: feeInstalment.studentId, id: feeInstalment.id, dueDate: feeInstalment.dueDate,
-      amountPaise: feeInstalment.amountPaise, scholarshipPaise: feeInstalment.scholarshipPaise,
-      paidPaise: sql<number>`(select coalesce(sum(p.amount_paise),0) from fee_payment p where p.instalment_id=fee_instalment.id)`.mapWith(Number),
-    }).from(feeInstalment)
-      .innerJoin(student, eq(feeInstalment.studentId, student.id))
-      .innerJoin(batch, eq(student.batchId, batch.id))
-      .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(onCampus),
+  const [nowRows, thenRows, subjects, days, fees, active, flagsNew, flagsPrior, conflicts, conflictsThen, marks, stats, programmes] = await Promise.all([
+    studentAttendance(viewer, today),
+    studentAttendance(viewer, lastWeek),
+    subjectAttendance(viewer),
+    dailyTotals(viewer, addDays(today, -55)),
+    feeRows(viewer, weekAgo),
+    activeFlags(viewer),
+    flagsCreated(viewer, weekAgo),
+    flagsCreated(viewer, twoWeeksAgo, weekAgo),
+    openConflicts(viewer),
+    openConflicts(viewer, weekAgo),
+    marksByStatus(viewer),
     sessionStats(viewer),
+    campusProgrammes(viewer),
   ]);
 
-  const markedKeys = new Set(markedToday.map((m) => `${m.batchId}:${m.subjectId}:${m.period}`));
-  const unmarked = slots.filter((s) => !markedKeys.has(`${s.batchId}:${s.subjectId}:${s.period}`)).length;
+  const short = countShort(nowRows);
+  const shortThen = countShort(thenRows);
+  const overdue = dues(fees, today).overduePaise;
+  const overdueThen = dues(fees.map((f) => ({ ...f, paidPaise: f.paidBeforePaise })), lastWeek).overduePaise;
+  const { billedPaise, collectedPaise } = feesToDate(fees, today);
+  const agingRows = aging(fees, today);
+  const agingTotal = agingRows.reduce((t, b) => t + b.paise, 0);
 
-  const pctOf = (r: { held: number; attended: number }) => r.held ? Math.round((r.attended / r.held) * 1000) / 10 : null;
-  const short = attendanceRows
-    .map((r) => ({ ...r, pct: pctOf(r) }))
-    .filter((r) => isShortage(r.pct, r.cutoff))
-    .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0));
-  const cutoff = attendanceRows[0]?.cutoff ?? 75;
+  const programme = programmes.find((p) => p.id === programmeId) ?? null;
+  const trend = weeklyTrend(days, today, programme?.id ?? null).map((w) => ({
+    label: weekLabel(w.weekStart), pct: w.pct,
+    title: `Week of ${weekLabel(w.weekStart)}: ${w.pct === null ? "no sessions" : `${w.pct}%`}`,
+  }));
+  const trendNow = trend[trend.length - 1].pct;
+  const hasTrend = trend.some((w) => w.pct !== null);
+  const toggles = [{ code: "All", href: "/home", on: !programme }, ...programmes.map((p) => ({ code: p.code, href: `/home?programme=${p.id}`, on: programme?.id === p.id }))];
 
-  const names = new Map(attendanceRows.map((r) => [r.id, r]));
-  const byStudent = new Map<number, Instalment[]>();
-  for (const i of instalments) byStudent.set(i.studentId, [...(byStudent.get(i.studentId) ?? []), i]);
-  let feeDuePaise = 0;
-  const overdue: { id: number; name: string; rollNo: string; overduePaise: number }[] = [];
-  for (const [id, list] of byStudent) {
-    const d = dues(list, today);
-    feeDuePaise += d.totalPaise;
-    if (d.overduePaise > 0) overdue.push({ id, name: names.get(id)?.name ?? "–", rollNo: names.get(id)?.rollNo ?? "", overduePaise: d.overduePaise });
-  }
-  overdue.sort((a, b) => b.overduePaise - a.overduePaise);
-  const overduePaise = overdue.reduce((t, o) => t + o.overduePaise, 0);
-
-  // Seven calendar days ending today; a day with no sessions keeps its label and draws no bar.
-  const rateByDate = new Map(perDay.map((d) => [d.date, d]));
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const date = istDate(daysAgo(6 - i));
-    const d = rateByDate.get(date);
-    const pct = d?.total ? Math.round((d.sameDay / d.total) * 1000) / 10 : null;
-    const label = new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short" });
-    return { label: i === 6 ? "Today" : label, pct, title: d ? `${label}: ${d.sameDay} of ${d.total} sessions marked the same day` : `${label}: no sessions` };
-  });
-  const weekTotal = perDay.reduce((t, d) => t + d.total, 0);
-  const weekSame = perDay.reduce((t, d) => t + d.sameDay, 0);
-  const rate = sameDayRate(perDay);
+  const subjectGroups = shortageByGroup(subjects);
+  const unmarked = stats.unmarked.length;
+  const unpaidPaise = Math.max(0, billedPaise - collectedPaise);
+  const subjectsTotal = marks.draft + marks.submitted + marks.locked;
 
   const dateLine = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long" });
   const finding = [
     unmarked > 0 && `${unmarked} ${unmarked === 1 ? "class" : "classes"} not marked yet`,
-    conflicts.n > 0 && `${conflicts.n} sync ${conflicts.n === 1 ? "conflict" : "conflicts"} to resolve`,
+    conflicts > 0 && `${conflicts} sync ${conflicts === 1 ? "conflict" : "conflicts"} to resolve`,
   ].filter(Boolean).join(" · ");
 
   return (
     <>
       <PageHeader title="Today" description={<>{dateLine}{finding && <> · <span className="text-foreground">{finding}</span></>}</>} />
 
-      <StatStrip cols={5}>
-        <StatCard label="Classes not marked today" value={unmarked} href="/attendance?filter=unmarked" tone={unmarked > 0 ? "absent" : "default"} />
-        <StatCard label="Sync conflicts" value={conflicts.n} href="/attendance?tab=conflicts" tone={conflicts.n > 0 ? "absent" : "default"} />
-        <StatCard label="Marks awaiting moderation" value={moderation.n} href="/marks?status=submitted" />
-        <StatCard label="New at-risk flags, 7 days" value={newRisk.n} href="/risk" hint={`${activeRisk.n} active in all`} />
-        <StatCard label="Students with overdue fees" value={overdue.length} href="/fees?status=Overdue" />
+      <StatStrip cols={4}>
+        <StatCard label="Students below the line" value={short} href="/students?attendance=Shortage" tone={short > 0 ? "absent" : "default"} hint={vsLastWeek(short, shortThen)} />
+        <StatCard label="Open at-risk flags" value={active} href="/risk" hint={`${flagsNew} new this week · ${vsLastWeek(flagsNew, flagsPrior)}`} />
+        <StatCard label="Unresolved sync conflicts" value={conflicts} href="/attendance?tab=conflicts" tone={conflicts > 0 ? "absent" : "default"} hint={vsLastWeek(conflicts, conflictsThen)} />
+        <StatCard label="Fees overdue" value={rupees(overdue)} href="/fees?status=Overdue" tone={overdue > 0 ? "absent" : "default"} hint={vsLastWeek(overdue, overdueThen, rupees)} />
       </StatStrip>
 
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        <Panel className="lg:col-span-2" title="Marked the same day, last 7 days"
-          figure={rate === null ? "–" : <>{rate}<span className="text-base text-muted-foreground">%</span></>}
-          action={<PanelLink href="/attendance">Sessions</PanelLink>}>
-          <DayBars days={days} target={95} label="Share of attendance sessions marked on the same day, per day" />
-          <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>{weekSame} of {weekTotal} sessions marked on the day they were held</span><span className="inline-flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-foreground/60" aria-hidden />95% target</span><span className="inline-flex items-center gap-1.5"><span className="size-2 bg-absent/80" aria-hidden />Below target</span></p>
+        <Panel className="lg:col-span-2" title="Attendance, last 8 weeks"
+          figure={trendNow === null ? "–" : <>{trendNow}<span className="text-base text-muted-foreground">%</span></>}
+          action={programmes.length > 1 && (
+            <nav aria-label="Trend by programme" className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+              {toggles.map((t) => (
+                <Link key={t.code} href={t.href} aria-current={t.on ? "page" : undefined}
+                  className={cn(t.on ? "font-medium text-foreground underline underline-offset-4" : "text-muted-foreground hover:text-foreground")}>{t.code}</Link>
+              ))}
+            </nav>
+          )}>
+          {hasTrend ? (
+            <>
+              <TrendLine points={trend} reference={programme?.cutoff ?? LINE} label={`${programme?.code ?? "Campus"} attendance by week`} />
+              <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-foreground/60" aria-hidden />{programme?.cutoff ?? LINE}% shortage line</span>
+                <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-absent" aria-hidden />Week below the line</span>
+                <span>Late counts as present</span>
+              </p>
+            </>
+          ) : <Empty>No sessions in the last 8 weeks.</Empty>}
         </Panel>
 
-        <Panel title="Attendance shortage" figure={short.length} action={<PanelLink href="/students?attendance=Shortage">View all</PanelLink>}>
-          <p className="-mt-2 mb-3 text-xs text-muted-foreground">Below {cutoff}% across all subjects</p>
-          {short.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">No student is below {cutoff}%.</p>
-          ) : (
-            <ul className="-mx-2">
-              {short.slice(0, 5).map((r) => (
-                <li key={r.id}>
-                  <a href={`/students?student=${r.id}`} className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted/60">
-                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{r.name}</span><span className="block text-xs text-muted-foreground">{r.rollNo}</span></span>
-                    <AttendanceMeter pct={r.pct} threshold={r.cutoff} />
-                  </a>
-                </li>
-              ))}
-            </ul>
+        <Panel title="Students below the line" figure={short} action={<PanelLink href="/students?attendance=Shortage">All students</PanelLink>}>
+          <p className="-mt-2 mb-3 text-xs text-muted-foreground">Share of each subject&apos;s students under the line. Red at {RED_SHARE}% or more.</p>
+          {subjectGroups.length === 0 ? <Empty>No attendance sessions yet.</Empty> : (
+            <HBars max={100} rows={subjectGroups.slice(0, 8).map((g) => ({
+              key: g.key, label: g.label, sub: `${g.short} of ${g.students} students`, value: g.share, valueLabel: `${g.share}%`,
+              alert: g.share >= RED_SHARE, title: `${g.label}: ${g.short} of ${g.students} students below the line`,
+            }))} />
           )}
+          {subjectGroups.length > 8 && <p className="mt-3 text-xs text-muted-foreground">Top 8 of {subjectGroups.length} subjects.</p>}
         </Panel>
       </div>
 
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-        <Panel title="Not marked today" figure={stats.unmarked.length} action={<PanelLink href="/attendance?filter=unmarked">View all</PanelLink>}>
-          {stats.unmarked.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">Every class held today is marked.</p>
-          ) : (
+      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        <Panel title="Fees due so far" figure={billedPaise ? `${Math.round((collectedPaise / billedPaise) * 100)}%` : "–"} action={<PanelLink href="/fees?status=Overdue">View all</PanelLink>}>
+          {billedPaise === 0 ? <Empty>No fee instalment is due yet.</Empty> : (
+            <>
+              <StackedBar label="Fees due so far, collected" parts={[
+                { name: "Collected", value: Math.min(collectedPaise, billedPaise), text: rupees(collectedPaise), className: "bg-data" },
+                { name: "Unpaid", value: unpaidPaise, text: rupees(unpaidPaise), className: "bg-late" },
+              ]} />
+              <p className="mt-5 mb-3 text-xs text-muted-foreground">Overdue by days past due, {rupees(overdue)} in all</p>
+              {agingTotal === 0 ? <Empty>No fees are overdue.</Empty> : (
+                <HBars max={agingTotal} rows={agingRows.map((b, i) => ({
+                  key: b.label, label: b.label, sub: `${b.count} ${b.count === 1 ? "instalment" : "instalments"}`, value: b.paise,
+                  valueLabel: rupees(b.paise), alert: i === 2, title: `${b.label}: ${rupees(b.paise)} across ${b.count} instalments`,
+                }))} />
+              )}
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Marks by status">
+          {subjectsTotal === 0 ? <Empty>No subjects on this campus yet.</Empty> : (
+            <>
+              <StackedBar label="Subjects by marks status" parts={[
+                { name: "Draft", value: marks.draft, className: "bg-late" },
+                { name: "Submitted", value: marks.submitted, className: "bg-data" },
+                { name: "Locked", value: marks.locked, className: "bg-ok" },
+              ]} />
+              <p className="mt-5 text-sm">
+                {marks.draft > 0
+                  ? <PanelLink href="/marks?status=draft">{marks.draft} {marks.draft === 1 ? "subject" : "subjects"} not submitted</PanelLink>
+                  : <span className="text-muted-foreground">Every subject is submitted or locked.</span>}
+              </p>
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Not marked today" figure={unmarked} action={<PanelLink href="/attendance?filter=unmarked">View all</PanelLink>}>
+          {unmarked === 0 ? <Empty>Every class held today is marked.</Empty> : (
             <ul className="divide-y divide-rule">
               {stats.unmarked.slice(0, 5).map((u) => (
                 <li key={`${u.batchId}:${u.subjectId}:${u.period}`} className="flex items-center gap-3 py-2.5 text-sm">
@@ -164,26 +172,7 @@ export async function AdminHome({ viewer }: { viewer: Viewer }) {
             </ul>
           )}
         </Panel>
-
-        <Panel title="Overdue fees" figure={rupees(overduePaise)} action={<PanelLink href="/fees?status=Overdue">View all</PanelLink>}>
-          <p className="-mt-2 mb-3 text-xs text-muted-foreground">{overdue.length} students{feeDuePaise !== overduePaise && <> · {rupees(feeDuePaise)} due in all</>}</p>
-          {overdue.length === 0 ? (
-            <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">No fees are overdue.</p>
-          ) : (
-            <ul className="divide-y divide-rule">
-              {overdue.slice(0, 5).map((o) => (
-                <li key={o.id}>
-                  <a href={`/fees?student=${o.id}`} className="flex items-center gap-3 py-2.5 text-sm hover:text-foreground">
-                    <span className="min-w-0 flex-1 truncate"><span className="font-medium">{o.name}</span> <span className="text-muted-foreground">· {o.rollNo}</span></span>
-                    <span className="font-semibold tabular-nums">{rupees(o.overduePaise)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
       </div>
-
     </>
   );
 }
