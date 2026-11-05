@@ -15,16 +15,17 @@ import { Mark } from "@/components/mark";
 import { TermyIcon, type NavIcon } from "@/components/termy";
 import { readSettings, setSetting, useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { can, isStaffRole, type Capability } from "@/domain/roles";
 import { clearOfflineData } from "@/offline/db";
 import { setChild } from "@/app/(portal)/my/child-actions";
 
-type Item = { href: string; label: string; icon: NavIcon; short?: string };
+type Item = { href: string; label: string; icon: NavIcon; short?: string; cap?: Capability };
 type Group = { label?: string; items: Item[] };
 
 const FACULTY: Group[] = [{ items: [
   { href: "/home", label: "Home", icon: Home },
-  { href: "/classes", label: "Classes", icon: CalendarDays },
-  { href: "/marks", label: "Marks", icon: BookOpenCheck },
+  { href: "/classes", label: "Classes", icon: CalendarDays, cap: "teach" },
+  { href: "/marks", label: "Marks", icon: BookOpenCheck, cap: "teach" },
   { href: "/students", label: "Students", icon: Users },
   { href: "/requests", label: "Requests", icon: Inbox },
   { href: "/leave", label: "Leave", icon: CalendarOff },
@@ -33,23 +34,23 @@ const FACULTY: Group[] = [{ items: [
 const ADMIN: Group[] = [
   { items: [
     { href: "/home", label: "Home", icon: Home },
-    { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
-    { href: "/students", label: "Students", icon: Users },
-    { href: "/applicants", label: "Applicants", icon: UserPlus },
-    { href: "/marks", label: "Marks", icon: BookOpenCheck },
-    { href: "/fees", label: "Fees", icon: IndianRupee },
+    { href: "/attendance", label: "Attendance", icon: ClipboardCheck, cap: "attendance" },
+    { href: "/students", label: "Students", icon: Users, cap: "campus_students" },
+    { href: "/applicants", label: "Applicants", icon: UserPlus, cap: "admissions" },
+    { href: "/marks", label: "Marks", icon: BookOpenCheck, cap: "moderate_marks" },
+    { href: "/fees", label: "Fees", icon: IndianRupee, cap: "fees" },
   ] },
   { label: "Follow-up", items: [
-    { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk" },
-    { href: "/messages", label: "Messages", icon: MessageSquare },
-    { href: "/requests", label: "Requests", icon: Inbox },
-    { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave" },
+    { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk", cap: "risk" },
+    { href: "/messages", label: "Messages", icon: MessageSquare, cap: "messages" },
+    { href: "/requests", label: "Requests", icon: Inbox, cap: "office_requests" },
+    { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave", cap: "staff_leave" },
     { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
-    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup" },
-    { href: "/reports", label: "Reports", icon: FileText },
-    { href: "/audit", label: "Audit log", icon: History, short: "Audit" },
+    { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: "setup" },
+    { href: "/reports", label: "Reports", icon: FileText, cap: "reports" },
+    { href: "/audit", label: "Audit log", icon: History, short: "Audit", cap: "audit" },
   ] },
 ];
 
@@ -121,14 +122,18 @@ export function AppShell({ role, name, campus, kids = [], activeKid, children }:
   const pathname = usePathname();
   const router = useRouter();
   const s = useSettings();
-  const groups = GROUPS[role];
+  // Staff see only the items their capabilities allow, so the menu and the server checks agree.
+  const groups = useMemo<Group[]>(() => {
+    if (!isStaffRole(role)) return GROUPS[role];
+    return GROUPS[role].map((g) => ({ ...g, items: g.items.filter((i) => !i.cap || can(role, i.cap)) })).filter((g) => g.items.length > 0);
+  }, [role]);
   const all = useMemo(() => groups.flatMap((g) => g.items), [groups]);
   const active = (href: string) => pathname === href || (!ROOTS.has(href) && pathname.startsWith(href + "/"));
   const [more, setMore] = useState(false);
   const [palette, setPalette] = useState(false);
   const [settings, setSettings] = useState(false);
   // Phone tab bar: faculty get all five; everyone else gets the daily four plus a menu holding the rest.
-  const few = role === "faculty";
+  const few = isStaffRole(role) && can(role, "teach");
   const tabs = few ? all : all.slice(0, 4);
   const current = all.find((i) => active(i.href));
   const collapsed = s.sidebarCollapsed;

@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { applicant, applicantDocument, batch, programme } from "@/server/schema";
@@ -18,7 +18,7 @@ const pick = z.coerce.number().int().positive();
 const DOC_STATUS = z.enum(["pending", "received", "verified"], { message: "Pick a status from the list." });
 
 export async function updateApplicantDocument(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const id = pick.safeParse(fd.get("applicantId"));
   if (!id.success) return { error: "Pick an applicant." };
   const name = z.string().trim().min(1, "Pick a document.").safeParse(fd.get("name"));
@@ -54,7 +54,7 @@ export async function updateApplicantDocument(fd: FormData): Promise<Result> {
 }
 
 export async function saveConsent(fd: FormData): Promise<Result> {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const id = pick.safeParse(fd.get("applicantId"));
   if (!id.success) return { error: "Pick an applicant." };
   const raw = String(fd.get("consentDate") ?? "").trim();
@@ -85,7 +85,7 @@ export async function saveConsent(fd: FormData): Promise<Result> {
 }
 
 export async function importApplicants(batchId: number, csvText: string): Promise<ImportResult> {
-  const v = await requireAdmin();
+  const v = await requireCan("admissions");
   const bid = pick.safeParse(batchId);
   if (!bid.success) return { error: "Pick a batch." };
 

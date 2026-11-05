@@ -4,7 +4,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { applyError, dayCount } from "@/domain/staff-leave";
-import { requireAdmin, requireViewer } from "@/server/access";
+import { requireCan, requireViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { staff, staffLeave } from "@/server/schema";
@@ -75,7 +75,7 @@ export async function withdrawLeave(id: number): Promise<{ error?: string }> {
 
 /** Office admin decides pending leave of staff on the same campus. Nobody decides their own. */
 export async function decideLeave(input: { id: number; decision: "approved" | "rejected"; note: string }): Promise<{ error?: string }> {
-  const v = await requireAdmin();
+  const v = await requireCan("staff_leave");
   const parsed = decideSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { id, decision } = parsed.data;

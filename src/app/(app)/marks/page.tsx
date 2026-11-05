@@ -8,13 +8,14 @@ import type { MarksStatus } from "@/domain/marks";
 import { listSubjects } from "./queries";
 import { STATUS } from "./shared";
 import { SubjectsTable } from "./subjects-table";
+import { can } from "@/domain/roles";
 
 export default async function MarksPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const v = await requireViewer();
   const { status } = await searchParams;
   const rows = await listSubjects(v);
 
-  if (v.role === "faculty") {
+  if (can(v.role, "teach")) {
     const mine = status && status in STATUS ? rows.filter((r) => r.status === status) : rows;
     return (
       <>

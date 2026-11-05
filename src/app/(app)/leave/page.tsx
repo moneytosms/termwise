@@ -7,6 +7,7 @@ import { HistoryTable } from "./history-table";
 import { DecideForm, ApplyForm } from "./leave-forms";
 import { campusLeave, myLeave } from "./queries";
 import { STATUS_LABEL, STATUS_TONE, fmtDays, fmtRange } from "./shared";
+import { can } from "@/domain/roles";
 
 const KINDS = Object.keys(BALANCE) as LeaveKind[];
 
@@ -16,10 +17,10 @@ export default async function LeavePage() {
   const mine = await myLeave(v);
   return (
     <>
-      <PageHeader title="Leave" description={v.role === "office_admin"
+      <PageHeader title="Leave" description={can(v.role, "staff_leave")
         ? "Leave waiting for the office, and your own leave."
         : "Apply for casual, medical and on-duty leave. The office approves it."} />
-      {v.role === "office_admin" && <OfficeQueue v={v} />}
+      {can(v.role, "staff_leave") && <OfficeQueue v={v} />}
       <SectionHeading title={`Your leave in ${year}`} />
       <Balances leaves={mine} year={year} />
       <div className="mt-4 rounded-xl bg-card p-4 shadow-sheet">

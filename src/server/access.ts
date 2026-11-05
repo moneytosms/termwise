@@ -5,6 +5,7 @@ import { auth } from "./auth";
 import { db } from "./db";
 import { getPortalViewer } from "./portal";
 import { batch, programme, staff, student, subject } from "./schema";
+import { can, type Capability, type StaffRole } from "@/domain/roles";
 
 export type Viewer = {
   userId: string;
@@ -12,7 +13,7 @@ export type Viewer = {
   staffId: number;
   campusId: number;
   departmentId: number | null;
-  role: "faculty" | "office_admin";
+  role: StaffRole;
 };
 
 export class AccessError extends Error {}
@@ -57,10 +58,10 @@ export async function requireTrust() {
   redirect(viewerFrom(s) ? "/home" : "/sign-in");
 }
 
-/** For office-admin-only pages and actions. */
-export async function requireAdmin(): Promise<Viewer> {
+/** For pages and actions that need a capability: other staff go to /home. */
+export async function requireCan(cap: Capability): Promise<Viewer> {
   const v = await requireViewer();
-  if (v.role !== "office_admin") redirect("/home");
+  if (!can(v.role, cap)) redirect("/home");
   return v;
 }
 
@@ -71,7 +72,7 @@ export async function requireAdmin(): Promise<Viewer> {
  */
 export function studentScope(v: Viewer) {
   const onCampus = eq(programme.campusId, v.campusId);
-  if (v.role === "office_admin") return onCampus;
+  if (can(v.role, "campus_students")) return onCampus;
   const teaches = db.select({ id: subject.batchId }).from(subject).where(eq(subject.facultyId, v.staffId));
   return and(onCampus, or(inArray(student.batchId, teaches), eq(student.mentorId, v.staffId)));
 }
@@ -92,5 +93,5 @@ export async function assertSubjectAccess(v: Viewer, subjectId: number) {
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .where(eq(subject.id, subjectId));
   if (!row || row.campusId !== v.campusId) throw new AccessError("Not on your campus");
-  if (v.role !== "office_admin" && row.facultyId !== v.staffId) throw new AccessError("Not your subject");
+  if (!can(v.role, "moderate_marks") && row.facultyId !== v.staffId) throw new AccessError("Not your subject");
 }

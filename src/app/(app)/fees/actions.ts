@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { istDate } from "@/domain/attendance";
 import { dues, instalmentDue, validatePayment } from "@/domain/fees";
-import { requireAdmin, studentScope } from "@/server/access";
+import { requireCan, studentScope } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { batch, feeInstalment, feePayment, guardian, guardianStudent, message, programme, student } from "@/server/schema";
@@ -18,7 +18,7 @@ const remindSchema = z.object({ ids: z.array(z.number().int().positive()).min(1,
 
 /** Logs a fee reminder per student with dues. Under 18 without parent consent is logged as blocked. */
 export async function sendFeeReminders(ids: number[]): Promise<{ error?: string; logged?: number; blocked?: number; skipped?: number }> {
-  const v = await requireAdmin();
+  const v = await requireCan("fees");
   const parsed = remindSchema.safeParse({ ids });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -64,7 +64,7 @@ const paymentSchema = z.object({
 
 /** Records a bank counter payment against one instalment. Validated on the locked, freshly-read instalment. */
 export async function recordPayment(input: { instalmentId: number; rupees: number; reference: string }): Promise<{ error?: string }> {
-  const v = await requireAdmin();
+  const v = await requireCan("fees");
   const parsed = paymentSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { instalmentId, reference } = parsed.data;

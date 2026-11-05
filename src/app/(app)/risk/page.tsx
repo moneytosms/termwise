@@ -1,12 +1,12 @@
 import { EmptyState } from "@/components/states";
 import { PageHeader, StatCard, StatStrip } from "@/components/page";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { RunNowButton } from "./run-button";
 import { lastRun, listRisk } from "./queries";
 import { RiskTable } from "./risk-table";
 
 export default async function RiskPage() {
-  const v = await requireAdmin();
+  const v = await requireCan("risk");
   const [rows, last] = await Promise.all([listRisk(v), lastRun(v)]);
   const open = rows.filter((r) => r.task === "Open").length;
   const closed = rows.filter((r) => r.task === "Done" || r.task === "Dismissed").length;

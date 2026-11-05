@@ -9,6 +9,7 @@ import { approvedLeaveDays, getPastSessions, getSessionDetail, getWeek, type Wee
 import { OnlineOnly } from "./online-only";
 import { PastSessions } from "./past-sessions";
 import { Today } from "./today";
+import { can } from "@/domain/roles";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
@@ -16,7 +17,7 @@ const SHORT = DAYS.map((d) => d.slice(0, 3));
 
 export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ session?: string }> }) {
   const v = await requireViewer();
-  if (v.role === "office_admin") redirect("/attendance");
+  if (!can(v.role, "teach")) redirect("/attendance");
   const { session } = await searchParams;
   const weekStart = shiftDays(istDate(), -((istDayOfWeek() + 6) % 7));
   const [week, past, detail, leaveDays] = await Promise.all([

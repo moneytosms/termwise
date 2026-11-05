@@ -3,7 +3,7 @@ import { z } from "zod";
 import { PageHeader, SectionHeading, StatCard, StatStrip, StatusPill } from "@/components/page";
 import { EmptyState } from "@/components/states";
 import { cn } from "@/lib/utils";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { ConflictPanel } from "./conflict-panel";
 import { ConflictsTable } from "./conflicts-table";
 import { getConflictDetail, getSessionDetail, listConflicts, listSessions, openConflictCount, sessionStats } from "./queries";
@@ -15,7 +15,7 @@ const isUuid = (s?: string) => !!s && z.uuid().safeParse(s).success;
 export default async function AttendancePage({ searchParams }: {
   searchParams: Promise<{ tab?: string; filter?: string; session?: string; conflict?: string }>;
 }) {
-  const v = await requireAdmin();
+  const v = await requireCan("attendance");
   const { tab, filter, session, conflict } = await searchParams;
   const onConflicts = tab === "conflicts";
   const base = new URLSearchParams({ tab: onConflicts ? "conflicts" : "sessions" });

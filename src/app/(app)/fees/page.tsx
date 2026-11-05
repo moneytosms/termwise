@@ -2,7 +2,7 @@ import { PageHeader, StatCard, StatStrip } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { istDate } from "@/domain/attendance";
-import { requireAdmin } from "@/server/access";
+import { requireCan } from "@/server/access";
 import { rupees } from "@/lib/utils";
 import { FeePanel } from "./fee-panel";
 import { FeesTable } from "./fees-table";
@@ -11,7 +11,7 @@ import { collectedThisMonth, getFeeDetail, listFeeDues } from "./queries";
 const STATUSES = ["Clear", "Due", "Overdue"];
 
 export default async function FeesPage({ searchParams }: { searchParams: Promise<{ student?: string; status?: string; batch?: string }> }) {
-  const v = await requireAdmin();
+  const v = await requireCan("fees");
   const { student, status, batch } = await searchParams;
   const rows = await listFeeDues(v);
   const collected = await collectedThisMonth(v);

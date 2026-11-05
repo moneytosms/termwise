@@ -7,6 +7,7 @@ import { getViewer, studentScope } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { batch, feeInstalment, feePayment, programme, student } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 const DAY = 86_400_000;
 const rangeSchema = z.object({ from: z.iso.date(), to: z.iso.date() })
@@ -16,7 +17,7 @@ const rangeSchema = z.object({ from: z.iso.date(), to: z.iso.date() })
 export async function GET(req: Request) {
   const v = await getViewer();
   if (!v) return NextResponse.json({ error: "signed_out" }, { status: 401 });
-  if (v.role !== "office_admin") return NextResponse.json({ error: "Office admin only" }, { status: 403 });
+  if (!can(v.role, "fees")) return NextResponse.json({ error: "Office admin only" }, { status: 403 });
 
   const sp = new URL(req.url).searchParams;
   const parsed = rangeSchema.safeParse({

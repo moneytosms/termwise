@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { z } from "zod";
 import { availableModels, chatModels, takeLlmQuota, type Effort, type ModelId } from "../llm";
 import { ALLOWED_VIEWS, validateQuery } from "./validate";
+import { can, type StaffRole } from "@/domain/roles";
 
 export type AssistantAnswer = (
   | { kind: "answer"; summary: string; filters: string[]; sql: string; rowCount: number; truncated: boolean; columns: string[]; rows: Record<string, unknown>[]; link?: { href: string; label: string } }
@@ -14,7 +15,7 @@ export type AssistantAnswer = (
 /** Earlier turns, so follow-ups like "only CSE" or "and last month?" have context. */
 export type HistoryTurn = { question: string; summary?: string; sql?: string };
 /** Who is asking. A student asks with staffId 0 and their own studentId; the views then show only that student. */
-export type Asker = { campusId: number; staffId: number; studentId?: number; role: "office_admin" | "faculty" | "student" };
+export type Asker = { campusId: number; staffId: number; studentId?: number; role: StaffRole | "student" };
 export type AskOptions = { model: ModelId; effort: Effort; history: HistoryTurn[]; signal?: AbortSignal };
 
 const pool = new Pool({ connectionString: process.env.ASSISTANT_DATABASE_URL, max: 3 });
@@ -56,11 +57,11 @@ type Catalog = { batches: string[]; subjects: string[] };
 
 function buildLink(l: z.infer<typeof Link>, viewer: Asker, catalog: Catalog) {
   if (viewer.role === "student") return l.page === "fees" || l.page === "marks" ? { href: `/my/${l.page}`, label: `Open your ${l.page}` } : undefined;
-  if (l.page === "none" || (l.page === "fees" && viewer.role !== "office_admin")) return undefined;
+  if (l.page === "none" || (l.page === "fees" && !can(viewer.role, "fees"))) return undefined;
   const q = new URLSearchParams();
   const f = (LINK_FILTERS[l.page] as Record<string, readonly [string, string]>)[l.filter];
   // Admins see marks per subject without a status filter.
-  if (f && !(l.page === "marks" && viewer.role !== "faculty")) q.set(f[0], f[1]);
+  if (f && !(l.page === "marks" && !can(viewer.role, "teach"))) q.set(f[0], f[1]);
   if (l.page !== "marks" && catalog.batches.includes(l.batch)) q.set("batch", l.batch);
   if (l.page !== "marks" && l.student_id > 0) q.set("student", String(l.student_id));
   const name = l.student_id > 0 && l.page !== "marks" ? "student" : l.page;

@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import type { Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import { attendanceEntry, attendanceSession, appeal, batch, leaveRequest, mark, markComponent, portalRequest, programme, student, subject } from "@/server/schema";
+import { can } from "@/domain/roles";
 
 const leaveCols = {
   id: leaveRequest.id, studentName: student.name, rollNo: student.rollNo, kind: leaveRequest.kind,
@@ -69,7 +70,7 @@ export async function adminRequests(v: Viewer) {
  * `open` oldest first; `decided` the latest 20. Current values are the mark or attendance status now.
  */
 export async function appealQueue(v: Viewer) {
-  const teaching = v.role === "faculty" ? eq(subject.facultyId, v.staffId) : undefined;
+  const teaching = can(v.role, "teach") ? eq(subject.facultyId, v.staffId) : undefined;
   const rows = (where: SQL | undefined) => db.select({
     id: appeal.id, kind: appeal.kind, reason: appeal.reason, status: appeal.status, response: appeal.response,
     createdAt: appeal.createdAt, resolvedAt: appeal.resolvedAt, studentId: appeal.studentId, componentId: appeal.componentId,

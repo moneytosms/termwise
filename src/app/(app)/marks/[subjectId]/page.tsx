@@ -5,6 +5,7 @@ import { AccessError, requireViewer } from "@/server/access";
 import { getSheet, getSubjectHistory } from "../queries";
 import { STATUS } from "../shared";
 import { MarksSheet } from "./marks-sheet";
+import { can } from "@/domain/roles";
 
 export default async function MarksSubjectPage({ params }: { params: Promise<{ subjectId: string }> }) {
   const v = await requireViewer();
@@ -17,7 +18,7 @@ export default async function MarksSubjectPage({ params }: { params: Promise<{ s
   });
   if (!data) notFound();
   const s = data.subject;
-  const isAdmin = v.role === "office_admin";
+  const isAdmin = can(v.role, "moderate_marks");
   const history = isAdmin ? await getSubjectHistory(v, id) : [];
 
   return (
