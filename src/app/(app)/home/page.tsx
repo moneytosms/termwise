@@ -9,6 +9,11 @@ import { can } from "@/domain/roles";
 const LANDING = [
   { cap: "admissions", href: "/applicants", label: "Applicants" },
   { cap: "campus_students", href: "/students", label: "Students" },
+  { cap: "dept_students", href: "/students", label: "Department students" },
+  { cap: "attendance_view", href: "/attendance", label: "Department attendance" },
+  { cap: "marks_view", href: "/marks", label: "Department marks" },
+  { cap: "risk_view", href: "/risk", label: "At-risk flags" },
+  { cap: "dept_leave", href: "/leave", label: "Department leave" },
   { cap: "moderate_marks", href: "/marks", label: "Marks" },
   { cap: "appeals", href: "/requests", label: "Requests" },
   { cap: "reports", href: "/reports", label: "Reports" },

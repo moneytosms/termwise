@@ -4,7 +4,9 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { applyError, dayCount } from "@/domain/staff-leave";
-import { requireCan, requireViewer } from "@/server/access";
+import { canDecideDepartmentLeave } from "@/domain/department-scope";
+import { can } from "@/domain/roles";
+import { requireViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { staff, staffLeave } from "@/server/schema";
@@ -73,9 +75,11 @@ export async function withdrawLeave(id: number): Promise<{ error?: string }> {
   return {};
 }
 
-/** Office admin decides pending leave of staff on the same campus. Nobody decides their own. */
+/** Office admin decides pending leave of staff on the same campus; a head of department only that of faculty in their department. Nobody decides their own. */
 export async function decideLeave(input: { id: number; decision: "approved" | "rejected"; note: string }): Promise<{ error?: string }> {
-  const v = await requireCan("staff_leave");
+  const v = await requireViewer();
+  const office = can(v.role, "staff_leave");
+  if (!office && !can(v.role, "dept_leave")) return { error: "You can't decide leave." };
   const parsed = decideSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { id, decision } = parsed.data;
@@ -86,12 +90,14 @@ export async function decideLeave(input: { id: number; decision: "approved" | "r
     const [row] = await tx.select({
       id: staffLeave.id, staffId: staffLeave.staffId, kind: staffLeave.kind, fromDate: staffLeave.fromDate,
       toDate: staffLeave.toDate, status: staffLeave.status, campusId: staff.campusId,
+      applicantRole: staff.role, departmentId: staff.departmentId,
     }).from(staffLeave)
       .innerJoin(staff, eq(staffLeave.staffId, staff.id))
       .where(eq(staffLeave.id, id))
       .for("update", { of: staffLeave });
     if (!row || row.campusId !== v.campusId) return "Leave request not found on your campus.";
     if (row.staffId === v.staffId) return "You can't decide your own leave.";
+    if (!office && !canDecideDepartmentLeave(v, { staffId: row.staffId, role: row.applicantRole, departmentId: row.departmentId })) return "Leave request not found in your department.";
     if (row.status !== "pending") return "This leave is no longer pending.";
 
     if (decision === "approved") {

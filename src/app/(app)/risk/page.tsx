@@ -1,19 +1,23 @@
 import { EmptyState } from "@/components/states";
 import { PageHeader, StatCard, StatStrip } from "@/components/page";
-import { requireCan } from "@/server/access";
+import { redirect } from "next/navigation";
+import { can } from "@/domain/roles";
+import { requireViewer } from "@/server/access";
 import { RunNowButton } from "./run-button";
 import { lastRun, listRisk } from "./queries";
 import { RiskTable } from "./risk-table";
 
 export default async function RiskPage() {
-  const v = await requireCan("risk");
+  const v = await requireViewer();
+  if (!can(v.role, "risk") && !can(v.role, "risk_view")) redirect("/home");
+  const canRun = can(v.role, "risk");
   const [rows, last] = await Promise.all([listRisk(v), lastRun(v)]);
   const open = rows.filter((r) => r.task === "Open").length;
   const closed = rows.filter((r) => r.task === "Done" || r.task === "Dismissed").length;
   return (
     <>
       <PageHeader title="At-risk flags" description="A flag only creates a mentor task. It never changes a student's record."
-        actions={<RunNowButton />} />
+        actions={canRun ? <RunNowButton /> : undefined} />
       <StatStrip cols={4}>
         <StatCard label="Active flags" value={rows.length} tone="late" />
         <StatCard label="Open mentor tasks" value={open} />
@@ -22,7 +26,7 @@ export default async function RiskPage() {
       </StatStrip>
       <div className="mt-6">
         {rows.length === 0
-          ? <EmptyState title="No students flagged. Run the check to update." action={<RunNowButton />} />
+          ? <EmptyState title={canRun ? "No students flagged. Run the check to update." : "No students flagged."} action={canRun ? <RunNowButton /> : undefined} />
           : <RiskTable rows={rows} />}
       </div>
     </>

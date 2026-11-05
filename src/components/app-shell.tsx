@@ -35,17 +35,17 @@ const FACULTY: Group[] = [{ items: [
 const ADMIN: Group[] = [
   { items: [
     { href: "/home", label: "Home", icon: Home },
-    { href: "/attendance", label: "Attendance", icon: ClipboardCheck, cap: "attendance" },
-    { href: "/students", label: "Students", icon: Users, cap: "campus_students" },
+    { href: "/attendance", label: "Attendance", icon: ClipboardCheck, cap: ["attendance", "attendance_view"] },
+    { href: "/students", label: "Students", icon: Users, cap: ["campus_students", "dept_students"] },
     { href: "/applicants", label: "Applicants", icon: UserPlus, cap: "admissions" },
-    { href: "/marks", label: "Marks", icon: BookOpenCheck, cap: "moderate_marks" },
+    { href: "/marks", label: "Marks", icon: BookOpenCheck, cap: ["moderate_marks", "marks_view"] },
     { href: "/fees", label: "Fees", icon: IndianRupee, cap: "fees" },
   ] },
   { label: "Follow-up", items: [
-    { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk", cap: "risk" },
+    { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk", cap: ["risk", "risk_view"] },
     { href: "/messages", label: "Messages", icon: MessageSquare, cap: "messages" },
     { href: "/requests", label: "Requests", icon: Inbox, cap: ["office_requests", "appeals"] },
-    { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave", cap: "staff_leave" },
+    { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave", cap: ["staff_leave", "dept_leave"] },
     { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
@@ -85,8 +85,8 @@ const PARENT: Group[] = [
 const TRUST: Group[] = [{ label: "Trust", items: [
   { href: "/trust", label: "Campuses", icon: Home },
 ] }];
-const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, admissions: ADMIN, exams: ADMIN, accounts: ADMIN, hr: ADMIN, student: STUDENT, parent: PARENT, trust: TRUST };
-const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", student: "Student", parent: "Parent", trust: "Trust" };
+const GROUPS: Record<ShellRole, Group[]> = { faculty: FACULTY, office_admin: ADMIN, admissions: ADMIN, exams: ADMIN, accounts: ADMIN, hr: ADMIN, hod: ADMIN, student: STUDENT, parent: PARENT, trust: TRUST };
+const ROLE_LABEL: Record<ShellRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", hod: "Head of department", student: "Student", parent: "Parent", trust: "Trust" };
 // Exact match only: every other page sits under these.
 const ROOTS = new Set(["/home", "/my"]);
 

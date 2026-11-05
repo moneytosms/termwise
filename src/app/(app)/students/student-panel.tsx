@@ -20,7 +20,7 @@ import type { StudentDetail } from "./queries";
 const card = "rounded-xl bg-card p-3.5 text-sm shadow-sheet";
 const DOC_LABEL: Record<StudentDetail["documents"][number]["status"], string> = { pending: "Pending", received: "Received", verified: "Verified" };
 
-export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null; isAdmin: boolean }) {
+export function StudentPanel({ detail, isAdmin, viewOnly = false }: { detail: StudentDetail | null; isAdmin: boolean; viewOnly?: boolean }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const close = () => router.push("/students", { scroll: false });
@@ -41,7 +41,7 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
 
   const feeDue = d.instalments ? dues(d.instalments, istDate()).totalPaise : 0;
   const shortSubjects = d.subjects.filter((s) => s.percent !== null && s.percent < d.student.cutoff);
-  const openFlags = d.flags.filter((f) => f.taskStatus === "open" && !isAdmin);
+  const openFlags = d.flags.filter((f) => f.taskStatus === "open" && !isAdmin && !viewOnly);
   const onTrack = shortSubjects.length === 0 && feeDue === 0 && openFlags.length === 0;
 
   return (
@@ -96,14 +96,14 @@ export function StudentPanel({ detail, isAdmin }: { detail: StudentDetail | null
               <div key={i} className="rounded-xl bg-late-soft p-3.5 text-sm text-foreground">
                 <p>{f.reason}</p>
                 {f.source === "llm" && <p className="mt-1 text-xs text-muted-foreground">{SOURCE.llm}</p>}
-                {f.taskId && f.taskStatus === "open" && !isAdmin && (
+                {f.taskId && f.taskStatus === "open" && !isAdmin && !viewOnly && (
                   <div className="mt-2 flex gap-2">
                     <Button size="sm" disabled={busy} onClick={() => finish(f.taskId!, "done")}>Followed up</Button>
                     <Button size="sm" variant="ghost" disabled={busy} onClick={() => finish(f.taskId!, "dismissed")}>Dismiss</Button>
                   </div>
                 )}
                 {f.taskStatus && f.taskStatus !== "open" && <p className="mt-1 text-xs text-muted-foreground">Mentor task {f.taskStatus}</p>}
-                {f.taskStatus === "open" && isAdmin && <p className="mt-1 text-xs text-muted-foreground">Mentor task open with {d.student.mentor ?? "no mentor"}</p>}
+                {f.taskStatus === "open" && (isAdmin || viewOnly) && <p className="mt-1 text-xs text-muted-foreground">Mentor task open with {d.student.mentor ?? "no mentor"}</p>}
               </div>
             ))}
           </>

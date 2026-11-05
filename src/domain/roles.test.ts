@@ -29,6 +29,10 @@ describe("roles", () => {
       expect(can(r, "audit")).toBe(false);
     }
   });
+  it("hod: read-only department view and department leave", () => {
+    expect([...CAPS.hod].sort()).toEqual(["attendance_view", "dept_leave", "dept_students", "marks_view", "risk_view"]);
+    for (const c of ["teach", "campus_students", "attendance", "moderate_marks", "fees", "risk", "staff_leave", "setup"] as const) expect(can("hod", c)).toBe(false);
+  });
   it("canAny matches any listed capability", () => {
     expect(canAny("hr", ["setup", "setup_faculty"])).toBe(true);
     expect(canAny("exams", ["fees", "fee_reports"])).toBe(false);

@@ -64,7 +64,7 @@ export function MarksSheet({ data, role }: { data: SheetData; role: Role }) {
     return k in drafts ? parse(drafts[k]) : (saved.get(k) ?? null);
   });
   const finalOf = (sums: Partial<Record<Section, number>>) => finalScore(s, sums).total;
-  const editable = canEditMarks(s.status, role);
+  const editable = !can(role, "marks_view") && canEditMarks(s.status, role);
 
   const shown = (c: number, st: number) => {
     const k = key(c, st);

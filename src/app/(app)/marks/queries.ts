@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { sectionsFor, type MarksStatus, type Section } from "@/domain/marks";
-import { assertSubjectAccess, type Viewer } from "@/server/access";
+import { assertSubjectView, programmeScope, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import { auditLog, batch, mark, markComponent, programme, staff, student, subject } from "@/server/schema";
 import { can } from "@/domain/roles";
@@ -20,7 +20,7 @@ export async function listSubjects(v: Viewer): Promise<SubjectRow[]> {
     .innerJoin(batch, eq(subject.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .leftJoin(staff, eq(subject.facultyId, staff.id))
-    .where(and(eq(programme.campusId, v.campusId), can(v.role, "teach") ? eq(subject.facultyId, v.staffId) : undefined))
+    .where(and(programmeScope(v), can(v.role, "teach") ? eq(subject.facultyId, v.staffId) : undefined))
     .orderBy(batch.code, subject.code);
   return rows.map((r) => ({
     id: r.id, code: r.code, name: r.name, batch: r.batch, faculty: r.faculty, status: r.status,
@@ -30,7 +30,7 @@ export async function listSubjects(v: Viewer): Promise<SubjectRow[]> {
 
 /** The marks sheet: components in order, students by roll number, every mark entered. Throws if the viewer may not see the subject. */
 export async function getSheet(v: Viewer, subjectId: number) {
-  await assertSubjectAccess(v, subjectId);
+  await assertSubjectView(v, subjectId);
   const [s] = await db.select({
     id: subject.id, code: subject.code, name: subject.name, batchId: subject.batchId, batch: batch.code, status: subject.marksStatus, faculty: staff.name,
     kind: subject.kind, internalMax: subject.internalMax, midMax: subject.midMax, endMax: subject.endMax, theoryScale: subject.theoryScale,

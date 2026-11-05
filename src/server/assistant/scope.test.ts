@@ -9,12 +9,12 @@ describe.skipIf(!owner || !assistant)("assistant views scope by role in the data
   const ro = new Pool({ connectionString: assistant, max: 1 });
   afterAll(() => Promise.all([admin.end(), ro.end()]));
 
-  async function asViewer(sql: string, campusId: number, role: string, staffId: number, studentId = 0) {
+  async function asViewer(sql: string, campusId: number, role: string, staffId: number, studentId = 0, departmentId = 0) {
     const c = await ro.connect();
     try {
       await c.query("BEGIN READ ONLY");
-      await c.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true), set_config('app.student_id', $4, true)",
-        [String(campusId), role, String(staffId), String(studentId)]);
+      await c.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true), set_config('app.student_id', $4, true), set_config('app.department_id', $5, true)",
+        [String(campusId), role, String(staffId), String(studentId), String(departmentId || "")]);
       return (await c.query(sql)).rows;
     } finally {
       await c.query("ROLLBACK");

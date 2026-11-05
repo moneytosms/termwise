@@ -11,7 +11,7 @@ import { resolveConflict } from "./actions";
 import type { ConflictDetail } from "./queries";
 import { CONFLICT_STATUS, KIND_LABEL, StatusWord } from "./shared";
 
-export function ConflictPanel({ detail, base }: { detail: ConflictDetail | null; base: string }) {
+export function ConflictPanel({ detail, base, readOnly = false }: { detail: ConflictDetail | null; base: string; readOnly?: boolean }) {
   const router = useRouter();
   const [busy, start] = useTransition();
   const close = () => router.push(`/attendance?${base}`, { scroll: false });
@@ -29,7 +29,7 @@ export function ConflictPanel({ detail, base }: { detail: ConflictDetail | null;
       description={d && `${d.classLabel} · ${d.date} · Submitted by ${d.submitter} at ${d.submittedAt}`}
       nav={d ? { key: "conflicts", id: d.id, href: (id) => `/attendance?${base}&conflict=${id}` } : undefined}
       onClose={close}
-      footer={d?.status === "open" && (
+      footer={!readOnly && d?.status === "open" && (
         <>
           <Button variant="outline" disabled={busy} onClick={() => resolve(d.id, "keep")}>Keep saved</Button>
           <Button disabled={busy} onClick={() => resolve(d.id, "replace")}>Use this one</Button>

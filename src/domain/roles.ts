@@ -1,4 +1,4 @@
-export type StaffRole = "faculty" | "office_admin" | "admissions" | "exams" | "accounts" | "hr";
+export type StaffRole = "faculty" | "office_admin" | "admissions" | "exams" | "accounts" | "hr" | "hod";
 export type Capability =
   | "teach"            // own classes, mark attendance, edit own subjects' draft marks, offline worker
   | "campus_students"  // every student on the campus
@@ -14,7 +14,12 @@ export type Capability =
   | "fee_reports"      // the fees return
   | "setup"            // every College setup tab
   | "setup_faculty"    // the faculty list in College setup
-  | "audit";
+  | "audit"
+  | "dept_students"    // read-only: students, attendance, marks status and at-risk flags of the viewer's own department
+  | "attendance_view"  // read the attendance sessions page, no corrections or conflict decisions
+  | "marks_view"       // read the marks subject list and sheets, no edits or moderation
+  | "risk_view"        // read the at-risk flags, no run
+  | "dept_leave";      // decide pending leave of faculty in the viewer's own department
 const OFFICE: Capability[] = ["campus_students", "attendance", "admissions", "moderate_marks", "fees", "risk", "messages", "office_requests", "appeals", "staff_leave", "reports", "fee_reports", "setup", "setup_faculty", "audit"];
 export const CAPS: Record<StaffRole, readonly Capability[]> = {
   faculty: ["teach"],
@@ -23,6 +28,7 @@ export const CAPS: Record<StaffRole, readonly Capability[]> = {
   exams: ["moderate_marks", "reports", "appeals"],
   accounts: ["fees", "fee_reports"],
   hr: ["staff_leave", "setup_faculty"],
+  hod: ["dept_students", "attendance_view", "marks_view", "risk_view", "dept_leave"],
 };
 export const isStaffRole = (r: string): r is StaffRole => r in CAPS;
 export const can = (role: StaffRole, cap: Capability) => CAPS[role].includes(cap);

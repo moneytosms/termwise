@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import type { StaffRole } from "@/domain/roles";
 
-const ROLE_LABEL: Record<StaffRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR" };
+const ROLE_LABEL: Record<StaffRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", hod: "Head of department" };
 
 type Row = {
   id: number; name: string; department: string | null; role: StaffRole;

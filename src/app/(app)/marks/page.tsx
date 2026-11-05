@@ -13,7 +13,7 @@ import { can } from "@/domain/roles";
 
 export default async function MarksPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const v = await requireViewer();
-  if (!can(v.role, "teach") && !can(v.role, "moderate_marks")) redirect("/home");
+  if (!can(v.role, "teach") && !can(v.role, "moderate_marks") && !can(v.role, "marks_view")) redirect("/home");
   const { status } = await searchParams;
   const rows = await listSubjects(v);
 
@@ -53,8 +53,8 @@ export default async function MarksPage({ searchParams }: { searchParams: Promis
   const preset: Record<string, string> = status && status in STATUS ? { Status: STATUS[status as MarksStatus].label } : {};
   return (
     <>
-      <PageHeader title="Marks" description={`${rows.length} subjects on this campus.`} />
-      <SubjectsTable rows={rows} initialFilters={preset} emptyAction={<Link href="/setup" className={buttonVariants({ variant: "outline", size: "sm" })}>Go to College setup</Link>} />
+      <PageHeader title="Marks" description={can(v.role, "marks_view") ? `${rows.length} subjects in your department. View only.` : `${rows.length} subjects on this campus.`} />
+      <SubjectsTable rows={rows} initialFilters={preset} emptyAction={can(v.role, "marks_view") ? undefined : <Link href="/setup" className={buttonVariants({ variant: "outline", size: "sm" })}>Go to College setup</Link>} />
     </>
   );
 }

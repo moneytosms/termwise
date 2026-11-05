@@ -15,7 +15,7 @@ export type AssistantAnswer = (
 /** Earlier turns, so follow-ups like "only CSE" or "and last month?" have context. */
 export type HistoryTurn = { question: string; summary?: string; sql?: string };
 /** Who is asking. A student asks with staffId 0 and their own studentId; the views then show only that student. */
-export type Asker = { campusId: number; staffId: number; studentId?: number; role: StaffRole | "student" };
+export type Asker = { campusId: number; staffId: number; studentId?: number; departmentId?: number | null; role: StaffRole | "student" };
 export type AskOptions = { model: ModelId; effort: Effort; history: HistoryTurn[]; signal?: AbortSignal };
 
 const pool = new Pool({ connectionString: process.env.ASSISTANT_DATABASE_URL, max: 3 });
@@ -35,6 +35,7 @@ const ROLE = {
   admissions: { who: "an admissions officer", scope: "the user's campus", fees: NO_FEES, views: only("v_students") },
   exams: { who: "an examinations officer", scope: "the user's campus", fees: NO_FEES, views: only("v_students", "v_marks") },
   accounts: { who: "an accounts officer", scope: "the user's campus", fees: FEES, views: only("v_students", "v_fee_dues") },
+  hod: { who: "a head of department", scope: "this department's students, attendance, marks and risk flags", fees: NO_FEES, views: only("v_students", "v_subject_attendance", "v_student_subject_attendance", "v_marks", "v_risk_flags") },
   hr: { who: "an HR officer", scope: "nothing", fees: "You have no views: call refuse for every question.\n", views: [] as string[] },
 };
 
@@ -64,8 +65,8 @@ type Catalog = { batches: string[]; subjects: string[] };
 function buildLink(l: z.infer<typeof Link>, viewer: Asker, catalog: Catalog) {
   if (viewer.role === "student") return l.page === "fees" || l.page === "marks" ? { href: `/my/${l.page}`, label: `Open your ${l.page}` } : undefined;
   if (l.page === "none" || (l.page === "fees" && !can(viewer.role, "fees"))) return undefined;
-  if (l.page === "marks" && !can(viewer.role, "moderate_marks") && !can(viewer.role, "teach")) return undefined;
-  if (l.page === "students" && !can(viewer.role, "campus_students") && !can(viewer.role, "teach")) return undefined;
+  if (l.page === "marks" && !can(viewer.role, "moderate_marks") && !can(viewer.role, "marks_view") && !can(viewer.role, "teach")) return undefined;
+  if (l.page === "students" && !can(viewer.role, "campus_students") && !can(viewer.role, "dept_students") && !can(viewer.role, "teach")) return undefined;
   const q = new URLSearchParams();
   const f = (LINK_FILTERS[l.page] as Record<string, readonly [string, string]>)[l.filter];
   // Admins see marks per subject without a status filter.
@@ -210,8 +211,8 @@ async function run(viewer: Asker, query: string) {
   try {
     await client.query("BEGIN READ ONLY");
     await client.query("SET LOCAL statement_timeout = 5000");
-    await client.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true), set_config('app.student_id', $4, true)",
-      [String(viewer.campusId), viewer.role, String(viewer.staffId), String(viewer.studentId ?? 0)]);
+    await client.query("SELECT set_config('app.campus_id', $1, true), set_config('app.role', $2, true), set_config('app.staff_id', $3, true), set_config('app.student_id', $4, true), set_config('app.department_id', $5, true)",
+      [String(viewer.campusId), viewer.role, String(viewer.staffId), String(viewer.studentId ?? 0), String(viewer.departmentId ?? "")]);
     return await client.query(query);
   } finally {
     await client.query("ROLLBACK").catch(() => {});

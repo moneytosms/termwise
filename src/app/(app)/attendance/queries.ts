@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { istDate, istDayOfWeek, type AttendanceStatus } from "@/domain/attendance";
 import type { OutboxItem } from "@/domain/sync";
-import type { Viewer } from "@/server/access";
+import { programmeScope, type Viewer } from "@/server/access";
 import { db } from "@/server/db";
 import {
   attendanceEntry, attendanceSession, batch, programme, staff, student, subject, syncConflict, timetableSlot,
@@ -29,7 +29,7 @@ export async function listSessions(v: Viewer): Promise<SessionRow[]> {
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
     .innerJoin(staff, eq(attendanceSession.facultyId, staff.id))
-    .where(eq(programme.campusId, v.campusId))
+    .where(programmeScope(v))
     .orderBy(desc(attendanceSession.date), desc(attendanceSession.period));
   return rows.map((r): SessionRow => ({
     ...r, editedAt: ist(r.editedAt),
@@ -52,7 +52,7 @@ export async function sameDayByDay(v: Viewer) {
   }).from(attendanceSession)
     .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(programme.campusId, v.campusId), gte(attendanceSession.date, addDays(today, -6)), lte(attendanceSession.date, today)))
+    .where(and(programmeScope(v), gte(attendanceSession.date, addDays(today, -6)), lte(attendanceSession.date, today)))
     .groupBy(attendanceSession.date);
 }
 
@@ -69,7 +69,7 @@ export async function sessionStats(v: Viewer) {
       .from(attendanceSession)
       .innerJoin(batch, eq(attendanceSession.batchId, batch.id))
       .innerJoin(programme, eq(batch.programmeId, programme.id))
-      .where(and(eq(programme.campusId, v.campusId), eq(attendanceSession.date, today))),
+      .where(and(programmeScope(v), eq(attendanceSession.date, today))),
     sameDayByDay(v),
   ]);
 
@@ -81,7 +81,7 @@ export async function sessionStats(v: Viewer) {
     .innerJoin(batch, eq(timetableSlot.batchId, batch.id))
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .innerJoin(subject, eq(timetableSlot.subjectId, subject.id))
-    .where(and(eq(programme.campusId, v.campusId), eq(timetableSlot.dayOfWeek, istDayOfWeek())))
+    .where(and(programmeScope(v), eq(timetableSlot.dayOfWeek, istDayOfWeek())))
     .orderBy(asc(timetableSlot.startTime));
 
   return {
@@ -103,7 +103,7 @@ export async function getSessionDetail(v: Viewer, id: string) {
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
     .innerJoin(staff, eq(attendanceSession.facultyId, staff.id))
-    .where(and(eq(attendanceSession.id, id), eq(programme.campusId, v.campusId)));
+    .where(and(eq(attendanceSession.id, id), programmeScope(v)));
   if (!s) return null;
   const entries = await db.select({ studentId: attendanceEntry.studentId, rollNo: student.rollNo, name: student.name, status: attendanceEntry.status })
     .from(attendanceEntry)
@@ -128,7 +128,7 @@ export async function listConflicts(v: Viewer): Promise<ConflictRow[]> {
     .innerJoin(batch, sql`${batch.id} = (${syncConflict.payload}->>'batchId')::int`)
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .innerJoin(subject, sql`${subject.id} = (${syncConflict.payload}->>'subjectId')::int`)
-    .where(eq(programme.campusId, v.campusId))
+    .where(programmeScope(v))
     .orderBy(sql`case when ${syncConflict.status} = 'open' then 0 else 1 end`, desc(syncConflict.createdAt));
   return rows.map((r) => ({
     id: r.id, kind: r.kind, status: r.status, submitter: r.submitter,
@@ -140,7 +140,7 @@ export async function openConflictCount(v: Viewer) {
   const [r] = await db.select({ n: count() }).from(syncConflict)
     .innerJoin(batch, sql`${batch.id} = (${syncConflict.payload}->>'batchId')::int`)
     .innerJoin(programme, eq(batch.programmeId, programme.id))
-    .where(and(eq(syncConflict.status, "open"), eq(programme.campusId, v.campusId)));
+    .where(and(eq(syncConflict.status, "open"), programmeScope(v)));
   return r.n;
 }
 
@@ -157,7 +157,7 @@ export async function getConflictDetail(v: Viewer, id: string) {
     .innerJoin(batch, sql`${batch.id} = (${syncConflict.payload}->>'batchId')::int`)
     .innerJoin(programme, eq(batch.programmeId, programme.id))
     .innerJoin(subject, sql`${subject.id} = (${syncConflict.payload}->>'subjectId')::int`)
-    .where(and(eq(syncConflict.id, id), eq(programme.campusId, v.campusId)));
+    .where(and(eq(syncConflict.id, id), programmeScope(v)));
   if (!row) return null;
 
   const p = row.payload as OutboxItem;
