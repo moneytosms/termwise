@@ -15,7 +15,7 @@ async function addBatch(opts: {
   const [prog] = await db.select({ id: t.programme.id }).from(t.programme)
     .innerJoin(t.campus, eq(t.programme.campusId, t.campus.id))
     .where(and(eq(t.campus.code, opts.campus), eq(t.programme.code, opts.programme)));
-  if (!prog) throw new Error(`Programme ${opts.programme} not found at ${opts.campus}`);
+  if (!prog) { console.warn(`seedAlumni: no programme ${opts.programme} at ${opts.campus}, skipped ${opts.code}`); return; } // older databases may lack a campus
 
   await db.transaction(async (tx) => {
     const [b] = await tx.insert(t.batch).values({
