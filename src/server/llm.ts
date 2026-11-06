@@ -45,11 +45,14 @@ export function chatModels(id: ModelId, effort: Effort) {
   return [picked, ...CHOICES.filter((c) => c !== picked && hasKey(c.provider))].map((c) => build(c, effort));
 }
 
-/** One env var switches provider. Null when no key is set, so callers use their fallback. */
+/** LLM_PROVIDER picks the preferred provider (default google). If its key is missing, the other provider's key is used. Null when neither key is set, so callers use their fallback. */
 export function llmModel() {
-  const provider = process.env.LLM_PROVIDER ?? "google";
-  if (provider === "groq") return process.env.GROQ_API_KEY ? groq("openai/gpt-oss-120b") : null;
-  return process.env.GOOGLE_GENERATIVE_AI_API_KEY ? google("gemini-3.6-flash") : null;
+  const preferred = process.env.LLM_PROVIDER ?? "google";
+  const order = preferred === "groq" ? ["groq", "google"] : ["google", "groq"];
+  for (const p of order) {
+    if (hasKey(p)) return p === "groq" ? groq("openai/gpt-oss-120b") : google("gemini-3.6-flash");
+  }
+  return null;
 }
 
 /** Counts one call against the daily cap; false once the cap is reached. */

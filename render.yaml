@@ -23,6 +23,8 @@ services:
         value: "200"
       - key: GOOGLE_GENERATIVE_AI_API_KEY
         sync: false
+      - key: GROQ_API_KEY
+        sync: false
 databases:
   - name: termwise-db
     plan: free
