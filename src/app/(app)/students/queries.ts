@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { attendancePercent, isShortage, type AttendanceStatus } from "@/domain/attendance";
 import { dues } from "@/domain/fees";
 import { istDate } from "@/domain/attendance";
@@ -19,8 +19,8 @@ export async function listStudents(v: Viewer): Promise<StudentRow[]> {
   const rows = await db.select({
     id: student.id, rollNo: student.rollNo, name: student.name, batch: batch.code, programme: programme.name, year: batch.year, cutoff: programme.attendanceCutoff,
     graduatedOn: student.graduatedOn,
-    held: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id)`.mapWith(Number),
-    attended: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id where e.student_id=student.id and e.status<>'absent')`.mapWith(Number),
+    held: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id join subject s on s.id=a.subject_id where e.student_id=student.id and (s.semester is null or s.semester=batch.semester))`.mapWith(Number),
+    attended: sql<number>`(select coalesce(sum(a.period_count),0) from attendance_entry e join attendance_session a on a.id=e.session_id join subject s on s.id=a.subject_id where e.student_id=student.id and e.status<>'absent' and (s.semester is null or s.semester=batch.semester))`.mapWith(Number),
     marksAvg: sql<number | null>`(select avg(t.total) from (select sum(m.marks) total from mark m join mark_component c on c.id=m.component_id where m.student_id=student.id and m.marks is not null and c.section='internal' group by c.subject_id having count(*)=(select count(*) from mark_component c2 where c2.subject_id=c.subject_id and c2.section='internal')) t)`.mapWith((x) => (x === null ? null : Number(x))),
     flagged: sql<boolean>`exists(select 1 from risk_flag r where r.student_id=student.id and r.active)`,
   }).from(student)
@@ -64,12 +64,17 @@ export async function getStudentDetail(v: Viewer, id: number) {
     .innerJoin(batch, eq(student.batchId, batch.id)).innerJoin(programme, eq(batch.programmeId, programme.id)).leftJoin(staff, eq(student.mentorId, staff.id))
     .where(eq(student.id, id));
 
-  const att = await db.select({ subject: subject.name, status: attendanceEntry.status, periods: attendanceSession.periodCount })
+  const att = await db.select({ subjectId: subject.id, subject: subject.name, status: attendanceEntry.status, periods: attendanceSession.periodCount })
     .from(attendanceEntry).innerJoin(attendanceSession, eq(attendanceEntry.sessionId, attendanceSession.id)).innerJoin(subject, eq(attendanceSession.subjectId, subject.id))
-    .where(eq(attendanceEntry.studentId, id));
-  const bySubject = new Map<string, { status: AttendanceStatus; periods: number }[]>();
-  for (const a of att) bySubject.set(a.subject, [...(bySubject.get(a.subject) ?? []), a]);
-  const subjects = [...bySubject].map(([name, rows]) => ({
+    .innerJoin(student, eq(attendanceEntry.studentId, student.id)).innerJoin(batch, eq(student.batchId, batch.id))
+    .where(and(eq(attendanceEntry.studentId, id), or(isNull(subject.semester), eq(subject.semester, batch.semester))));
+  const bySubject = new Map<number, { name: string; rows: { status: AttendanceStatus; periods: number }[] }>();
+  for (const a of att) {
+    const entry = bySubject.get(a.subjectId) ?? { name: a.subject, rows: [] };
+    entry.rows.push(a);
+    bySubject.set(a.subjectId, entry);
+  }
+  const subjects = [...bySubject.values()].map(({ name, rows }) => ({
     name, percent: attendancePercent(rows),
     held: rows.reduce((n, r) => n + r.periods, 0), attended: rows.reduce((n, r) => n + (r.status === "absent" ? 0 : r.periods), 0),
   })).sort((a, b) => a.name.localeCompare(b.name));
