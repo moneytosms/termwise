@@ -30,6 +30,7 @@ export const CAPS: Record<StaffRole, readonly Capability[]> = {
   hr: ["staff_leave", "setup_faculty"],
   hod: ["dept_students", "attendance_view", "marks_view", "risk_view", "dept_leave"],
 };
+export const ROLE_LABEL: Record<StaffRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", hod: "Head of department" };
 export const isStaffRole = (r: string): r is StaffRole => r in CAPS;
 export const can = (role: StaffRole, cap: Capability) => CAPS[role].includes(cap);
 export const canAny = (role: StaffRole, caps: readonly Capability[]) => caps.some((c) => can(role, c));

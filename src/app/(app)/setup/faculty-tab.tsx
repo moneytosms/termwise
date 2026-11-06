@@ -5,11 +5,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/select-field";
-import type { StaffRole } from "@/domain/roles";
+import { ROLE_LABEL, type StaffRole } from "@/domain/roles";
 import { saveStaffProfile } from "./actions";
 import { editColumn, Field, FormDialog } from "./shared";
 
-const ROLE_LABEL: Record<StaffRole, string> = { faculty: "Faculty", office_admin: "Office admin", admissions: "Admissions", exams: "Exams", accounts: "Accounts", hr: "HR", hod: "Head of department" };
 const DESIGNATION_LABEL: Record<string, string> = { professor: "Professor", associate_professor: "Associate Professor", assistant_professor: "Assistant Professor" };
 
 type Row = {
