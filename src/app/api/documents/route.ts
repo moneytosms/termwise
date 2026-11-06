@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { checkUpload } from "@/domain/documents";
+import { checkUpload, sniffType } from "@/domain/documents";
 import { getViewer } from "@/server/access";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
@@ -34,14 +34,19 @@ export async function POST(req: Request) {
 
   const problem = checkUpload(file.type, file.size);
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });
-  const data = Buffer.from(await file.arrayBuffer()).toString("base64");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const sniffed = sniffType(bytes);
+  if (sniffed !== file.type) {
+    return NextResponse.json({ error: "The file's content doesn't match its type." }, { status: 400 });
+  }
+  const data = Buffer.from(bytes).toString("base64");
 
   await db.transaction(async (tx) => {
     const [old] = await tx.select({ name: applicantDocument.name, status: applicantDocument.status, fileId: applicantDocument.fileId })
       .from(applicantDocument)
       .where(and(eq(applicantDocument.applicantId, id.data), eq(applicantDocument.name, name.data)));
     const [saved] = await tx.insert(documentFile)
-      .values({ name: file.name, mime: file.type, size: file.size, data })
+      .values({ name: file.name, mime: sniffed, size: file.size, data })
       .returning({ id: documentFile.id });
     // Attaching a file marks a pending document received; a verified one stays verified
     const status = old && old.status !== "pending" ? old.status : "received";
