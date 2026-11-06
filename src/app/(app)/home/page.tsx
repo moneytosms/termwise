@@ -3,28 +3,13 @@ import { PageHeader, Panel } from "@/components/page";
 import { requireViewer } from "@/server/access";
 import { AdminHome, CHARTS, type ChartKey } from "./admin-home";
 import { FacultyHome } from "./faculty-home";
+import { HodHome, LANDING } from "./hod-home";
 import { can } from "@/domain/roles";
-
-// The narrower office roles get a plain landing page: the dashboard holds fees, attendance and flags they don't see.
-const LANDING = [
-  { cap: "admissions", href: "/applicants", label: "Applicants" },
-  { cap: "campus_students", href: "/students", label: "Students" },
-  { cap: "dept_students", href: "/students", label: "Department students" },
-  { cap: "attendance_view", href: "/attendance", label: "Department attendance" },
-  { cap: "marks_view", href: "/marks", label: "Department marks" },
-  { cap: "risk_view", href: "/risk", label: "At-risk flags" },
-  { cap: "dept_leave", href: "/leave", label: "Department leave" },
-  { cap: "moderate_marks", href: "/marks", label: "Marks" },
-  { cap: "appeals", href: "/requests", label: "Requests" },
-  { cap: "reports", href: "/reports", label: "Reports" },
-  { cap: "fees", href: "/fees", label: "Fees" },
-  { cap: "staff_leave", href: "/leave", label: "Staff leave" },
-  { cap: "setup_faculty", href: "/setup", label: "College setup" },
-] as const;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ programme?: string; chart?: string }> }) {
   const v = await requireViewer();
   if (can(v.role, "teach")) return <FacultyHome name={v.name} />;
+  if (can(v.role, "dept_students")) return <HodHome viewer={v} />;
   if (!can(v.role, "attendance")) {
     return (
       <>
