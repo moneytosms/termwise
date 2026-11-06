@@ -129,6 +129,16 @@ Password for every account: `termwise-demo`. All data is synthetic.
 
 Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent. The guardian `pallavi.jena@termwise.demo` (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.
 
+### What to try first
+
+- **Office admin:** `eng.admin@termwise.demo` confirms an applicant from **Applicants**, and advances a batch from College setup.
+- **Faculty:** `cse.faculty@termwise.demo` marks attendance offline on a phone.
+- **Head of department:** `cse.hod@termwise.demo` lists the department's students and approves a CSE leave request.
+- **Admissions, exams, accounts and HR:** `eng.admissions@termwise.demo`, `eng.exams@termwise.demo`, `eng.accounts@termwise.demo` or `eng.hr@termwise.demo` each see only their narrow menu; `eng.accounts@termwise.demo` awards a scholarship on the fees page.
+- **Visiting and dual-role:** `visiting.faculty@termwise.demo` and `dual.role@termwise.demo` switch the active campus in the sidebar.
+- **Trust:** `trust@termwise.demo` compares campuses on the overview and opens the NAAC page.
+- **Student and parent:** `ankit.panda@termwise.demo` or `sarat.panda@termwise.demo` opens fees and receipts on the portal.
+
 Try first: sign in as `cse.faculty@termwise.demo` on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as `eng.admin@termwise.demo` to see the sheet, lock marks, record a fee payment and open the at-risk list.
 
 Admissions and staff leave:

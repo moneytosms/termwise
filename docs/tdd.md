@@ -150,7 +150,7 @@ When office staff lock a subject, the server writes one `result` row per student
 
 Office admins open **Applicants** and see the campus's applicants, with a checklist count per row and an Incomplete or Complete filter. Applicants arrive by CSV import from the same page. The file has the columns `name`, `birth_date`, `category`, `guardian_name`, `guardian_phone`, `guardian_email` and `gender`, and a template downloads from the dialog. The import is all-or-nothing: if any line is wrong, nothing is saved and the dialog lists each bad line with its reason. A file holds at most 500 rows. Categories are General, OBC, SC, ST and EWS **[A]**.
 
-Each programme lists its required documents in **College setup > Documents**. A document can carry a category condition (for example, a caste certificate only for SC and ST), and with none it applies to everyone. An applicant's checklist is the set of documents that apply to their category. Each item is pending, received or verified, and the office sets it from the applicant's panel. Every change is written to the audit log. The checklist is complete only when every applicable document is verified and at least one applies. The office can attach a PDF, JPEG or PNG of up to 2 MB to an item; the server checks type and size, stores the file in the database (demo scale) **[A]**, and audits each upload or replacement. A file opens only for staff of the applicant's campus with admissions access, or for the student it belongs to on the portal.
+Each programme lists its required documents in **College setup > Documents**. A document can carry a category condition (for example, a caste certificate only for SC and ST), and with none it applies to everyone. An applicant's checklist is the set of documents that apply to their category. Each item is pending, received or verified, and the office sets it from the applicant's panel. Every change is written to the audit log. The checklist is complete only when every applicable document is verified and at least one applies. The office can attach a PDF, JPEG or PNG of up to 2 MB to an item; the server checks the size and that the file's content matches its type, by magic bytes (PDF, JPEG or PNG), not the browser's MIME type. It then stores the file in the database (demo scale) **[A]**, and audits each upload or replacement. A file opens only for staff of the applicant's campus with admissions access, or for the student it belongs to on the portal.
 
 ### 4.11 Confirm admission
 
@@ -176,7 +176,7 @@ Faculty see their balances and their history, and can withdraw a request while i
 
 ### 4.13 Fee structure and scholarships
 
-- **Fee structure.** In College setup, the office sets a semester fee per programme and category (`saveFeeStructure`, which needs the `fees` capability). A default option sets the programme's default semester fee. A category with no row uses that default. Saving a fee never changes existing instalments; it applies to the instalments created after it **[A]**.
+- **Fee structure.** In College setup, the office sets a semester fee per programme and category (`saveFeeStructure`, which needs the `fees` capability). A default option sets the programme's default semester fee. A category with no row uses that default **[A]**. Saving a fee never changes existing instalments; it applies to the instalments created after it **[A]**.
 - **Schemes.** A scholarship scheme has a name, a funding source (`government`, `institution` or `non_government`), a kind (a fixed amount in paise, or a percent from 1 to 100), an optional list of categories (empty means all) and an active flag. `saveScheme` needs the `fees` capability.
 - **Award.** On the fees page, an office admin with the `fees` capability awards a scheme to a student for one semester. The award is refused when the scheme is inactive, when the student's category is not on the scheme's list, when the scheme is already awarded for that semester (`This scheme is already awarded for that semester.`), or when scholarships already cover the semester's fees (`Scholarships already cover this semester's fees.`) **[A]**. The amount is a percent of the semester's total, rounded to the paisa, or a fixed amount capped at that total. It is spread over the semester's instalments, earliest due first, each capped at what is left unfunded on it. The award is audited as `fees.scholarship.award`.
 - **Withdraw.** Withdrawing an award reverses its spread on the instalments, latest due first, and never takes an instalment's scholarship below zero. It is refused with `Already paid; the award can't be withdrawn.` when nothing is due on the semester any more **[A]**. The withdrawal is audited as `fees.scholarship.withdraw`.
@@ -187,7 +187,7 @@ Faculty see their balances and their history, and can withdraw a request while i
 From College setup, a batch moves to its next semester, or graduates. Both are done by `advanceBatch`, which needs the `setup` capability, and both are audited (`setup.batch.promote` or `setup.batch.graduate`).
 
 1. **Blocker.** The move is refused until every subject of the batch's current semester is locked, and the message lists the codes still open: `Lock every subject first: <codes>.`
-2. **Next term.** A batch whose semester is at or past twice the programme's duration in years graduates. Otherwise the next semester is the current one plus one, and the year is the next semester divided by two, rounded up.
+2. **Next term.** A batch whose semester is at or past twice the programme's duration in years graduates. Every programme lasts 4 years except the MBA, which lasts 2 **[A]**. Otherwise the next semester is the current one plus one, and the year is the next semester divided by two, rounded up.
 3. **Promote.** The finished semester's subjects are stamped with that semester, then cloned as drafts for the new one. Each current student gets two instalments: `Sem N instalment 1/2`, due 30 days later, and `Sem N instalment 2/2`, due 120 days later. Together they make up the student's semester fee for their category: the first is half of it, rounded, and the second is the rest **[A]**. Both start with no scholarship **[A]**.
 4. **Graduate.** Each current student in the batch gets `graduated_on` set to today's IST date and becomes alumni. Alumni keep their records, and they are left out of the current-student lists, the risk checks, the Home counts, the daily job and the scholarship counts in the reports. Their portal accounts are read-only (section 4.4).
 
@@ -207,16 +207,18 @@ From College setup, a batch moves to its next semester, or graduates. Both are d
   | `hod` | `dept_students`, `attendance_view`, `marks_view`, `risk_view`, `dept_leave` |
 
 - **Audit actor.** An audit row names its actor. For an office role, the name carries the role's label in parentheses, so the log shows which office made the change **[A]**.
+- **Seed personas.** The visiting faculty seed persona is faculty at Engineering (Mechanical) and at the Management School, with no department at the Management School. The dual-role persona is faculty at Engineering (Computer Science) and office admin at the Pharmacy College **[A]**.
 - **Head of department.** A `hod` sees only their department's students, attendance, marks status and at-risk flags, and decides the pending leave of faculty in that department. A `hod` row with no department sees nothing. A head of department has no fee access and no setup access. The trust role is section 4.6.
 
 ### 4.16 AICTE and NAAC packs
 
 The Reports page lists two accreditation packs beside the standard reports. Each return is one report on the campus. Every return needs the `reports` capability. Each return's note, shown on the page, states the rule it uses.
 
-- **AICTE:** intake (sanctioned seats against everyone admitted in each admission year, alumni included, by category and gender) **[A]**; faculty and HODs by department with designation and qualification; student-faculty ratio against a 1:20 norm; cadre ratio of professors, associates and assistants against 1:2:6 per department **[A]**. The sanctioned intake is set per programme and the sanctioned posts per department, both in College setup.
+- **AICTE:** intake (sanctioned seats against everyone admitted in each admission year, alumni included, by category and gender) **[A]**; faculty and HODs by department with designation and qualification; student-faculty ratio against a 1:20 norm, counting students not yet alumni per faculty member of the programme's department **[A]**; cadre ratio of professors, associates and assistants against 1:2:6 per department **[A]**. The sanctioned intake is set per programme and the sanctioned posts per department, both in College setup.
 - **NAAC:** 2.1.1 enrolment percentage (admitted in the admission year, alumni included, over sanctioned seats) **[A]**; 2.2 student to full-time teacher ratio, campus-wide, counting faculty and HODs **[A]**; 2.4.1 full-time teachers against sanctioned posts, by department, campus-wide **[A]**; 2.6.3 pass percentage of final-year students **[A]**; 5.1.1 students benefited by scholarships, by funding source **[A]**.
 - **Pass rule (2.6.3).** The final year is the batch year equal to the programme's duration, alumni included. A student passes when every locked-subject result is at least the pass mark of 40 out of 100 **[A]**. For a lab subject the pass mark is 40% of its full total. A student with no locked result yet is not counted **[A]**.
 - **Norms.** A ratio is below norm when there are more than 20 students per faculty member, or no faculty, for the AICTE student-faculty ratio. For the cadre ratio, it is below norm when professors or associates fall short of 1 and 2 per 6 assistants **[A]**.
+- **Pharmacy.** Pharmacy reports to the Pharmacy Council of India (PCI). The AICTE intake return uses the same layout for pharmacy **[A]**.
 - **Scope.** The AICTE and NAAC returns are not snapshotted (section 4.8). The NAAC returns page for the trust is in section 4.6.
 
 ## 5. How the AI part works
@@ -284,7 +286,7 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 
 **Next, in order:**
 
-1. Object storage for admission documents, with content sniffing. Today files are stored in the database and the type check trusts the browser's MIME type.
+1. Object storage for admission documents. Today files are stored in the database.
 2. Leave across a year end, so a leave can be split and each year's balance is counted correctly.
 3. Results day at scale: results are precomputed, but the portal still serves each request from the app. Put a CDN in front of the per-student results page, so the database sees one write per student rather than thousands of reads.
 4. University report formats, and saved queries over the same views the assistant uses. AICTE and NAAC are fixed packs in Reports (section 4.16).
