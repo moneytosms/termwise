@@ -35,7 +35,7 @@ test("the CSE sample figures appear exactly", async ({ page }) => {
   const row = page.getByRole("row", { name: /Subhashree Mohanty/ });
   await expect(row).toContainText("81.5%");
   await expect(row).toContainText("33");
-  await expect(row).toContainText("₹0");
+  await expect(row).not.toContainText("₹"); // ₹0 due: the list shows no fee amount
 });
 
 test("the MBA sample figures appear exactly", async ({ page }) => {
@@ -45,7 +45,7 @@ test("the MBA sample figures appear exactly", async ({ page }) => {
   const row = page.getByRole("row", { name: /Farheen Ali/ });
   await expect(row).toContainText("92.0%");
   await expect(row).toContainText("36");
-  await expect(row).toContainText("₹0");
+  await expect(row).not.toContainText("₹"); // ₹0 due: the list shows no fee amount
 });
 
 test("office admin screens all load without errors", async ({ page }) => {

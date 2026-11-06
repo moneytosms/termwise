@@ -9,11 +9,13 @@ import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { clearResults, writeResults } from "@/server/results";
 import { mark, markComponent, student, subject } from "@/server/schema";
-import { can } from "@/domain/roles";
+import { can, canAny } from "@/domain/roles";
 
 const key = (componentId: number, studentId: number) => `${componentId}:${studentId}`;
 
 async function guard(v: Viewer, subjectId: number): Promise<{ error: string } | null> {
+  // Read-only roles (e.g. head of department) can view a sheet but never write marks.
+  if (!canAny(v.role, ["teach", "moderate_marks"])) return { error: "You can't change marks." };
   try {
     await assertSubjectAccess(v, subjectId);
     return null;

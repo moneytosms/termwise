@@ -172,7 +172,7 @@ Two concurrent confirms in one batch get consecutive roll numbers, and a repeat 
 
 Faculty open **Leave** to apply for casual, medical or on-duty leave, giving from and to dates and a reason. Leave days are inclusive calendar days, so weekends and holidays count **[A]**. Balances are per calendar year: casual 12 days, medical 10 days and on duty unlimited **[A]**. The form refuses a leave that ends before it starts, one that spans a year end (it must be split) **[A]**, one that overlaps the person's own pending or approved leave, and one longer than the balance left for that kind.
 
-Faculty see their balances and their history, and can withdraw a request while it is pending. An office admin or an HR officer of the campus (both hold the `staff_leave` capability) sees the pending requests from that campus's staff, approves or rejects each one, and adds a note that the requester sees. A rejection needs a note. A head of department decides the pending leave of faculty in their own department, and no one else's (section 4.15). Nobody decides their own leave, including an office admin or HR. Approved leave is marked "On leave" on that day of the Classes week.
+Faculty see their balances and their history, and can withdraw a request while it is pending. An office admin or an HR officer of the campus (both hold the `staff_leave` capability) sees the pending requests from that campus's staff, approves or rejects each one, and adds a note that the requester sees. A rejection needs a note. A head of department decides the pending leave of faculty in their own department, and no one else's (section 4.15). The office admin and HR keep the whole campus queue, including faculty leave, as a fallback for departments without a head **[A]**. Nobody decides their own leave, including an office admin or HR. Approved leave is marked "On leave" on that day of the Classes week.
 
 ### 4.13 Fee structure and scholarships
 
@@ -343,3 +343,4 @@ Each is a choice the brief does not settle.
 45. Every programme lasts 4 years, the column default. The MBA is set to 2 years by the alumni seed (section 4.14).
 46. Pharmacy reports to the Pharmacy Council of India (PCI). The AICTE intake return uses the same layout for pharmacy (section 4.16).
 47. The visiting faculty seed persona is faculty at Engineering (Mechanical) and at the Management School, with no department at the Management School. The dual-role seed persona is faculty at Engineering (Computer Science) and office admin at the Pharmacy College.
+48. The office admin and HR keep deciding faculty leave campus-wide, alongside the head of department, so a department without a head still has someone to decide (section 4.12).

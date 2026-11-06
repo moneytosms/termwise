@@ -3,10 +3,12 @@ import { requireViewer } from "@/server/access";
 import { getStudentDetail, listStudents } from "./queries";
 import { StudentPanel } from "./student-panel";
 import { StudentsTable } from "./students-table";
-import { can } from "@/domain/roles";
+import { redirect } from "next/navigation";
+import { can, canAny } from "@/domain/roles";
 
 export default async function StudentsPage({ searchParams }: { searchParams: Promise<{ student?: string; flag?: string; attendance?: string; batch?: string }> }) {
   const v = await requireViewer();
+  if (!canAny(v.role, ["campus_students", "dept_students", "teach"])) redirect("/home");
   const { student, flag, attendance, batch } = await searchParams;
   const rows = await listStudents(v);
   const detail = student && /^\d+$/.test(student) ? await getStudentDetail(v, Number(student)).catch(() => null) : null;
