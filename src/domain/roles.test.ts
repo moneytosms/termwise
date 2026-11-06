@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAPS, can, canAny, isStaffRole } from "./roles";
+import { CAPS, can, canAny, isStaffRole, isTeacher } from "./roles";
 
 const OFFICE = ["campus_students", "attendance", "admissions", "moderate_marks", "fees", "risk", "messages", "office_requests", "appeals", "staff_leave", "reports", "fee_reports", "setup", "setup_faculty", "audit"];
 
@@ -32,6 +32,12 @@ describe("roles", () => {
   it("hod: read-only department view and department leave", () => {
     expect([...CAPS.hod].sort()).toEqual(["attendance_view", "dept_leave", "dept_students", "marks_view", "risk_view"]);
     for (const c of ["teach", "campus_students", "attendance", "moderate_marks", "fees", "risk", "staff_leave", "setup"] as const) expect(can("hod", c)).toBe(false);
+  });
+  it("faculty and HODs are teachers, other staff are not", () => {
+    expect(isTeacher("faculty")).toBe(true);
+    expect(isTeacher("hod")).toBe(true);
+    expect(isTeacher("office_admin")).toBe(false);
+    expect(isTeacher("trust")).toBe(false);
   });
   it("canAny matches any listed capability", () => {
     expect(canAny("hr", ["setup", "setup_faculty"])).toBe(true);
