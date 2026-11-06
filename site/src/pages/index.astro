@@ -1,0 +1,917 @@
+---
+// The register: the landing page is one page of the college register, the paper
+// artifact Termwise replaces and still prints. Figures are read from the seeded
+// demo database (ME301, batch ME-2024, 2026-11-06) and the repository source.
+import Landing from "../layouts/Landing.astro";
+import { cfg, sourceExcerpt, withBase } from "../lib/source";
+
+import facultyHome from "../assets/screens/faculty-home-phone.png";
+import attendanceDesktop from "../assets/screens/attendance-conflicts-desktop.png";
+import feesDesktop from "../assets/screens/fees-desktop.png";
+import riskDesktop from "../assets/screens/risk-desktop.png";
+import trustDesktop from "../assets/screens/trust-overview-desktop.png";
+import studentMarks from "../assets/screens/student-marks-phone.png";
+
+const CUTOFF = 75;
+// Attendance shortage for ME301, batch ENG-24-ME, sorted lowest first: the same
+// rows the app's Reports > Attendance shortage builds from session periods.
+const rows = [
+  { roll: "ENG-24-ME-0048", name: "Kajal Dash", held: 123, attended: 82, pct: 66.7 },
+  { roll: "ENG-24-ME-0036", name: "Debasish Tripathy", held: 123, attended: 84, pct: 68.3 },
+  { roll: "ENG-24-ME-0012", name: "Gyana Rath", held: 123, attended: 84, pct: 68.3 },
+  { roll: "ENG-24-ME-0177", name: "Ankit Panda", held: 123, attended: 84, pct: 68.3 },
+  { roll: "ENG-24-ME-0024", name: "Nihar Sahoo", held: 123, attended: 90, pct: 73.2 },
+  { roll: "ENG-24-ME-0035", name: "Ipsita Rout", held: 123, attended: 104, pct: 84.6 },
+  { roll: "ENG-24-ME-0007", name: "Gyana Patnaik", held: 123, attended: 104, pct: 84.6 },
+  { roll: "ENG-24-ME-0028", name: "Chinmay Samal", held: 123, attended: 104, pct: 84.6 },
+  { roll: "ENG-24-ME-0042", name: "Sushant Rath", held: 123, attended: 105, pct: 85.4 },
+  { roll: "ENG-24-ME-0049", name: "Nihar Tripathy", held: 123, attended: 106, pct: 86.2 },
+  { roll: "ENG-24-ME-0021", name: "Ipsita Mishra", held: 123, attended: 107, pct: 87.0 },
+  { roll: "ENG-24-ME-0014", name: "Deepika Das", held: 123, attended: 108, pct: 87.8 },
+  { roll: "ENG-24-ME-0058", name: "Jyoti Rout", held: 123, attended: 110, pct: 89.4 },
+  { roll: "ENG-24-ME-0032", name: "Priya Das", held: 123, attended: 111, pct: 90.2 },
+  { roll: "ENG-24-ME-0056", name: "Arpita Rath", held: 123, attended: 111, pct: 90.2 },
+  { roll: "ENG-24-ME-0027", name: "Rakesh Sethi", held: 123, attended: 112, pct: 91.1 },
+];
+const below = rows.filter((r) => r.pct < CUTOFF).length;
+
+// Real lines from the query validator, not a retyped copy.
+const validator = sourceExcerpt("src/server/assistant/validate.ts", 24, 29);
+
+const sections = [
+  ["claim", "01", "the claim"],
+  ["class", "02", "in class"],
+  ["sync", "03", "sync"],
+  ["office", "04", "the office"],
+  ["ai", "05", "the rules"],
+  ["run", "06", "run it"],
+  ["limits", "07", "limits"],
+] as const;
+---
+
+<Landing
+  title={`${cfg.name}: ${cfg.tagline}`}
+  description={cfg.description}
+>
+  <div class="page">
+    <header class="masthead">
+      <div class="masthead__row">
+        <a class="wordmark" href={withBase("")}>
+          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+            <path d="M2 2h12M8 2v12M2 14h12M5 6h6M5 9.5h6" fill="none" stroke="currentColor" stroke-width="1.15" />
+          </svg>
+          Termwise
+        </a>
+        <p class="masthead__doc">college register</p>
+        <nav class="masthead__nav" aria-label="Elsewhere">
+          <a href={withBase("guide/")}>guide</a>
+          <a href={cfg.repoUrl} rel="noopener">source</a>
+        </nav>
+      </div>
+      <dl class="meta">
+        <div><dt>campuses</dt><dd>3</dd></div>
+        <div><dt>students in the demo</dt><dd>311</dd></div>
+        <div><dt>records</dt><dd>synthetic</dd></div>
+        <div><dt>phase</dt><dd>1</dd></div>
+      </dl>
+      <nav class="contents" aria-label="Contents">
+        {sections.map(([id, number, label]) => (
+          <a href={`#${id}`}><span aria-hidden="true">{number}</span>{label}</a>
+        ))}
+      </nav>
+    </header>
+
+    <section class="opening" id="claim" aria-labelledby="claim-title">
+      <p class="index"><span>01</span> the claim</p>
+      <h1 id="claim-title">One student record,<br /> from admission<br /> to graduation.</h1>
+      <p class="deck">
+        Termwise runs a college’s daily records: admissions, attendance, marks, fees,
+        staff leave, and the reports the university, AICTE and NAAC ask for. It is built
+        for classrooms with weak Wi-Fi and an office that works in tables all day.
+      </p>
+      <p class="actions">
+        <a class="action action--ink" href="https://termwise-s1vj.onrender.com" rel="noopener">open the demo</a>
+        <a class="action" href={withBase("guide/")}>read the guide</a>
+        <span class="pass">password <code>termwise-demo</code></span>
+      </p>
+      <p class="note">
+        The demo runs on a free instance, so the first load can take a minute.
+        Every campus, student and receipt here is synthetic.
+      </p>
+    </section>
+
+    <section class="chapter" id="class" aria-labelledby="class-title">
+      <p class="index"><span>02</span> in class</p>
+      <div class="chapter__head">
+        <h2 id="class-title">A class is marked in five taps, with the Wi-Fi off.</h2>
+        <p class="lede">
+          Everyone starts present. One tap marks absent, a second late, a third present
+          again. A class of sixty with five absentees takes five taps, a save and a confirm.
+        </p>
+      </div>
+      <div class="chapter__body">
+        <figure class="sheet">
+          <figcaption class="sheet__head">
+            <span>attendance shortage · ME301 · batch ENG-24-ME · 16 of 60 rows, lowest first</span>
+            <span class="sheet__cut">cutoff {CUTOFF}%</span>
+          </figcaption>
+          <div class="sheet__scroll">
+            <table>
+              <caption class="sr-only">
+                Attendance for subject ME301, batch ENG-24-ME, sixteenth lowest rows.
+                {below} of the sixteen rows shown are below the {CUTOFF} percent cutoff.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="col-sno">s.no</th>
+                  <th scope="col">roll no</th>
+                  <th scope="col">student</th>
+                  <th scope="col" class="num col-held">held</th>
+                  <th scope="col" class="num col-att">attended</th>
+                  <th scope="col" class="meter-col">attendance</th>
+                  <th scope="col" class="num">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr class={r.pct < CUTOFF ? "is-low" : undefined}>
+                    <td class="col-sno">{String(i + 1).padStart(2, "0")}</td>
+                    <td>{r.roll}</td>
+                    <td class="name">{r.name}</td>
+                    <td class="num col-held">{r.held}</td>
+                    <td class="num col-att">{r.attended}</td>
+                    <td class="meter-col">
+                      <span class="meterline">
+                        <span class="meter" style={`--pct:${r.pct}`} aria-hidden="true">
+                          <span class="meter__fill"></span>
+                        </span>
+                      </span>
+                    </td>
+                    <td class="num pct">
+                      {r.pct.toFixed(1)}
+                      {r.pct < CUTOFF && <span class="flag">below</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="sheet__foot">
+            <span>{rows.length} rows shown</span>
+            <span>44 rows above the line, not shown</span>
+            <span>123 periods held</span>
+          </p>
+        </figure>
+        <p class="after">
+          Ankit Panda is 6.7 points under the cutoff. The daily job flags him once, as a
+          mentor task; the flag changes no record and sends nothing to the student.
+        </p>
+
+        <div class="plates plates--phones">
+          <figure class="plate">
+            <img src={facultyHome.src} width={facultyHome.width} height={facultyHome.height} alt="Faculty home on a phone: today's five classes, all saved, with the next class ready to mark." loading="lazy" decoding="async" />
+            <figcaption>faculty home, 390px. Today’s five classes, one tap to mark.</figcaption>
+          </figure>
+          <div class="plate__text">
+            <p>
+              Attendance is stored as one session per batch, subject, date and period, with
+              a UUID the phone creates while it is offline. A lab is one session covering
+              several periods, and percentages are weighted by periods.
+            </p>
+            <p>
+              Late counts as attended. The cutoff is a setting on the programme, not a
+              constant in the code.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="sync" aria-labelledby="sync-title">
+      <p class="index"><span>03</span> sync</p>
+      <div class="chapter__head">
+        <h2 id="sync-title">The sheet saves on the phone and settles itself later.</h2>
+        <p class="lede">
+          This is the part the brief calls hard: attendance in a room with no signal,
+          without overwriting the sheet another teacher already saved.
+        </p>
+      </div>
+      <div class="chapter__body">
+        <ol class="flow">
+          <li>
+            <p class="flow__k">queue</p>
+            <h3>Save into the outbox</h3>
+            <p>
+              Today’s classes and rosters, names and roll numbers only, sit in IndexedDB.
+              A saved sheet waits in an outbox and the class shows as queued.
+            </p>
+          </li>
+          <li>
+            <p class="flow__k">send</p>
+            <h3>Flush when there is a network</h3>
+            <p>
+              The outbox sends when the app opens, when the network returns, or through
+              Background Sync on Android. Each item is decided on its own, so one bad
+              sheet never blocks the rest.
+            </p>
+          </li>
+          <li>
+            <p class="flow__k">decide</p>
+            <h3>Four answers, never a guess</h3>
+            <dl class="answers">
+              <div><dt>saved</dt><dd>written against the session</dd></div>
+              <div><dt>stale</dt><dd>an older edit, ignored</dd></div>
+              <div><dt>conflict</dt><dd>another teacher saved first, so the sheet goes to the office queue</dd></div>
+              <div><dt>rejected</dt><dd>marked by a different teacher on a shared phone</dd></div>
+            </dl>
+            <p class="flow__note">
+              Edit times are corrected for a wrong phone clock, using the gap between the
+              phone and the server at send.
+            </p>
+          </li>
+        </ol>
+
+        <figure class="plate plate--wide">
+          <img src={attendanceDesktop.src} width={attendanceDesktop.width} height={attendanceDesktop.height} alt="The office attendance screen: sessions for the campus and a queue of conflicting sheets." loading="lazy" decoding="async" />
+          <figcaption>attendance, 1440px. Sessions and the conflict queue on one table.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="chapter" id="office" aria-labelledby="office-title">
+      <p class="index"><span>04</span> the office</p>
+      <div class="chapter__head">
+        <h2 id="office-title">Four offices, one row per student.</h2>
+        <p class="lede">
+          Admissions, exams, accounts and HR each see their own modules, and every change
+          is written to the audit log in the same transaction.
+        </p>
+      </div>
+      <div class="chapter__body">
+        <dl class="ledger">
+          <div>
+            <dt>marks</dt>
+            <dd>
+              Draft, submitted, locked. A reopen needs a typed reason, and a locked subject
+              rejects edits at the server. An accepted appeal can correct one locked mark.
+            </dd>
+          </div>
+          <div>
+            <dt>fees</dt>
+            <dd>
+              Due is instalment minus scholarship minus payments, floored at zero. Nothing
+              is stored that can drift from the receipts, and a payment over the remaining
+              due is refused.
+            </dd>
+          </div>
+          <div>
+            <dt>receipts</dt>
+            <dd>
+              Each payment prints with the amount in words, a keyed HMAC over its fixed
+              fields and a QR code. The public page recomputes the hash and shows the
+              student’s name masked.
+            </dd>
+          </div>
+          <div>
+            <dt>reports</dt>
+            <dd>
+              University upload CSV, Tally receipt vouchers, and the AICTE and NAAC returns,
+              all built from the same rows the screens read.
+            </dd>
+          </div>
+        </dl>
+
+        <div class="plates plates--desk">
+          <figure class="plate">
+            <img src={feesDesktop.src} width={feesDesktop.width} height={feesDesktop.height} alt="The fees screen: dues, payments, reminders and scholarship awards for the campus." loading="lazy" decoding="async" />
+            <figcaption>fees, 1440px. Dues and payments, with the Tally export beside them.</figcaption>
+          </figure>
+          <figure class="plate">
+            <img src={trustDesktop.src} width={trustDesktop.width} height={trustDesktop.height} alt="The trust overview: the same measures for each of the three campuses, read-only." loading="lazy" decoding="async" />
+            <figcaption>the trust secretary’s view. Read-only in code, not just in the UI.</figcaption>
+          </figure>
+        </div>
+
+        <div class="plates plates--phones">
+          <figure class="plate">
+            <img src={studentMarks.src} width={studentMarks.width} height={studentMarks.height} alt="A student's marks on a phone: components per subject, with the internal total and a final score only where the subject is locked." loading="lazy" decoding="async" />
+            <figcaption>the same rows at the student’s end. Only locked subjects carry a final score.</figcaption>
+          </figure>
+          <div class="plate__text">
+            <p>
+              Students and parents sign in to the same record. Every portal query is pinned
+              to the signed-in student or a linked child, so no student id is ever taken
+              from the browser.
+            </p>
+            <p>
+              A parent sees each child’s attendance, marks and dues, approves leave before
+              the mentor, and gives or withdraws consent for a minor.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="ai" aria-labelledby="ai-title">
+      <p class="index"><span>05</span> the rules</p>
+      <div class="chapter__head">
+        <h2 id="ai-title">Rules decide who is at risk. The model words, plans and refuses.</h2>
+        <p class="lede">
+          The assistant is the part most likely to be wrong, so it is built to show its
+          work and to be unable to write.
+        </p>
+      </div>
+      <div class="chapter__body">
+        <dl class="ledger ledger--three">
+          <div>
+            <dt>the flag</dt>
+            <dd>
+              Attendance under the cutoff in any subject, a drop of ten points over four
+              weeks, or internal marks under the configured share. The rule decides; a flag
+              opens a mentor task and changes nothing else. With too little data it reports
+              not enough data, never clear.
+            </dd>
+          </div>
+          <div>
+            <dt>the question</dt>
+            <dd>
+              A plain-English question becomes a plan: SQL, the filters in plain English and
+              a one-line summary. The SQL is parsed with the Postgres parser and checked
+              against an allowlist of six views and about twenty functions. No writes, no
+              comments, one statement.
+            </dd>
+          </div>
+          <div>
+            <dt>the boundary</dt>
+            <dd>
+              It runs as a separate read-only role, inside a read-only transaction, on views
+              that filter themselves by campus, role, staff, student and department. Every
+              answer shows the filters, the row count and the SQL.
+            </dd>
+          </div>
+        </dl>
+
+        <figure class="excerpt">
+          <figcaption>
+            <span>the first check, before anything runs</span>
+            <a href={`${cfg.repoUrl}/blob/${cfg.branch}/src/server/assistant/validate.ts`}>validate.ts</a>
+          </figcaption>
+          <pre><code>{validator}</code></pre>
+        </figure>
+
+        <figure class="plate plate--wide">
+          <img src={riskDesktop.src} width={riskDesktop.width} height={riskDesktop.height} alt="The at-risk screen: flags by rule, each with its reason and a mentor task." loading="lazy" decoding="async" />
+          <figcaption>at-risk flags, 1440px. Each flag names the rule that fired.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="chapter" id="run" aria-labelledby="run-title">
+      <p class="index"><span>06</span> run it</p>
+      <div class="chapter__head">
+        <h2 id="run-title">Clone, seed, sign in.</h2>
+        <p class="lede">
+          The demo runs on Postgres, so the database starts in Docker. Seed data and demo
+          logins are written by the seed script.
+        </p>
+      </div>
+      <div class="chapter__body">
+        <pre class="term"><code>{`git clone ${cfg.repoUrl} &amp;&amp; cd termwise
+pnpm install
+docker compose up -d db
+pnpm db:migrate &amp;&amp; pnpm db:seed
+pnpm dev`}</code></pre>
+        <p class="after">
+          Node 24 or later, pnpm 12.15 and Postgres 18. Open
+          <code>http://localhost:3000</code> and sign in as
+          <code>eng.admin@termwise.demo</code> or <code>cse.faculty@termwise.demo</code>;
+          every demo password is <code>termwise-demo</code>. The
+          <a href={withBase("guide/")}>guide</a> carries the full deployment steps, the env
+          vars and the persona list.
+        </p>
+      </div>
+    </section>
+
+    <section class="chapter" id="limits" aria-labelledby="limits-title">
+      <p class="index"><span>07</span> limits</p>
+      <div class="chapter__head">
+        <h2 id="limits-title">What this is not.</h2>
+      </div>
+      <div class="chapter__body">
+        <ul class="limits">
+          <li>
+            <strong>Synthetic data, and a short build.</strong> Termwise is a seven-day
+            answer to Company A’s brief, not a system the trust runs. The three seed
+            students carry the brief’s own figures.
+          </li>
+          <li>
+            <strong>Messages are logged, not sent.</strong> No SMS or WhatsApp gateway is in
+            scope, and the Odia parent templates need a native speaker’s review.
+          </li>
+          <li>
+            <strong>Payments are test mode.</strong> No gateway, no real money.
+          </li>
+          <li>
+            <strong>The assistant needs a key.</strong> It runs on Gemini or Groq with a
+            daily call cap. Without a key it says so and points to the normal lists; risk
+            reasons keep the rule’s own wording.
+          </li>
+          <li>
+            <strong>Verification shows a minimum.</strong> The public receipt and mark sheet
+            pages show the totals and a masked name, never the record.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="colophon">
+      <p class="colophon__mark">Termwise</p>
+      <p>
+        Bhubaneswar, November 2026. Next.js, Postgres and Drizzle, in one deployable.
+        The technical design, deployment guide and source are in the repository.
+      </p>
+      <p class="colophon__links">
+        <a href={withBase("guide/")}>guide</a>
+        <a href={cfg.repoUrl} rel="noopener">source</a>
+        <a href={`${cfg.repoUrl}/blob/${cfg.branch}/docs/tdd.md`}>technical design</a>
+        <a href={`${cfg.repoUrl}/blob/${cfg.branch}/docs/deployment.md`}>deployment</a>
+      </p>
+      <p class="colophon__fine">{cfg.footnote}</p>
+    </footer>
+  </div>
+</Landing>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --paper: light-dark(#f4f2ec, #12120f);
+    --ink: light-dark(#17181a, #ece9df);
+    --soft: light-dark(#5c5a51, #a8a49a);
+    --faint: light-dark(#84806f, #7d7a6e);
+    --rule: light-dark(#d9d5c7, #2e2d26);
+    --rule-strong: light-dark(#b9b3a1, #3d3b32);
+    --data: light-dark(#1d5fbf, #6fa3f2);
+    --absent: light-dark(#c4242a, #e07a72);
+    --wash: light-dark(#ece9dd, #1a1a15);
+    --serif: "Newsreader Variable", "Newsreader", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  body {
+    font-family: var(--serif);
+    font-size: 1.06rem;
+    line-height: 1.6;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--data); color: var(--paper); }
+  a { color: var(--ink); text-decoration-color: var(--data); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+  a:hover { color: var(--data); }
+  code, pre { font-family: var(--mono); font-size: 0.82em; }
+  :focus-visible { outline: 2px solid var(--data); outline-offset: 3px; }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 40px) 0;
+    border-inline: 1px solid var(--rule);
+    min-height: 100vh;
+  }
+
+  /* ---- masthead ---- */
+  .masthead { padding-top: 1.1rem; }
+  .masthead__row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem 1.4rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--ink);
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 1.22rem;
+    font-weight: 560;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .wordmark svg { color: var(--data); }
+  .masthead__doc {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--soft);
+    letter-spacing: 0.01em;
+  }
+  .masthead__nav {
+    margin-left: auto;
+    display: flex;
+    gap: 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+  }
+  .masthead__nav a { text-decoration: none; color: var(--soft); }
+  .masthead__nav a:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--data); }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .meta > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-right: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+  .meta > div:nth-child(2n) { border-right: 0; padding-left: 0.75rem; }
+  .meta > div:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+  .meta dt { color: var(--soft); }
+  .meta dd { margin: 0; color: var(--ink); }
+
+  .contents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 1.1rem;
+    padding: 0.65rem 0 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+  }
+  .contents a { text-decoration: none; color: var(--soft); display: inline-flex; gap: 0.4rem; }
+  .contents a span { color: var(--faint); }
+  .contents a:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--data); }
+
+  /* ---- type ---- */
+  h1, h2, h3 { margin: 0; font-weight: 400; letter-spacing: -0.02em; text-wrap: balance; }
+  h1 {
+    font-size: clamp(2.45rem, 8.4vw, 5.1rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    font-weight: 380;
+  }
+  h2 { font-size: clamp(1.65rem, 3.4vw, 2.5rem); line-height: 1.06; }
+  h3 { font-size: 1.12rem; line-height: 1.25; font-weight: 560; letter-spacing: -0.01em; }
+  p { margin: 0; text-wrap: pretty; }
+  .index {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--soft);
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    margin: 0;
+  }
+  .index span { color: var(--faint); }
+  .deck {
+    font-size: clamp(1.08rem, 1.6vw, 1.28rem);
+    line-height: 1.5;
+    max-width: 44ch;
+    color: var(--soft);
+  }
+  .lede { max-width: 58ch; color: var(--soft); margin-top: 0.9rem; }
+  .after {
+    max-width: 62ch;
+    margin-top: 1.15rem;
+    font-size: 0.98rem;
+    color: var(--soft);
+  }
+  .note {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    line-height: 1.65;
+    color: var(--soft);
+  }
+
+  /* ---- opening ---- */
+  .opening {
+    padding: 3.4rem 0 3.6rem;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    gap: 1.4rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.7rem 1.1rem;
+    margin-top: 0.4rem;
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 46px;
+    padding: 0.55rem 1.25rem;
+    border: 1px solid var(--rule-strong);
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .action:hover { border-color: var(--ink); color: var(--ink); background: var(--wash); }
+  .action--ink { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .action--ink:hover { background: transparent; color: var(--ink); }
+  .pass { font-family: var(--mono); font-size: 0.7rem; color: var(--soft); }
+  .pass code { border-bottom: 1px solid var(--rule-strong); }
+
+  /* ---- chapters ---- */
+  .chapter { padding: 3.2rem 0 3.8rem; border-bottom: 1px solid var(--rule); }
+  .chapter__body { margin-top: 2rem; }
+  .chapter__body > * + * { margin-top: 2.2rem; }
+
+  /* ---- the sheet ---- */
+  .sheet {
+    margin: 0;
+    border: 1px solid var(--rule-strong);
+    background: var(--paper);
+  }
+  .sheet__head, .sheet__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.35rem 1rem;
+    padding: 0.65rem 0.85rem;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    line-height: 1.5;
+    color: var(--soft);
+  }
+  .sheet__head { border-bottom: 1px solid var(--rule-strong); }
+  .sheet__cut { color: var(--absent); }
+  .sheet__foot { border-top: 1px solid var(--rule-strong); }
+  .sheet__scroll { overflow-x: auto; }
+  .sheet table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .sheet th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--soft);
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  .sheet td {
+    padding: 0.46rem 0.7rem;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  .sheet tbody tr:last-child td { border-bottom: 0; }
+  .sheet .num { text-align: right; }
+  .sheet .name { font-family: var(--serif); font-size: 0.92rem; }
+  .sheet .col-sno, .sheet .col-held, .sheet .col-att { display: none; }
+  .sheet tr.is-low td { background: color-mix(in oklab, var(--absent) 6%, transparent); }
+  .sheet .meter-col { display: none; }
+  .meter-col { width: 34%; min-width: 132px; }
+  .meterline { display: flex; align-items: center; gap: 0.5rem; }
+  .meter {
+    position: relative;
+    display: block;
+    flex: 1;
+    height: 6px;
+    background: var(--wash);
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  .meter__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--pct) * 1%);
+    background: var(--data);
+    transform-origin: left center;
+  }
+  .meter::after {
+    content: "";
+    position: absolute;
+    left: 75%;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    background: var(--ink);
+  }
+  .is-low .meter__fill { background: var(--absent); }
+  .flag {
+    display: block;
+    font-size: 0.6rem;
+    line-height: 1.5;
+    color: var(--absent);
+    letter-spacing: 0.01em;
+  }
+  .pct .flag { white-space: nowrap; }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .meter__fill {
+        animation: draw linear both;
+        animation-timeline: view();
+        animation-range: entry 15% cover 32%;
+      }
+      @keyframes draw { from { transform: scaleX(0); } }
+    }
+  }
+
+  /* ---- flow ---- */
+  .flow {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .flow > li {
+    display: grid;
+    gap: 0.4rem 1.5rem;
+    padding: 1.15rem 0 1.35rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .flow__k {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    color: var(--data);
+    padding-top: 0.2rem;
+  }
+  .flow p { max-width: 70ch; color: var(--soft); }
+  .flow h3 + p { margin-top: 0.3rem; }
+  .flow__note { font-size: 0.92rem; }
+  .answers { margin: 0.9rem 0 0; display: grid; gap: 0.35rem; font-family: var(--mono); font-size: 0.72rem; }
+  .answers > div { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.6rem; }
+  .answers dt { color: var(--ink); }
+  .answers dd { margin: 0; color: var(--soft); }
+
+  /* ---- ledger ---- */
+  .ledger { margin: 0; border-top: 1px solid var(--ink); }
+  .ledger > div {
+    display: grid;
+    gap: 0.35rem 1.5rem;
+    padding: 1rem 0 1.15rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .ledger dt {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--data);
+    padding-top: 0.22rem;
+  }
+  .ledger dd { margin: 0; max-width: 68ch; color: var(--ink); }
+
+  /* ---- plates ---- */
+  .plate { margin: 0; }
+  .plate img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule-strong);
+    background: var(--wash);
+  }
+  .plate figcaption {
+    margin-top: 0.55rem;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    line-height: 1.55;
+    color: var(--soft);
+  }
+  .plates--phones {
+    display: grid;
+    gap: 1.6rem;
+    align-items: start;
+  }
+  .plates--phones .plate img { max-width: 300px; }
+  .plate__text { max-width: 46ch; color: var(--soft); }
+  .plate__text p + p { margin-top: 0.8rem; }
+  .plates--desk { display: grid; gap: 1.6rem; }
+
+  /* ---- excerpt ---- */
+  .excerpt { margin: 0; border: 1px solid var(--rule-strong); }
+  .excerpt figcaption {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--rule-strong);
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    color: var(--soft);
+  }
+  .excerpt pre {
+    margin: 0;
+    padding: 0.95rem 0.85rem;
+    overflow-x: auto;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    background: var(--wash);
+    color: var(--ink);
+  }
+
+  /* ---- terminal ---- */
+  .term {
+    margin: 0;
+    padding: 1.1rem 1.15rem;
+    border: 1px solid var(--rule-strong);
+    background: var(--wash);
+    overflow-x: auto;
+    font-size: 0.76rem;
+    line-height: 1.85;
+  }
+  .term + .after { margin-top: 1.1rem; }
+
+  /* ---- limits ---- */
+  .limits { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--ink); }
+  .limits li {
+    padding: 0.95rem 0 1.05rem;
+    border-bottom: 1px solid var(--rule);
+    max-width: 74ch;
+    color: var(--soft);
+  }
+  .limits strong { color: var(--ink); font-weight: 560; }
+
+  /* ---- colophon ---- */
+  .colophon {
+    padding: 2.6rem 0 2.4rem;
+    display: grid;
+    gap: 0.9rem;
+    font-size: 0.95rem;
+    color: var(--soft);
+  }
+  .colophon__mark { font-size: 1.15rem; font-weight: 560; color: var(--ink); }
+  .colophon p { max-width: 62ch; }
+  .colophon__links { font-family: var(--mono); font-size: 0.72rem; display: flex; flex-wrap: wrap; gap: 1.2rem; }
+  .colophon__fine { font-family: var(--mono); font-size: 0.66rem; color: var(--faint); }
+
+  /* ---- wider screens: printed margins ---- */
+  @media (min-width: 620px) {
+    .meta { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .meta > div { border-top: 0; }
+    .meta > div:nth-child(n) { padding: 0.55rem 0.8rem; border-right: 1px solid var(--rule); }
+    .meta > div:first-child { padding-left: 0; }
+    .meta > div:last-child { border-right: 0; padding-right: 0; }
+    .sheet .col-sno { display: table-cell; }
+    .plates--phones { grid-template-columns: minmax(0, 300px) minmax(0, 1fr); }
+    .plates--desk { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  }
+
+  @media (min-width: 900px) {
+    .chapter {
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      column-gap: 2.5rem;
+    }
+    .chapter > .index { grid-column: 1; padding-top: 0.55rem; }
+    .chapter__head, .chapter__body { grid-column: 2; }
+    .chapter__head { margin-top: 0; }
+
+    .flow > li { grid-template-columns: 4.8rem minmax(0, 1fr); align-items: start; }
+    .flow > li > .flow__k { grid-column: 1; grid-row: 1 / span 4; }
+    .flow > li > h3, .flow > li > p { grid-column: 2; }
+    .ledger > div { grid-template-columns: 7rem minmax(0, 1fr); }
+
+    .opening {
+      grid-template-columns: 132px minmax(0, 1fr) 20rem;
+      column-gap: 2.5rem;
+      row-gap: 1.5rem;
+      padding: 4.2rem 0 4.4rem;
+    }
+    .opening .index { grid-column: 1; grid-row: 1; padding-top: 0.65rem; }
+    .opening h1 { grid-column: 2 / span 2; grid-row: 1; }
+    .opening .deck { grid-column: 2; grid-row: 2; }
+    .opening .actions { grid-column: 2; grid-row: 3; }
+    .opening .note {
+      grid-column: 3;
+      grid-row: 2 / span 2;
+      align-self: start;
+      border-left: 1px solid var(--rule);
+      padding: 0.15rem 0 0 1.2rem;
+    }
+    .chapter__head h2 { max-width: 24ch; }
+  }
+
+  @media (min-width: 620px) {
+    .sheet .col-held, .sheet .meter-col { display: table-cell; }
+  }
+
+  @media (min-width: 900px) {
+    .sheet .col-att { display: table-cell; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+</style>

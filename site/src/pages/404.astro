@@ -1,0 +1,69 @@
+---
+import Landing from "../layouts/Landing.astro";
+import { cfg, withBase } from "../lib/source";
+---
+
+<Landing title={`Page not found, ${cfg.name}`} description="No such page in this register.">
+  <div class="wrap">
+    <p class="stamp">404 · no such page</p>
+    <h1>This page is not in the register.</h1>
+    <p class="deck">
+      The address you followed does not resolve to a row here. Nothing was lost: the record
+      lives at the addresses below.
+    </p>
+    <ul class="links">
+      <li><a href={withBase("")}>The register, from the top</a></li>
+      <li><a href={withBase("guide/")}>The guide: quickstart, deployment, design</a></li>
+      <li><a href={cfg.repoUrl}>The source on GitHub</a></li>
+    </ul>
+    <p class="note">{cfg.footnote}</p>
+  </div>
+</Landing>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --paper: light-dark(#f4f2ec, #131311);
+    --ink: light-dark(#17181a, #ece9df);
+    --rule: light-dark(#d8d4c6, #302f28);
+    --soft: light-dark(#5c5a51, #a8a49a);
+    --data: light-dark(#1d5fbf, #6fa3f2);
+  }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body {
+    font-family: "Newsreader Variable", "Newsreader", Georgia, serif;
+    font-size: 1.06rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--ink); text-decoration-color: var(--data); text-underline-offset: 0.2em; }
+  a:hover { color: var(--data); }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 14vh 24px 8vh; }
+  .stamp {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+    color: var(--soft);
+    margin: 0 0 1.6rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    font-weight: 420;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    margin: 0;
+  }
+  .deck { margin: 1.4rem 0 0; max-width: 38ch; color: var(--soft); }
+  .links { list-style: none; margin: 2.6rem 0 0; padding: 0; border-top: 1px solid var(--rule); }
+  .links li { border-bottom: 1px solid var(--rule); }
+  .links a { display: block; padding: 0.9rem 0; text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  .note {
+    margin-top: 3rem;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    color: var(--soft);
+  }
+</style>
