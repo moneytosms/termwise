@@ -150,7 +150,7 @@ When office staff lock a subject, the server writes one `result` row per student
 
 Office admins open **Applicants** and see the campus's applicants, with a checklist count per row and an Incomplete or Complete filter. Applicants arrive by CSV import from the same page. The file has the columns `name`, `birth_date`, `category`, `guardian_name`, `guardian_phone`, `guardian_email` and `gender`, and a template downloads from the dialog. The import is all-or-nothing: if any line is wrong, nothing is saved and the dialog lists each bad line with its reason. A file holds at most 500 rows. Categories are General, OBC, SC, ST and EWS **[A]**.
 
-Each programme lists its required documents in **College setup > Documents**. A document can carry a category condition (for example, a caste certificate only for SC and ST), and with none it applies to everyone. An applicant's checklist is the set of documents that apply to their category. Each item is pending, received or verified, and the office sets it from the applicant's panel. Every change is written to the audit log. The checklist is complete only when every applicable document is verified and at least one applies. Documents are tracked as statuses only; no file is uploaded or stored **[A]**.
+Each programme lists its required documents in **College setup > Documents**. A document can carry a category condition (for example, a caste certificate only for SC and ST), and with none it applies to everyone. An applicant's checklist is the set of documents that apply to their category. Each item is pending, received or verified, and the office sets it from the applicant's panel. Every change is written to the audit log. The checklist is complete only when every applicable document is verified and at least one applies. The office can attach a PDF, JPEG or PNG of up to 2 MB to an item; the server checks type and size, stores the file in the database (demo scale) **[A]**, and audits each upload or replacement. A file opens only for staff of the applicant's campus with admissions access, or for the student it belongs to on the portal.
 
 ### 4.11 Confirm admission
 
@@ -284,7 +284,7 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 
 **Next, in order:**
 
-1. Real file upload and storage for admission documents. Today the checklist tracks statuses only.
+1. Object storage for admission documents, with content sniffing. Today files are stored in the database and the type check trusts the browser's MIME type.
 2. Leave across a year end, so a leave can be split and each year's balance is counted correctly.
 3. Results day at scale: results are precomputed, but the portal still serves each request from the app. Put a CDN in front of the per-student results page, so the database sees one write per student rather than thousands of reads.
 4. University report formats, and saved queries over the same views the assistant uses. AICTE and NAAC are fixed packs in Reports (section 4.16).
@@ -324,7 +324,7 @@ Each is a choice the brief does not settle.
 28. A guardian's login email is the applicant's guardian email when it is free, otherwise `firstname.lastname@termwise.demo`, with the demo password.
 29. A minor is under 18 on the confirm date (IST), and needs a parent consent date before confirmation.
 30. Applicant categories are General, OBC, SC, ST and EWS.
-31. Admission documents are tracked as statuses only. No file is uploaded or stored.
+31. Admission document files are stored in the database as base64 (demo scale), up to 2 MB each, PDF, JPEG or PNG only.
 32. Each login holds one staff row per campus. The `staff` table has no unique index, and the app assumes one row per campus (section 3).
 33. Saving a fee structure does not change existing instalments; it applies to instalments created after it (section 4.13).
 34. A category with no fee structure row uses the programme's default semester fee (section 4.13).
