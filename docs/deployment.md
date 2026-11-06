@@ -1,91 +1,104 @@
 # Deployment
 
 Repository: https://github.com/moneytosms/termwise
-Live app: https://termwise-s1vj.onrender.com
 
-## Run it locally
+You can rebuild everything locally with the steps below, or open the live deployment at https://termwise-s1vj.onrender.com (same demo logins).
 
-Needs Node 24 or later, pnpm 12, and Docker.
+## 1. Prerequisites
+
+1. Node 24 or later (CI uses 24, the Dockerfile uses 26). `package.json` has no `engines` field.
+2. pnpm 12.15.0 (`packageManager` in `package.json`).
+3. Docker with the compose plugin, and git.
+
+```bash
+node -v                      # v24 or later
+npm install -g pnpm@12.15.0
+pnpm -v                      # 12.15.0
+docker compose version
+git --version
+```
+
+## 2. Run locally
 
 ```bash
 git clone https://github.com/moneytosms/termwise && cd termwise
 pnpm install
-docker compose up -d db          # Postgres 18 on localhost:54329
 cp env.example .env.local        # local-only values, no real secrets
-set -a; . ./env.example; set +a  # the scripts below read the same values
-pnpm db:migrate                  # tables, assistant views and read-only role
-pnpm db:seed                     # synthetic sample data and demo logins
-pnpm dev                         # http://localhost:3000
+set -a; . ./env.example; set +a  # tsx scripts do not read .env.local, so export the same values
+docker compose up -d db          # Postgres 18 on localhost:54329
+docker compose ps db             # wait until STATUS shows (healthy)
+pnpm db:migrate                  # tables, assistant views, read-only role termwise_assistant
+pnpm db:seed                     # synthetic data and demo logins
+pnpm dev                         # then open http://localhost:3000
 ```
 
-To start over with fresh sample data:
+Open http://localhost:3000 and sign in with a login from section 4.
+
+Assistant role: no manual setup. `db:migrate` runs `sql/assistant.sql` (creates the read-only role and views) and sets the role's password from `ASSISTANT_DATABASE_URL`. `env.example` already points at `termwise_assistant` on the same database.
+
+Env var names (values for local runs come from `env.example`; never commit real secrets):
+
+| Name | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | App database (set in `env.example`) |
+| `ASSISTANT_DATABASE_URL` | yes | Read-only role the assistant runs as: same database, user `termwise_assistant`. Migration sets the role's password from it |
+| `BETTER_AUTH_SECRET` | yes | Signs sessions and receipt hashes. Changing it breaks verification of issued receipts |
+| `BETTER_AUTH_URL` | yes | Public URL of the app as the browser sees it (`http://localhost:3000` locally) |
+| `CRON_SECRET` | for the daily job | Bearer secret for `/api/cron/daily` (blank in `env.example`) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | optional (one LLM key is enough) | Gemini key (blank in `env.example`) |
+| `GROQ_API_KEY` | optional (one LLM key is enough) | Groq key (blank in `env.example`) |
+| `LLM_PROVIDER` | optional | Preferred provider, `groq` or `google`. If its key is missing, the other keyed provider is used |
+| `LLM_DAILY_CAP` | optional | Max LLM calls per day |
+
+Without an LLM key the app runs; only the plain-English assistant and AI-worded risk reasons are unavailable. The assistant says no provider is configured and risk reasons use the rule's own wording.
+
+Health check: `/api/health` returns 200 only when the app database answers and every required var is set, otherwise 503. The body lists each var as a boolean (never values), plus `db`, `assistantDb`, `llm` and `missing`.
+
+Daily job (optional): in GitHub repository settings add secrets `APP_URL` (public URL) and `CRON_SECRET` (the same value as above). The `Daily job` workflow calls `POST /api/cron/daily` at 06:00 IST and can be run by hand from the Actions tab.
+
+Start over with fresh sample data (wipes the volume):
 
 ```bash
-psql "$DATABASE_URL" -c "drop schema if exists drizzle cascade; drop schema public cascade; create schema public;"
+docker compose down -v
+docker compose up -d db
+docker compose ps db             # wait for (healthy)
 pnpm db:migrate && pnpm db:seed
 ```
 
-Or run the whole stack in containers: `docker compose up --build` (migrates and seeds on start).
-
-### Checks
+Or run the whole stack in containers (migrates and seeds on start, app on http://localhost:3000):
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm test   # unit tests
-pnpm build && E2E=1 pnpm e2e               # end-to-end tests on a phone viewport, on a freshly seeded database
-pnpm tsx scripts/confirm-race.mts          # two concurrent admissions get consecutive roll numbers; a repeat confirm is refused
+docker compose up --build
 ```
 
-The race script confirms applicants in the seeded database, so reset the database (above) before using the demo again.
+## 3. Verify
 
-### Load test
-
-Simulates 7,800 students reading results at once, with one signed-in session reused for every request. Start the server first, with `E2E=1` so the sign-in rate limiter is off and `BETTER_AUTH_URL` set to the same origin the script calls:
+Run in the shell where the env was exported (section 2), on a freshly seeded database.
 
 ```bash
+pnpm lint
+pnpm typecheck                              # tsc --noEmit
+pnpm test                                   # vitest run (unit tests)
 pnpm build
-E2E=1 BETTER_AUTH_URL=http://localhost:3000 pnpm start
-BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts
+pnpm exec playwright install chromium       # add --with-deps on a bare Linux machine
+E2E=1 pnpm e2e                              # desktop specs, then phone specs, against pnpm start -p 3100
+pnpm tsx scripts/confirm-race.mts           # concurrent admissions get consecutive roll numbers; a repeat confirm is refused
 ```
 
-The script reads four optional inputs: `BASE` (default `http://localhost:3000`), `EMAIL` (default `ankit.panda@termwise.demo`), `N` (requests, default 7800) and `C` (concurrency, default 200). They are script inputs, not app settings. It signs in with the demo password.
+Expected: each command exits 0; vitest and Playwright report all tests passed (counts are in `docs/tdd.md`). The e2e specs and `confirm-race.mts` change seeded data (admissions, attendance), so reset the database (section 2) before re-running or demoing.
 
-The plain-English assistant and AI-worded risk reasons need an LLM key. Without one the assistant says no provider is configured, and risk reasons use the rule's own wording.
+Load test (7,800 students reading results at once). Start the server with `E2E=1` so the sign-in rate limiter is off, then in a second terminal:
 
-## How it is deployed
+```bash
+E2E=1 BETTER_AUTH_URL=http://localhost:3000 pnpm start     # terminal 1
+BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts   # terminal 2
+```
 
-One Docker web service and one Postgres database on Render, defined in `render.yaml`.
+`BASE`, `EMAIL`, `N`, `C` are optional script inputs (defaults shown), not app settings.
 
-1. Render dashboard, **New > Blueprint**, pick this repository. Render creates the `termwise` web service and the `termwise-db` database.
-2. Fill the prompted values:
-   - `BETTER_AUTH_URL`: the service's public URL.
-   - `ASSISTANT_DATABASE_URL`: the database's internal URL with the user and password replaced by `termwise_assistant` and a new random password. The migration sets that password on the read-only role.
-   - `GOOGLE_GENERATIVE_AI_API_KEY`: a Gemini API key.
-3. The container migrates and seeds on start. On a seeded database the sample data is skipped, but portal logins and the marks scheme backfill still run; both are idempotent.
-4. Daily job: in GitHub repository settings, add secrets `APP_URL` (the public URL) and `CRON_SECRET` (copy from the Render service). The `Daily job` workflow calls it at 06:00 IST; run it by hand from the Actions tab.
+CI (`.github/workflows/ci.yml`) runs the same steps against Postgres 18 on every push to `main` and on pull requests.
 
-No new service or variable for receipts: the QR code is drawn on the server by the `qrcode` package, so no outside service is called.
-
-CI (`.github/workflows/ci.yml`) runs type checks, lint, unit tests, build and the end-to-end tests against Postgres on every push to `main`.
-
-Free tier limits: the web service sleeps when idle, so the first request takes about a minute. The free database expires after 30 days.
-
-## Environment variables
-
-Names only. `env.example` holds local-only defaults.
-
-| Name | Purpose |
-| --- | --- |
-| `DATABASE_URL` | App database connection |
-| `ASSISTANT_DATABASE_URL` | Read-only role the assistant's queries run as |
-| `BETTER_AUTH_SECRET` | Signs sessions and receipt verification hashes. Changing it makes issued receipts fail verification |
-| `BETTER_AUTH_URL` | Public URL of the app |
-| `CRON_SECRET` | Shared secret for the daily job endpoint |
-| `LLM_PROVIDER` | `google` (Gemini) or `groq` |
-| `LLM_DAILY_CAP` | Maximum LLM calls per day across the app |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini key, when `LLM_PROVIDER=google` |
-| `GROQ_API_KEY` | Groq key, when `LLM_PROVIDER=groq` |
-
-## Demo logins
+## 4. Demo logins
 
 Password for every account: `termwise-demo`. All data is synthetic.
 
@@ -149,3 +162,12 @@ Admissions and staff leave:
 - **Approve staff leave (admin).** Sign in as `eng.admin@termwise.demo` and open **Leave**. Approve or reject the pending request from the Engineering campus, with a note. Nobody can decide their own leave.
 
 To try the admission again, reset the database as above.
+
+## 5. Troubleshooting
+
+1. `pnpm db:migrate` fails with `ECONNREFUSED` or an undefined `DATABASE_URL`: the db is not up or the env is not exported. Run `docker compose ps db` (wait for healthy), then `set -a; . ./env.example; set +a`.
+2. Port 54329 or 3000 already in use: stop the other process, or `docker compose down` and retry. Playwright uses port 3100.
+3. Sign-in rejected or redirected to the wrong host: `BETTER_AUTH_URL` must equal the URL in the browser (`http://localhost:3000` locally).
+4. Playwright or the load test hits rate limits or stale data: run with `E2E=1` (rate limiter off) and reset the database first (section 2).
+5. `pnpm exec playwright install chromium` fails on missing libraries: rerun with `--with-deps`.
+6. Assistant says no provider is configured: expected without an LLM key. Set `GOOGLE_GENERATIVE_AI_API_KEY` or `GROQ_API_KEY` and restart.

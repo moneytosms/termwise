@@ -1,15 +1,64 @@
 # Termwise: Technical Design Document
 
-**Repository:** https://github.com/moneytosms/termwise
 **GitHub:** https://github.com/moneytosms/termwise
 **Live app:** https://termwise-s1vj.onrender.com
+**Project site:** https://moneytosms.github.io/termwise/ (landing page, coming soon)
 **Demo logins:** see `deployment.md` (password `termwise-demo` for every account)
 
-Termwise is the first phase of a college ERP for Company A's trust. It builds the core slice the brief asks for first: mobile attendance that works offline, internal marks with a moderation lock, fee dues, faculty and office admin roles and an at-risk flag. Around that slice it adds a student and parent portal, a trust view across campuses, a term mark sheet with verification, standard reports, Odia parent messages and precomputed results. Assumptions are marked **[A]** and listed together in section 9.
+## At a glance
+
+**What it is.** Termwise is the first phase of a college ERP (a system that runs a college's daily records) for Company A's trust, which runs several campuses.
+
+**Who it serves.** Faculty, office staff (admin, admissions, exams, accounts, HR), heads of department, students, parents and the trust secretary. Each sees only what their role allows.
+
+**What works today:**
+
+- Attendance taken on a phone with no network, synced later, with conflicts sent to the office.
+- Internal marks in components, a moderation lock, an upload CSV and a printable mark sheet with a verification page.
+- Fee dues calculated from instalments, payments, scholarships, receipts and Tally export.
+- An at-risk flag decided by fixed rules, and a plain-English question assistant (Termy) that can only read filtered views.
+- Student and parent portal, trust dashboard, reports, AICTE and NAAC packs, admissions, staff leave, promotion and graduation.
+
+**What it is not.** A demo for the assignment, not a production system. Messages are logged, not sent, and payments are test mode (section 8).
+
+## Contents
+
+1. [What the slice proves](#1-what-the-slice-proves)
+2. [Architecture](#2-architecture)
+3. [Data model](#3-data-model)
+4. [Main flows](#4-main-flows) (offline attendance 4.1, marks 4.2, fees 4.3, portal 4.4, then the shipped extras 4.5 to 4.16)
+5. [How the AI part works](#5-how-the-ai-part-works)
+6. [UI and design decisions](#6-ui-and-design-decisions)
+7. [Testing and security](#7-testing-and-security)
+8. [What was cut, and what comes next](#8-what-was-cut-and-what-comes-next)
+9. [Assumptions](#9-assumptions)
+
+## How to read this
+
+- **In 5 minutes:** the At a glance block, then section 1 (what the brief needs), section 2 (architecture), 4.1 (offline attendance), 5 (the AI part) and 8 (what was cut).
+- **Deep detail:** sections 3, 4.2 to 4.16 and 7 are reference. Dip in when a screen or rule raises a question.
+- **Assumptions:** marked **[A]** in the text and all listed in section 9. Each is a choice the brief does not settle.
+- **Every section opens with its takeaway** in bold, then the detail.
+
+Terms used below:
+
+| Term | Meaning |
+| --- | --- |
+| Server action | A server function a page calls to change data; it checks role and campus first |
+| Service worker | A script in the browser that serves pages when offline |
+| Outbox | The phone's queue of saved attendance sheets waiting to sync (kept in IndexedDB, the browser's database) |
+| Moderation lock | After review, a subject's marks can no longer be edited without a reason |
+| HMAC hash | A keyed fingerprint that shows a receipt or mark sheet was not altered |
+| DPDP | India's Digital Personal Data Protection Act; it requires parental consent for minors |
+| AICTE, NAAC | Indian technical-education regulator and accreditation body, whose returns the Reports page prepares |
+| Tally | Accounting software that imports the receipt vouchers |
+| ADR | Architecture decision record, in `docs/adr/` |
+| IST | Indian Standard Time |
+| Termy | The in-app assistant that answers plain-English questions |
 
 ## 1. What the slice proves
 
-The brief's hard part is attendance taken on a phone in a classroom with weak Wi-Fi. The design starts there, and everything else is built so that one record per student flows into marks, dues, risk and messages without re-entry.
+**Takeaway: the design starts from attendance on a phone with weak Wi-Fi, and one record per student feeds marks, dues, risk and messages with no re-entry.**
 
 | Brief success measure | How the slice serves it |
 | --- | --- |
@@ -35,15 +84,17 @@ The brief's hard part is attendance taken on a phone in a classroom with weak Wi
 
 ## 2. Architecture
 
+```mermaid
+flowchart LR
+  P["Phone or browser<br/>service worker + IndexedDB outbox"] --> N["Next.js 16 app<br/>server components, server actions, route handlers"]
+  P -- "/api/today, /api/sync" --> N
+  N --> DB[("Postgres 18<br/>app role: read/write")]
+  N --> V[("Postgres views<br/>assistant role: read-only, self-filtering")]
+  N --> L["LLM (Gemini or Groq)<br/>capped per day, optional"]
+  G["GitHub Actions daily schedule"] -- "POST /api/cron/daily (shared secret)" --> N
 ```
-Phone / browser ── Next.js 16 app (React server components, server actions, route handlers)
-   │  service worker + IndexedDB outbox          │
-   │                                             ├── Postgres 18 (app role: read/write)
-   └── /api/today, /api/sync ────────────────────┤
-                                                 ├── Postgres views (assistant role: read-only, self-filtering)
-                                                 └── LLM (Gemini or Groq), capped per day, optional
-Daily job: GitHub Actions schedule → POST /api/cron/daily (shared secret)
-```
+
+**Takeaway: one Next.js app with one Postgres database, so there is one thing to deploy and no API contract to maintain.**
 
 **One deployable.** A single Next.js app with its database, in one Docker image. Server components read the database directly; mutations are server actions that check the viewer's role and campus, validate with zod and write an audit row in the same transaction. For a 6 to 8 screen slice built by one person in a week, a separate API service would add a contract to maintain and nothing the client can see. Route handlers exist only where a non-page client needs them: the offline sync endpoint, CSV, Tally and report downloads, the precomputed results API and the daily job.
 
@@ -59,6 +110,8 @@ Daily job: GitHub Actions schedule → POST /api/cron/daily (shared secret)
 **Access control.** Every query on a screen goes through `getViewer()`, which resolves the signed-in user to one of their staff rows: the active campus's row, chosen by the sidebar switcher and validated against the user's own rows (section 4.15). The row gives a role and a campus. Each office role sees only the modules its role holds (`CAPS` in `src/domain/roles.ts`, section 4.15). Faculty see the subjects they teach and the students they mentor. A head of department is limited to their department. Anyone visiting a screen outside their modules is sent to Home. The assistant, Termy, runs as a separate database role that can only read views filtered by campus, role, staff id and department.
 
 ## 3. Data model
+
+**Takeaway: a student exists once, and everything hangs off that row; money and percentages are calculated, never typed in.**
 
 ```
 campus ─┬─ department ─ programme ─ batch ─┬─ student ─┬─ attendance_entry ── attendance_session
@@ -95,6 +148,8 @@ Choices that matter:
 - **Leave is stored as requests.** `staff_leave` holds the kind (`casual`, `medical`, `on_duty`), the from and to dates, the reason, the status (`pending`, `approved`, `rejected`, `withdrawn`), the office note and the decider. Days used are counted from the dates, never stored, so balances cannot drift.
 
 ## 4. Main flows
+
+**Takeaway: the offline attendance flow (4.1) is the hard part and the core of the build. 4.2 to 4.4 are the rest of the brief; 4.5 to 4.16 are extras.**
 
 ### 4.1 Offline attendance with sync (the hard part)
 
@@ -223,6 +278,8 @@ The Reports page lists two accreditation packs beside the standard reports. Each
 
 ## 5. How the AI part works
 
+**Takeaway: fixed rules decide who is at risk, and the LLM only rewords or plans a query. It cannot write data, and every AI answer shows what it did so staff can check it.**
+
 ### 5.1 At-risk flag
 
 A daily job (and a Run now button) checks every student against the fixed rules: attendance below the cutoff in any subject, attendance dropping by the configured points over 4 weeks, or internal marks below the configured percentage of the maximum of the internal components entered so far. **The rule decides; the LLM never does.** When a student is flagged, the LLM may reword the rule's reason into one plain sentence for the mentor. If the LLM fails, times out or the daily cap is used, the rule's own wording is kept and marked as such. A flag only creates a mentor task; it changes no record and sends nothing to the student. A student with too little data (fewer than the minimum sessions, or no marks entered) is reported as not enough data, not as clear.
@@ -244,7 +301,24 @@ Office staff ask questions such as "how many second-year students are below 75% 
 3. It runs as the `termwise_assistant` role, which can read only those views, inside a read-only transaction with a statement timeout and a row limit. The views filter themselves by the session values set for that transaction: `app.campus_id`, `app.role`, `app.staff_id`, `app.student_id` and `app.department_id`. A head of department's views are limited to `app.department_id`, so a head of department sees only their department. Even a query that passes validation cannot widen that, and an unset role makes the views error rather than show everything.
 4. **When it is wrong or unsure:** the answer always shows the filters it used, the row count and the SQL, so staff can see what was counted. An unclear question gets a clarifying question back. A request to change data is refused. Invalid SQL is rejected with a plain message. With no provider or a spent daily cap, the screen says so and points to the normal lists.
 
+### 5.3 Models and fallback
+
+The chat assistant (Termy) uses these models, in this order. The picker lists only models whose provider key is set, and the first listed is the default. If a call fails, the remaining keyed models are tried in the same order.
+
+| Order | Model |
+|---|---|
+| 1 | GPT-OSS 120B (Groq; default when `GROQ_API_KEY` is set) |
+| 2 | Gemini 3.6 Flash |
+| 3 | GPT-OSS 20B (Groq) |
+| 4 | Gemini 3.5 Flash |
+| 5 | Gemini 3.5 Flash Lite |
+| 6 | Gemma 4 26B |
+
+The at-risk reason wording job uses one model. It is the preferred provider set by `LLM_PROVIDER`: Google (default) gives Gemini 3.6 Flash, and Groq gives GPT-OSS 120B. If that provider's key is missing, the other keyed provider is used. With no keys, the rule's own wording is kept and marked as such. All LLM calls count against the daily cap `LLM_DAILY_CAP` (default 200).
+
 ## 6. UI and design decisions
+
+**Takeaway: one repeated screen pattern, a phone-first attendance sheet and a restrained palette where colour means status.**
 
 The brief asks for calm, minimal screens used all day, one layout pattern across modules and attendance in under 30 seconds per class.
 
@@ -262,6 +336,8 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 - **Phone first on new screens.** Every new screen works at 375 px wide with no horizontal page scroll. Lists switch to a card row on phones, form grids stack to one column, and button rows wrap. Only the table itself scrolls sideways, inside its own box.
 
 ## 7. Testing and security
+
+**Takeaway: rules are covered by unit tests, whole flows by phone-viewport end-to-end tests, and access is enforced on the server, not hidden in the UI.**
 
 - **Unit tests (Vitest)** cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts and per-role view lists, the assistant views' role scoping against a seeded database, Tally XML, the attendance planner, the marks scheme and final score, appeal rules, and amount in words with the receipt hash. Newer unit tests cover the capability map (`CAPS`), head of department scope, the active campus cookie, the fee structure and scholarship spread, promotion and the accreditation rules.
 - **End-to-end tests (Playwright, phone viewport)** cover offline marking then sync, the conflict queue, the shared-phone rejection, the marks lock and audited reopen, campus and role limits, fee payments and reminders, the at-risk run, the assistant with no provider, College setup edits, attendance correction, and the student and parent portal (role pages, child switch, leave from student to parent to mentor, appeals raised and decided). Newer specs cover the trust area (overview, drill-down, staff roles kept out), results on lock and reopen, reports (switching, CSV headers, refused requests), Odia messages (templates and a guardian's inbox) and the mark sheet (student, parent, verify page and a tampered hash). Later specs cover access by role and campus, office roles and their modules, the campus switcher, the head of department's department, batch promotion and graduation (with alumni read-only), and fee structure and scholarships.
@@ -282,6 +358,8 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 
 ## 8. What was cut, and what comes next
 
+**Takeaway: external integrations (SMS, payments, real PDFs) were cut; storage and results-day scale come next.**
+
 **Cut from this phase:** real SMS or WhatsApp, a real payment gateway, electives and class sections, timetable generation, and real PDF files (the mark sheet and receipts use the browser's print to PDF). Two smaller limits: the mark sheet hash changes if `BETTER_AUTH_SECRET` changes, and the load test reuses one session for every simulated student.
 
 **Next, in order:**
@@ -293,6 +371,8 @@ The brief asks for calm, minimal screens used all day, one layout pattern across
 5. Rollout: one programme per campus first, then each campus, training one teacher per department as the first line of support.
 
 ## 9. Assumptions
+
+**Takeaway: 48 choices the brief leaves open, each flagged [A] where it is used.**
 
 Each is a choice the brief does not settle.
 
