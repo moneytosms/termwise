@@ -159,7 +159,7 @@ describe("sfrRows", () => {
       { programme: "BPH", students: 40, faculty: 2, ratio: "1:20.0", norm: "1:20", status: "OK" },
       { programme: "CSE", students: 41, faculty: 2, ratio: "1:20.5", norm: "1:20", status: "Below norm" },
       { programme: "MBA", students: 1, faculty: 0, ratio: "—", norm: "1:20", status: "Below norm" },
-      { programme: "ME", students: 3, faculty: 1, ratio: "1:3.0", norm: "1:20", status: "OK" },
+      { programme: "ME", students: 3, faculty: 2, ratio: "1:1.5", norm: "1:20", status: "OK" },
     ]);
   });
 });
@@ -180,7 +180,7 @@ describe("cadreRows", () => {
     expect(rows).toEqual([
       { department: "CSE", professors: 1, associates: 2, assistants: 7, ratio: "1:2:7", norm: "1:2:6", status: "OK" },
       { department: "EEE", professors: 1, associates: 1, assistants: 6, ratio: "1:1:6", norm: "1:2:6", status: "Below norm" },
-      { department: "ME", professors: 0, associates: 0, assistants: 6, ratio: "0:0:6", norm: "1:2:6", status: "Below norm" },
+      { department: "ME", professors: 1, associates: 0, assistants: 6, ratio: "1:0:6", norm: "1:2:6", status: "Below norm" },
     ]);
   });
 });

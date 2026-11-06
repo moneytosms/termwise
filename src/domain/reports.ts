@@ -1,7 +1,7 @@
 import { isShortage } from "./attendance";
 import { categoryLabel, genderLabel } from "./applicants";
 import { dues, type Instalment } from "./fees";
-import type { Capability } from "./roles";
+import { isTeacher, type Capability } from "./roles";
 import { finalScore, type MarksStatus, type Scheme, type Section } from "./marks";
 
 export type Row = Record<string, string | number | null>;
@@ -194,7 +194,7 @@ export type FacultyStaff = { department: string | null; name: string; role: stri
 /** Faculty and HODs by department, name. Missing designation or qualification reads "Not recorded". */
 export function aicteFacultyRows(staff: FacultyStaff[]): Row[] {
   return staff
-    .filter((s) => s.role === "faculty" || s.role === "hod")
+    .filter((s) => isTeacher(s.role))
     .sort((a, b) => (a.department ?? "").localeCompare(b.department ?? "") || a.name.localeCompare(b.name))
     .map((s) => ({
       department: s.department, name: s.name,
@@ -214,7 +214,7 @@ export function sfrRows(programmes: SfrProgramme[], students: { programme: strin
     .sort((a, b) => a.code.localeCompare(b.code))
     .map((p) => {
       const count = studentCount.get(p.code) ?? 0;
-      const faculty = p.departmentId === null ? 0 : staff.filter((s) => s.role === "faculty" && s.departmentId === p.departmentId).length;
+      const faculty = p.departmentId === null ? 0 : staff.filter((s) => isTeacher(s.role) && s.departmentId === p.departmentId).length;
       const low = faculty === 0 || count / faculty > 20;
       return {
         programme: p.code, students: count, faculty,
@@ -229,7 +229,7 @@ export function cadreRows(departments: { id: number; name: string }[], staff: Te
   return [...departments]
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((d) => {
-      const mine = staff.filter((s) => s.role === "faculty" && s.departmentId === d.id);
+      const mine = staff.filter((s) => isTeacher(s.role) && s.departmentId === d.id);
       const count = (designation: string) => mine.filter((s) => s.designation === designation).length;
       const professors = count("professor");
       const associates = count("associate_professor");
@@ -279,7 +279,7 @@ export function enrolmentRows(batches: { programme: string; sanctioned: number; 
 
 /** One campus row: students not yet alumni against full-time teachers (faculty and HODs). */
 export function studentTeacherRows(students: number, staff: TeachingStaff[]): Row[] {
-  const teachers = staff.filter((s) => s.role === "faculty" || s.role === "hod").length;
+  const teachers = staff.filter((s) => isTeacher(s.role)).length;
   return [{ students, teachers, ratio: teachers ? `${(students / teachers).toFixed(1)}:1` : null }];
 }
 
@@ -288,7 +288,7 @@ export function departmentPostRows(departments: { id: number; name: string; sanc
   return [...departments]
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((d) => {
-      const teachers = staff.filter((s) => (s.role === "faculty" || s.role === "hod") && s.departmentId === d.id).length;
+      const teachers = staff.filter((s) => isTeacher(s.role) && s.departmentId === d.id).length;
       return { department: d.name, teachers, posts: d.sanctionedPosts, percent: share(teachers, d.sanctionedPosts) };
     });
 }

@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../src/server/db";
 import * as t from "../src/server/schema";
 
-// Idempotent backfill for accreditation. Demo programmes get their sanctioned intake while still at the default, and faculty with no designation or qualification get one by id.
+// Idempotent backfill for accreditation. Demo programmes get their sanctioned intake while still at the default, and faculty and HODs with no designation or qualification get one by id (HODs are professors with a Ph.D.).
 const INTAKE: Record<string, number> = { CSE: 120, ME: 60, MBA: 60, BPH: 60 };
 type Designation = "professor" | "associate_professor" | "assistant_professor";
 
@@ -30,12 +30,13 @@ export async function seedAccreditation(password: string) {
 
   const campuses = await db.select({ id: t.campus.id, code: t.campus.code }).from(t.campus);
   for (const c of campuses) {
-    const faculty = await db.select({ id: t.staff.id, designation: t.staff.designation, qualification: t.staff.qualification }).from(t.staff)
-      .where(and(eq(t.staff.campusId, c.id), eq(t.staff.role, "faculty")));
-    for (const s of faculty) {
+    const teachers = await db.select({ id: t.staff.id, role: t.staff.role, designation: t.staff.designation, qualification: t.staff.qualification }).from(t.staff)
+      .where(and(eq(t.staff.campusId, c.id), inArray(t.staff.role, ["faculty", "hod"])));
+    for (const s of teachers) {
+      const hod = s.role === "hod";
       const patch: { designation?: Designation; qualification?: string } = {};
-      if (s.designation === null) patch.designation = designationFor(s.id);
-      if (s.qualification === null) patch.qualification = qualificationFor(s.id, c.code);
+      if (s.designation === null) patch.designation = hod ? "professor" : designationFor(s.id);
+      if (s.qualification === null) patch.qualification = hod ? "Ph.D." : qualificationFor(s.id, c.code);
       if (Object.keys(patch).length) await db.update(t.staff).set(patch).where(eq(t.staff.id, s.id));
     }
   }
