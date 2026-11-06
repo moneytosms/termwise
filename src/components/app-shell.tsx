@@ -42,11 +42,11 @@ const ADMIN: Group[] = [
     { href: "/fees", label: "Fees", icon: IndianRupee, cap: "fees" },
   ] },
   { label: "Follow-up", items: [
+    { href: "/assistant", label: "Termy", icon: TermyIcon },
     { href: "/risk", label: "At-risk flags", icon: ShieldAlert, short: "Risk", cap: ["risk", "risk_view"] },
     { href: "/messages", label: "Messages", icon: MessageSquare, cap: "messages" },
     { href: "/requests", label: "Requests", icon: Inbox, cap: ["office_requests", "appeals"] },
     { href: "/leave", label: "Staff leave", icon: CalendarOff, short: "Leave", cap: ["staff_leave", "dept_leave"] },
-    { href: "/assistant", label: "Termy", icon: TermyIcon },
   ] },
   { label: "Office", items: [
     { href: "/setup", label: "College setup", icon: Settings2, short: "Setup", cap: ["setup", "setup_faculty", "fees"] },
@@ -101,6 +101,8 @@ async function signOut() {
   try { sessionStorage.removeItem(LANDED); } catch { /* storage blocked */ }
   await clearOfflineData();
   await client.signOut();
+  // Full reload on purpose: drops all client state after sign-out.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = "/sign-in";
 }
 

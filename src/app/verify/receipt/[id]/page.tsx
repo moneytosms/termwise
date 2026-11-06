@@ -42,6 +42,7 @@ export default async function VerifyReceiptPage({ params, searchParams }: {
   return (
     <main className="mx-auto max-w-md px-4 py-12">
       <article className="grid gap-6 rounded-md border bg-card p-6">
+        {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nothing for next/image to optimise */}
         {valid && r.campus.logoDataUrl && <img src={r.campus.logoDataUrl} alt="" className="mx-auto h-16 object-contain" />}
         {valid ? (
           <>

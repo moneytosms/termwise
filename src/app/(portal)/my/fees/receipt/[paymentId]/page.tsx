@@ -63,6 +63,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ paymen
       </div>
       <article className="receipt mx-auto flex w-full max-w-[210mm] flex-col gap-6 border bg-card p-6 print:border-0 print:p-0">
         <header className="flex gap-4 border-b pb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nothing for next/image to optimise */}
           {c.logoDataUrl && <img src={c.logoDataUrl} alt="" className="size-20 shrink-0 object-contain" />}
           <div className="min-w-0 flex-1 space-y-0.5 text-sm">
             <p className="text-lg font-semibold">{c.legalName ?? c.name}</p>

@@ -43,6 +43,8 @@ export default function SignInPage() {
       setBusy(false);
       return;
     }
+    // Full reload on purpose: picks up the new session cookie everywhere.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/home";
   }
 

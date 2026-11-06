@@ -55,6 +55,7 @@ export function CollegeTab({ campus }: { campus: College }) {
         <SectionHeading title="Logo" />
         <div className="flex flex-wrap items-center gap-4">
           <div className="grid size-24 place-items-center rounded-md border bg-card p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nothing for next/image to optimise */}
             {logo ? <img src={logo} alt="College logo preview" className="max-h-full max-w-full object-contain" /> : <span className="text-xs text-muted-foreground">No logo</span>}
           </div>
           <div className="flex gap-2">

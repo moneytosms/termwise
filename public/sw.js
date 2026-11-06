@@ -60,7 +60,7 @@ async function flushFromWorker() {
     if (!queued.length) return;
     const res = await fetch("/api/sync", {
       method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ clientNow: new Date().toISOString(), items: queued.slice(0, 100).map(({ key, state, error, ...item }) => item) }),
+      body: JSON.stringify({ clientNow: new Date().toISOString(), items: queued.slice(0, 100).map(({ key, state, error, ...item }) => item) }), // eslint-disable-line @typescript-eslint/no-unused-vars -- rest-omit of local-only fields
     });
     if (res.status === 401) return; // stays queued until sign-in
     if (!res.ok) throw new Error("retry");

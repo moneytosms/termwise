@@ -21,6 +21,7 @@ export default async function VerifyMarkSheetPage({ params, searchParams }: {
   return (
     <main className="mx-auto max-w-md px-4 py-12">
       <article className="grid gap-6 rounded-md border bg-card p-6">
+        {/* eslint-disable-next-line @next/next/no-img-element -- data URL, nothing for next/image to optimise */}
         {valid && sheet.campus.logoDataUrl && <img src={sheet.campus.logoDataUrl} alt="" className="mx-auto h-16 object-contain" />}
         {valid ? (
           <>

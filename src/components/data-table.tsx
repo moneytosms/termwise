@@ -72,6 +72,8 @@ export function DataTable<T>({ data, columns, searchPlaceholder = "Search", filt
     cell: ({ row }) => <span onClick={(e) => e.stopPropagation()}><Checkbox aria-label="Select row" checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)} /></span>,
   }, ...columns] : columns, [columns, bulkActions]);
 
+  // TanStack Table is not memoizable by React Compiler; skipping it here is fine.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filtered, columns: allColumns,
     state: { globalFilter: search, sorting, columnVisibility: visibility, rowSelection: selection },
