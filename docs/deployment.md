@@ -89,15 +89,43 @@ Names only. `env.example` holds local-only defaults.
 
 Password for every account: `termwise-demo`. All data is synthetic.
 
-| Email | Role | Campus |
-| --- | --- | --- |
-| `cse.faculty@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
-| `cse.faculty2@termwise.demo` | Faculty, B.Tech CSE | Engineering College |
-| `me.faculty@termwise.demo` | Faculty, B.Tech Mechanical | Engineering College |
-| `eng.admin@termwise.demo` | Office admin | Engineering College |
-| `mgt.admin@termwise.demo` | Office admin | Management School |
-| `mba.faculty@termwise.demo` | Faculty, MBA | Management School |
-| `trust@termwise.demo` | Trust secretary (all campuses, read-only) | All campuses |
+| Email | Name | Role | Campus |
+| --- | --- | --- | --- |
+| `eng.admin@termwise.demo` | Sunita Rath | Office admin | Engineering College |
+| `cse.faculty@termwise.demo` | Bibhu Prasad Sahoo | Faculty | Engineering College |
+| `cse.faculty2@termwise.demo` | Madhusmita Nayak | Faculty | Engineering College |
+| `me.faculty@termwise.demo` | Ranjan Kumar Jena | Faculty | Engineering College |
+| `subhashree.mohanty@termwise.demo` | Subhashree Mohanty | Student | Engineering College |
+| `prakash.mohanty@termwise.demo` | Prakash Mohanty | Parent | Engineering College |
+| `ankit.panda@termwise.demo` | Ankit Panda | Student | Engineering College |
+| `sarat.panda@termwise.demo` | Sarat Panda | Parent | Engineering College |
+| `pallavi.jena@termwise.demo` | Pallavi Jena | Parent | Engineering College |
+| `mgt.admin@termwise.demo` | Lopamudra Das | Office admin | Management School |
+| `mba.faculty@termwise.demo` | Sandeep Mishra | Faculty | Management School |
+| `farheen.ali@termwise.demo` | Farheen Ali | Student | Management School |
+| `imran.ali@termwise.demo` | Imran Ali | Parent | Management School |
+| `phr.admin@termwise.demo` | Sasmita Behera | Office admin | Pharmacy College |
+| `phr.faculty@termwise.demo` | Debasis Mohapatra | Faculty | Pharmacy College |
+| `phr.faculty2@termwise.demo` | Itishree Swain | Faculty | Pharmacy College |
+| `visiting.faculty@termwise.demo` | Prakash Chandra Rout | Visiting faculty | Engineering + Management |
+| `dual.role@termwise.demo` | Anjali Mohanty | Faculty + office admin | Engineering + Pharmacy |
+| `eng.admissions@termwise.demo` | Smita Pattnaik | Admissions | Engineering College |
+| `eng.exams@termwise.demo` | Nirakar Behera | Exams | Engineering College |
+| `eng.accounts@termwise.demo` | Jyotirmayee Sahu | Accounts | Engineering College |
+| `eng.hr@termwise.demo` | Bikash Chandra Dash | HR | Engineering College |
+| `mgt.admissions@termwise.demo` | Gitanjali Mohapatra | Admissions | Management School |
+| `mgt.exams@termwise.demo` | Rabindra Nath Satpathy | Exams | Management School |
+| `mgt.accounts@termwise.demo` | Manasi Routray | Accounts | Management School |
+| `mgt.hr@termwise.demo` | Tapan Kumar Swain | HR | Management School |
+| `phr.admissions@termwise.demo` | Pratyusha Nanda | Admissions | Pharmacy College |
+| `phr.exams@termwise.demo` | Santosh Kumar Barik | Exams | Pharmacy College |
+| `phr.accounts@termwise.demo` | Sumitra Pradhan | Accounts | Pharmacy College |
+| `phr.hr@termwise.demo` | Alok Ranjan Mahapatra | HR | Pharmacy College |
+| `cse.hod@termwise.demo` | Dr. Soumya Ranjan Panigrahi | Head of department | Engineering College |
+| `me.hod@termwise.demo` | Dr. Bhabani Shankar Nayak | Head of department | Engineering College |
+| `mba.hod@termwise.demo` | Dr. Smita Rani Pattnaik | Head of department | Management School |
+| `phr.hod@termwise.demo` | Dr. Ashok Kumar Sahu | Head of department | Pharmacy College |
+| `trust@termwise.demo` | Bijay Mishra | Trust | All campuses |
 
 Every student and guardian has a login too, `firstname.lastname@termwise.demo` (a number is added when a name is taken), for example `ankit.panda@termwise.demo` for the student and `sarat.panda@termwise.demo` for the parent. The guardian `pallavi.jena@termwise.demo` (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.
 
