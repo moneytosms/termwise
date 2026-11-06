@@ -71,3 +71,27 @@ _Avoid_: Campus details, letterhead
 **Verification hash**:
 An HMAC over a receipt's fixed fields, printed with the receipt and encoded in its QR code. The public verify page recomputes it to confirm the receipt is genuine.
 _Avoid_: Checksum, signature
+
+**Head of department**:
+A staff role that sees and acts only on students, attendance, marks, risk and leave within its own department.
+_Avoid_: HOD, dean, chair
+
+**Office role**:
+A staff role on a campus, such as admissions, exams, accounts or HR, that grants a fixed set of capabilities for that campus only.
+_Avoid_: Permission, access level
+
+**Fee structure**:
+The amount charged per programme and category for a semester, the basis for instalments and scholarship awards.
+_Avoid_: Fee plan, tariff
+
+**Scholarship scheme**:
+A named discount that an office admin awards to a student for a semester, reducing that semester's fee.
+_Avoid_: Concession, waiver
+
+**Alumni**:
+A student whose programme is complete; their record is kept and is read-only.
+_Avoid_: Ex-student, graduate account
+
+**Active campus**:
+The campus a signed-in user is currently working in, chosen with the campus switcher when the user has access to more than one.
+_Avoid_: Current college, workspace
