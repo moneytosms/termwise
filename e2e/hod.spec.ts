@@ -36,6 +36,7 @@ test("a CSE head of department sees only CSE students, and another department's 
 });
 
 test("a faculty leave request reaches the CSE head, not Mechanical's, and the decision is audited", async ({ browser }) => {
+  test.skip(test.info().project.name === "desktop", "mutates seed data; covered on phone");
   const facultyCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const faculty = await facultyCtx.newPage();
   await signIn(faculty, "cse.faculty@termwise.demo");
