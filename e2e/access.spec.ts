@@ -28,6 +28,26 @@ test("the brief's sample figures appear exactly", async ({ page }) => {
   await expect(row).toContainText("₹45,000");
 });
 
+test("the CSE sample figures appear exactly", async ({ page }) => {
+  await signIn(page, "eng.admin@termwise.demo");
+  await page.goto("/students");
+  await page.getByLabel("Search name or roll number").fill("ENG-24-CSE-0412");
+  const row = page.getByRole("row", { name: /Subhashree Mohanty/ });
+  await expect(row).toContainText("81.5%");
+  await expect(row).toContainText("33");
+  await expect(row).toContainText("₹0");
+});
+
+test("the MBA sample figures appear exactly", async ({ page }) => {
+  await signIn(page, "mgt.admin@termwise.demo");
+  await page.goto("/students");
+  await page.getByLabel("Search name or roll number").fill("MBA-25-0093");
+  const row = page.getByRole("row", { name: /Farheen Ali/ });
+  await expect(row).toContainText("92.0%");
+  await expect(row).toContainText("36");
+  await expect(row).toContainText("₹0");
+});
+
 test("office admin screens all load without errors", async ({ page }) => {
   await signIn(page, "eng.admin@termwise.demo");
   for (const [path, heading] of [
