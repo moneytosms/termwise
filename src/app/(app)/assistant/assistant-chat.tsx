@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SelectField } from "@/components/select-field";
 import { Termy, type TermyPose } from "@/components/termy";
+import { can, canAny, isStaffRole, type Capability } from "@/domain/roles";
 import { cn } from "@/lib/utils";
 import type { AssistantAnswer } from "@/server/assistant/ask";
 
@@ -79,6 +80,16 @@ const MAX_CHATS = 20;
 const FIGURE = /^[-+]?[\d,.]+%?$/;
 const cell = (v: unknown) => (v === null || v === undefined ? "–" : typeof v === "object" ? JSON.stringify(v) : String(v));
 const newId = () => Math.random().toString(36).slice(2, 10);
+// Capabilities whose data Termy can query. A staff role holding none of them (HR today) has nothing to ask about.
+const QUERY_CAPS: Capability[] = ["teach", "campus_students", "dept_students", "attendance", "attendance_view", "marks_view", "moderate_marks", "reports", "appeals", "fees", "fee_reports", "risk", "risk_view"];
+const noQuery = (role: keyof typeof EXAMPLES) => isStaffRole(role) && !canAny(role, QUERY_CAPS);
+function scopeNote(role: keyof typeof EXAMPLES): string {
+  if (role === "student") return "Only your own records";
+  if (isStaffRole(role) && can(role, "teach")) return "Only the subjects you teach";
+  if (isStaffRole(role) && can(role, "dept_students")) return "Only your department";
+  if (noQuery(role)) return "Nothing to query for HR yet";
+  return "Your whole campus";
+}
 
 function load<T>(key: string, fallback: T): T {
   try { return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback; } catch { return fallback; }
@@ -207,7 +218,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: keyof t
         <div className="min-w-0 flex-1">
           <h1 className="font-semibold leading-tight">Termy</h1>
           <p className="truncate text-xs text-muted-foreground">
-            {role === "faculty" ? "Only the subjects you teach" : role === "student" ? "Only your own records" : role === "hr" ? "Nothing to query for HR yet" : role === "hod" ? "Only your department" : "Your whole campus"} · reads data, never changes it
+            {scopeNote(role)} · reads data, never changes it
           </p>
         </div>
         <Popover>
@@ -222,7 +233,7 @@ export function AssistantChat({ role, userId, models, initial }: { role: keyof t
           <div className="mx-auto flex max-w-xl flex-col items-center pt-6 text-center md:pt-12">
             <Termy className="size-24 md:size-28" />
             <p className="mt-3 text-xl font-semibold">Hi, I&apos;m Termy.</p>
-            <p className="mt-1 text-sm text-muted-foreground">{role === "student" ? "Ask about your attendance, marks and fees" : role === "hr" ? "Termy has no data views for HR" : <>Ask about {ASKS[role as Exclude<typeof role, "student" | "hr">]}</>} in plain words. I show the filters and query I used, so you can check them.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{role === "student" ? "Ask about your attendance, marks and fees" : noQuery(role) ? "Termy has no data views for HR" : <>Ask about {ASKS[role as Exclude<typeof role, "student" | "hr">]}</>} in plain words. I show the filters and query I used, so you can check them.</p>
             <div className="mt-6 grid w-full gap-2 sm:grid-cols-2">
               {EXAMPLES[role].map((ex) => (
                 <button key={ex} type="button" disabled={busy} onClick={() => void ask(ex)}
