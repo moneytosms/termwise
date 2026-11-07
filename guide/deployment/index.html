@@ -1,0 +1,382 @@
+<!DOCTYPE html><html lang="en" data-astro-cid-hkbrpulz> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Deployment, Termwise guide</title><meta name="description" content="Termwise documentation: Deployment."><link rel="canonical" href="https://moneytosms.github.io/termwise/guide/deployment/"><link rel="icon" href="/termwise/favicon.svg" type="image/svg+xml"><meta property="og:title" content="Deployment, Termwise guide"><meta property="og:description" content="Termwise documentation: Deployment."><meta property="og:type" content="website"><meta property="og:url" content="https://moneytosms.github.io/termwise/guide/deployment/"><meta property="og:image" content="https://moneytosms.github.io/termwise/og.png"><meta name="twitter:card" content="summary_large_image"><script>
+      // Apply a saved theme before first paint. No saved choice: follow the OS.
+      try {
+        const t = localStorage.getItem("site-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch {}
+      document.documentElement.classList.add("js");
+    </script><link rel="stylesheet" href="/termwise/_astro/_..CMJe1L9s.css"></head> <body data-astro-cid-hkbrpulz> <a class="skip-link" href="#main" data-astro-cid-hkbrpulz>Skip to content</a> <header class="site-header" data-astro-cid-hkbrpulz> <div class="site-header__inner" data-astro-cid-hkbrpulz> <a class="brand" href="/termwise/" aria-label="Termwise home" data-astro-cid-hkbrpulz> <svg class="brand__mark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" data-astro-cid-hkbrpulz> <path d="M2 2h12M8 2v12M2 14h12" fill="none" stroke="currentColor" stroke-width="1.25" data-astro-cid-hkbrpulz></path> <path d="M5 6h6M5 9.5h6" fill="none" stroke="currentColor" stroke-width="1" data-astro-cid-hkbrpulz></path> </svg> <span data-astro-cid-hkbrpulz>Termwise</span> </a> <nav aria-label="Primary" class="site-nav" data-astro-cid-hkbrpulz> <a class="nav-home" href="/termwise/" data-astro-cid-hkbrpulz>overview</a> <a href="/termwise/guide/" aria-current="page" data-astro-cid-hkbrpulz>guide</a> <a href="https://github.com/moneytosms/termwise" rel="noopener" data-astro-cid-hkbrpulz>source</a> <button class="theme-toggle" type="button" aria-label="Switch colour theme" data-theme-toggle data-astro-cid-hkbrpulz> <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" data-astro-cid-hkbrpulz><circle cx="12" cy="12" r="4" data-astro-cid-hkbrpulz></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" data-astro-cid-hkbrpulz></path></svg> <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-hkbrpulz><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" data-astro-cid-hkbrpulz></path></svg> </button> </nav> </div> </header> <main id="main" tabindex="-1" data-astro-cid-hkbrpulz>  <link rel="stylesheet" href="/termwise/pagefind/pagefind-ui.css"> <div class="guide" data-astro-cid-egoltos3> <aside class="guide__nav" aria-label="Guide sections" data-astro-cid-egoltos3> <div id="search" class="guide__search" data-astro-cid-egoltos3></div> <noscript><p data-astro-cid-egoltos3>Search needs JavaScript. All documents are available below.</p></noscript> <details class="guide__menu" open data-astro-cid-egoltos3> <summary data-astro-cid-egoltos3>All documents</summary> <div class="group" data-astro-cid-egoltos3> <p class="group__name" data-astro-cid-egoltos3>Start here</p> <ul data-astro-cid-egoltos3> <li data-astro-cid-egoltos3><a href="/termwise/guide/deployment" aria-current="page" data-astro-cid-egoltos3>Deployment</a></li><li data-astro-cid-egoltos3><a href="/termwise/guide/readme" data-astro-cid-egoltos3>Termwise</a></li><li data-astro-cid-egoltos3><a href="/termwise/guide/tdd" data-astro-cid-egoltos3>Termwise: Technical Design Document</a></li> </ul> </div> </details> </aside> <article class="prose" data-pagefind-body data-astro-cid-egoltos3> <h1 id="deployment">Deployment</h1>
+<p>Repository: <a href="https://github.com/moneytosms/termwise">https://github.com/moneytosms/termwise</a></p>
+<p>You can rebuild everything locally with the steps below, or open the live deployment at <a href="https://termwise-s1vj.onrender.com">https://termwise-s1vj.onrender.com</a> (same demo logins).</p>
+<h2 id="1-prerequisites">1. Prerequisites</h2>
+<ol>
+<li>Node 24 or later (CI uses 24, the Dockerfile uses 26). <code>package.json</code> has no <code>engines</code> field.</li>
+<li>pnpm 12.15.0 (<code>packageManager</code> in <code>package.json</code>).</li>
+<li>Docker with the compose plugin, and git.</li>
+</ol>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">node</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                      # v24 or later</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> pnpm@12.15.0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -v</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                      # 12.15.0</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> version</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">git</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> --version</span></span></code></pre>
+<h2 id="2-run-locally">2. Run locally</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">git</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> clone</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> https://github.com/moneytosms/termwise</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF">cd</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> termwise</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> install</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">cp</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> env.example</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> .env.local</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">        # local-only values, no real secrets</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF">set</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -a</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">; </span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF">.</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> ./env.example</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">; </span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF">set</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> +a</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">  # tsx scripts do not read .env.local, so export the same values</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> up</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -d</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">          # Postgres 18 on localhost:54329</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> ps</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">             # wait until STATUS shows (healthy)</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db:migrate</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                  # tables, assistant views, read-only role termwise_assistant</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db:seed</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                     # synthetic data and demo logins</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> dev</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                         # then open http://localhost:3000</span></span></code></pre>
+<p>Open <a href="http://localhost:3000">http://localhost:3000</a> and sign in with a login from section 4.</p>
+<p>Assistant role: no manual setup. <code>db:migrate</code> runs <code>sql/assistant.sql</code> (creates the read-only role and views) and sets the role’s password from <code>ASSISTANT_DATABASE_URL</code>. <code>env.example</code> already points at <code>termwise_assistant</code> on the same database.</p>
+<p>Env var names (values for local runs come from <code>env.example</code>; never commit real secrets):</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Required</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>yes</td>
+<td>App database (set in <code>env.example</code>)</td>
+</tr>
+<tr>
+<td><code>ASSISTANT_DATABASE_URL</code></td>
+<td>yes</td>
+<td>Read-only role the assistant runs as: same database, user <code>termwise_assistant</code>. Migration sets the role’s password from it</td>
+</tr>
+<tr>
+<td><code>BETTER_AUTH_SECRET</code></td>
+<td>yes</td>
+<td>Signs sessions and receipt hashes. Changing it breaks verification of issued receipts</td>
+</tr>
+<tr>
+<td><code>BETTER_AUTH_URL</code></td>
+<td>yes</td>
+<td>Public URL of the app as the browser sees it (<code>http://localhost:3000</code> locally)</td>
+</tr>
+<tr>
+<td><code>CRON_SECRET</code></td>
+<td>for the daily job</td>
+<td>Bearer secret for <code>/api/cron/daily</code> (blank in <code>env.example</code>)</td>
+</tr>
+<tr>
+<td><code>GOOGLE_GENERATIVE_AI_API_KEY</code></td>
+<td>optional (one LLM key is enough)</td>
+<td>Gemini key (blank in <code>env.example</code>)</td>
+</tr>
+<tr>
+<td><code>GROQ_API_KEY</code></td>
+<td>optional (one LLM key is enough)</td>
+<td>Groq key (blank in <code>env.example</code>)</td>
+</tr>
+<tr>
+<td><code>LLM_PROVIDER</code></td>
+<td>optional</td>
+<td>Preferred provider, <code>groq</code> or <code>google</code>. If its key is missing, the other keyed provider is used</td>
+</tr>
+<tr>
+<td><code>LLM_DAILY_CAP</code></td>
+<td>optional</td>
+<td>Max LLM calls per day</td>
+</tr>
+</tbody>
+</table>
+<p>Without an LLM key the app runs; only the plain-English assistant and AI-worded risk reasons are unavailable. The assistant says no provider is configured and risk reasons use the rule’s own wording.</p>
+<p>Health check: <code>/api/health</code> returns 200 only when the app database answers and every required var is set, otherwise 503. The body lists each var as a boolean (never values), plus <code>db</code>, <code>assistantDb</code>, <code>llm</code> and <code>missing</code>.</p>
+<p>Daily job (optional): in GitHub repository settings add secrets <code>APP_URL</code> (public URL) and <code>CRON_SECRET</code> (the same value as above). The <code>Daily job</code> workflow calls <code>POST /api/cron/daily</code> at 06:00 IST and can be run by hand from the Actions tab.</p>
+<p>Start over with fresh sample data (wipes the volume):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> down</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -v</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> up</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> -d</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> ps</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">             # wait for (healthy)</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db:migrate</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> &#x26;&#x26; </span><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> db:seed</span></span></code></pre>
+<p>Or run the whole stack in containers (migrates and seeds on start, app on <a href="http://localhost:3000">http://localhost:3000</a>):</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">docker</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> compose</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> up</span><span style="--shiki-light:#005CC5;--shiki-dark:#6CB6FF"> --build</span></span></code></pre>
+<h2 id="3-verify">3. Verify</h2>
+<p>Run in the shell where the env was exported (section 2), on a freshly seeded database.</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> lint</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> typecheck</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                              # tsc --noEmit</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> test</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                                   # vitest run (unit tests)</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> build</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> exec</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> playwright</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> chromium</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">       # add --with-deps on a bare Linux machine</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">E2E</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">1</span><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50"> pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> e2e</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">                              # desktop specs, then phone specs, against pnpm start -p 3100</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> tsx</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> scripts/confirm-race.mts</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">           # concurrent admissions get consecutive roll numbers; a repeat confirm is refused</span></span></code></pre>
+<p>Expected: each command exits 0; vitest and Playwright report all tests passed (counts are in <code>docs/tdd.md</code>). The e2e specs and <code>confirm-race.mts</code> change seeded data (admissions, attendance), so reset the database (section 2) before re-running or demoing.</p>
+<p>Load test (7,800 students reading results at once). Start the server with <code>E2E=1</code> so the sign-in rate limiter is off, then in a second terminal:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">E2E</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">1</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> BETTER_AUTH_URL</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">http://localhost:3000</span><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50"> pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> start</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">     # terminal 1</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">BASE</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">http://localhost:3000</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> EMAIL</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">ankit.panda@termwise.demo</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> N</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">7800</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> C</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">=</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">200</span><span style="--shiki-light:#6F42C1;--shiki-dark:#F69D50"> pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> tsx</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> scripts/load-results.mts</span><span style="--shiki-light:#6A737D;--shiki-dark:#768390">   # terminal 2</span></span></code></pre>
+<p><code>BASE</code>, <code>EMAIL</code>, <code>N</code>, <code>C</code> are optional script inputs (defaults shown), not app settings.</p>
+<p>CI (<code>.github/workflows/ci.yml</code>) runs the same steps against Postgres 18 on every push to <code>main</code> and on pull requests.</p>
+<h2 id="4-demo-logins">4. Demo logins</h2>
+<p>Password for every account: <code>termwise-demo</code>. All data is synthetic.</p>
+<table>
+<thead>
+<tr>
+<th>Email</th>
+<th>Name</th>
+<th>Role</th>
+<th>Campus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>eng.admin@termwise.demo</code></td>
+<td>Sunita Rath</td>
+<td>Office admin</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>cse.faculty@termwise.demo</code></td>
+<td>Bibhu Prasad Sahoo</td>
+<td>Faculty</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>cse.faculty2@termwise.demo</code></td>
+<td>Madhusmita Nayak</td>
+<td>Faculty</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>me.faculty@termwise.demo</code></td>
+<td>Ranjan Kumar Jena</td>
+<td>Faculty</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>subhashree.mohanty@termwise.demo</code></td>
+<td>Subhashree Mohanty</td>
+<td>Student</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>prakash.mohanty@termwise.demo</code></td>
+<td>Prakash Mohanty</td>
+<td>Parent</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>ankit.panda@termwise.demo</code></td>
+<td>Ankit Panda</td>
+<td>Student</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>sarat.panda@termwise.demo</code></td>
+<td>Sarat Panda</td>
+<td>Parent</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>pallavi.jena@termwise.demo</code></td>
+<td>Pallavi Jena</td>
+<td>Parent</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>mgt.admin@termwise.demo</code></td>
+<td>Lopamudra Das</td>
+<td>Office admin</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>mba.faculty@termwise.demo</code></td>
+<td>Sandeep Mishra</td>
+<td>Faculty</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>farheen.ali@termwise.demo</code></td>
+<td>Farheen Ali</td>
+<td>Student</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>imran.ali@termwise.demo</code></td>
+<td>Imran Ali</td>
+<td>Parent</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>phr.admin@termwise.demo</code></td>
+<td>Sasmita Behera</td>
+<td>Office admin</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>phr.faculty@termwise.demo</code></td>
+<td>Debasis Mohapatra</td>
+<td>Faculty</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>phr.faculty2@termwise.demo</code></td>
+<td>Itishree Swain</td>
+<td>Faculty</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>visiting.faculty@termwise.demo</code></td>
+<td>Prakash Chandra Rout</td>
+<td>Visiting faculty</td>
+<td>Engineering + Management</td>
+</tr>
+<tr>
+<td><code>dual.role@termwise.demo</code></td>
+<td>Anjali Mohanty</td>
+<td>Faculty + office admin</td>
+<td>Engineering + Pharmacy</td>
+</tr>
+<tr>
+<td><code>eng.admissions@termwise.demo</code></td>
+<td>Smita Pattnaik</td>
+<td>Admissions</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>eng.exams@termwise.demo</code></td>
+<td>Nirakar Behera</td>
+<td>Exams</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>eng.accounts@termwise.demo</code></td>
+<td>Jyotirmayee Sahu</td>
+<td>Accounts</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>eng.hr@termwise.demo</code></td>
+<td>Bikash Chandra Dash</td>
+<td>HR</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>mgt.admissions@termwise.demo</code></td>
+<td>Gitanjali Mohapatra</td>
+<td>Admissions</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>mgt.exams@termwise.demo</code></td>
+<td>Rabindra Nath Satpathy</td>
+<td>Exams</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>mgt.accounts@termwise.demo</code></td>
+<td>Manasi Routray</td>
+<td>Accounts</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>mgt.hr@termwise.demo</code></td>
+<td>Tapan Kumar Swain</td>
+<td>HR</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>phr.admissions@termwise.demo</code></td>
+<td>Pratyusha Nanda</td>
+<td>Admissions</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>phr.exams@termwise.demo</code></td>
+<td>Santosh Kumar Barik</td>
+<td>Exams</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>phr.accounts@termwise.demo</code></td>
+<td>Sumitra Pradhan</td>
+<td>Accounts</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>phr.hr@termwise.demo</code></td>
+<td>Alok Ranjan Mahapatra</td>
+<td>HR</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>cse.hod@termwise.demo</code></td>
+<td>Dr. Soumya Ranjan Panigrahi</td>
+<td>Head of department</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>me.hod@termwise.demo</code></td>
+<td>Dr. Bhabani Shankar Nayak</td>
+<td>Head of department</td>
+<td>Engineering College</td>
+</tr>
+<tr>
+<td><code>mba.hod@termwise.demo</code></td>
+<td>Dr. Smita Rani Pattnaik</td>
+<td>Head of department</td>
+<td>Management School</td>
+</tr>
+<tr>
+<td><code>phr.hod@termwise.demo</code></td>
+<td>Dr. Ashok Kumar Sahu</td>
+<td>Head of department</td>
+<td>Pharmacy College</td>
+</tr>
+<tr>
+<td><code>trust@termwise.demo</code></td>
+<td>Bijay Mishra</td>
+<td>Trust</td>
+<td>All campuses</td>
+</tr>
+</tbody>
+</table>
+<p>Every student and guardian has a login too, <code>firstname.lastname@termwise.demo</code> (a number is added when a name is taken), for example <code>ankit.panda@termwise.demo</code> for the student and <code>sarat.panda@termwise.demo</code> for the parent. The guardian <code>pallavi.jena@termwise.demo</code> (parent of Amrita Jena, ENG-24-CSE-0001) receives messages in Odia: sign in and open Messages to read them.</p>
+<h3 id="what-to-try-first">What to try first</h3>
+<ul>
+<li><strong>Office admin:</strong> <code>eng.admin@termwise.demo</code> confirms an applicant from <strong>Applicants</strong>, and advances a batch from College setup.</li>
+<li><strong>Faculty:</strong> <code>cse.faculty@termwise.demo</code> marks attendance offline on a phone.</li>
+<li><strong>Head of department:</strong> <code>cse.hod@termwise.demo</code> lists the department’s students and approves a CSE leave request.</li>
+<li><strong>Admissions, exams, accounts and HR:</strong> <code>eng.admissions@termwise.demo</code>, <code>eng.exams@termwise.demo</code>, <code>eng.accounts@termwise.demo</code> or <code>eng.hr@termwise.demo</code> each see only their narrow menu; <code>eng.accounts@termwise.demo</code> awards a scholarship on the fees page.</li>
+<li><strong>Visiting and dual-role:</strong> <code>visiting.faculty@termwise.demo</code> and <code>dual.role@termwise.demo</code> switch the active campus in the sidebar.</li>
+<li><strong>Trust:</strong> <code>trust@termwise.demo</code> compares campuses on the overview and opens the NAAC page.</li>
+<li><strong>Student and parent:</strong> <code>ankit.panda@termwise.demo</code> or <code>sarat.panda@termwise.demo</code> opens fees and receipts on the portal.</li>
+</ul>
+<p>Try first: sign in as <code>cse.faculty@termwise.demo</code> on a phone, open a class from Home, turn on airplane mode, mark it, and turn the network back on. Then sign in as <code>eng.admin@termwise.demo</code> to see the sheet, lock marks, record a fee payment and open the at-risk list.</p>
+<p>Admissions and staff leave:</p>
+<ul>
+<li><strong>Confirm an admission (admin).</strong> Sign in as <code>eng.admin@termwise.demo</code> and open <strong>Applicants</strong>. The seeded applicant <strong>Ritika Nayak</strong> has every required document verified, so she is ready to confirm. Open her panel and choose <strong>Confirm admission</strong>. The student gets the next roll number in the batch, two fee instalments and a guardian login with the demo password. The other seeded applicants show what is missing, and one applicant can be rejected with a reason.</li>
+<li><strong>Import applicants (admin).</strong> On <strong>Applicants</strong>, choose <strong>Import CSV</strong>, pick the batch and a file (the template downloads from the dialog). Any bad line stops the whole file, and the dialog lists each line’s error.</li>
+<li><strong>Staff leave (faculty).</strong> Sign in as <code>cse.faculty@termwise.demo</code> and open <strong>Leave</strong>. Apply for leave, and see the balances and history. Withdraw the request while it is pending.</li>
+<li><strong>Approve staff leave (admin).</strong> Sign in as <code>eng.admin@termwise.demo</code> and open <strong>Leave</strong>. Approve or reject the pending request from the Engineering campus, with a note. Nobody can decide their own leave.</li>
+</ul>
+<p>To try the admission again, reset the database as above.</p>
+<h2 id="5-troubleshooting">5. Troubleshooting</h2>
+<ol>
+<li><code>pnpm db:migrate</code> fails with <code>ECONNREFUSED</code> or an undefined <code>DATABASE_URL</code>: the db is not up or the env is not exported. Run <code>docker compose ps db</code> (wait for healthy), then <code>set -a; . ./env.example; set +a</code>.</li>
+<li>Port 54329 or 3000 already in use: stop the other process, or <code>docker compose down</code> and retry. Playwright uses port 3100.</li>
+<li>Sign-in rejected or redirected to the wrong host: <code>BETTER_AUTH_URL</code> must equal the URL in the browser (<code>http://localhost:3000</code> locally).</li>
+<li>Playwright or the load test hits rate limits or stale data: run with <code>E2E=1</code> (rate limiter off) and reset the database first (section 2).</li>
+<li><code>pnpm exec playwright install chromium</code> fails on missing libraries: rerun with <code>--with-deps</code>.</li>
+<li>Assistant says no provider is configured: expected without an LLM key. Set <code>GOOGLE_GENERATIVE_AI_API_KEY</code> or <code>GROQ_API_KEY</code> and restart.</li>
+</ol> <p class="prose__source" data-astro-cid-egoltos3>
+This page is <a href="https://github.com/moneytosms/termwise/blob/main/docs/deployment.md" data-astro-cid-egoltos3>docs/deployment.md</a> in the repository, rendered as written.
+</p> </article> <nav class="guide__toc" aria-label="On this page" data-astro-cid-egoltos3> <p class="group__name" data-astro-cid-egoltos3>On this page</p> <ul data-astro-cid-egoltos3> <li class="d2" data-astro-cid-egoltos3><a href="#1-prerequisites" data-astro-cid-egoltos3>1. Prerequisites</a></li><li class="d2" data-astro-cid-egoltos3><a href="#2-run-locally" data-astro-cid-egoltos3>2. Run locally</a></li><li class="d2" data-astro-cid-egoltos3><a href="#3-verify" data-astro-cid-egoltos3>3. Verify</a></li><li class="d2" data-astro-cid-egoltos3><a href="#4-demo-logins" data-astro-cid-egoltos3>4. Demo logins</a></li><li class="d3" data-astro-cid-egoltos3><a href="#what-to-try-first" data-astro-cid-egoltos3>What to try first</a></li><li class="d2" data-astro-cid-egoltos3><a href="#5-troubleshooting" data-astro-cid-egoltos3>5. Troubleshooting</a></li> </ul> </nav> </div> <script>(function(){const base = "/termwise";
+
+    // Pagefind's index only exists in a production build (npm run build).
+    const s = document.createElement("script");
+    s.src = `${base}/pagefind/pagefind-ui.js`;
+    s.onload = () => new PagefindUI({ element: "#search", showSubResults: true, showImages: false });
+    s.onerror = () => {
+      document.querySelector("#search").textContent = "Search is unavailable. Browse the documents below.";
+    };
+    document.head.append(s);
+    const menu = document.querySelector(".guide__menu");
+    if (matchMedia("(max-width: 959px)").matches) menu.open = false;
+  })();</script>  </main> <footer class="site-footer" data-astro-cid-hkbrpulz> <div class="site-footer__inner" data-astro-cid-hkbrpulz> <p data-astro-cid-hkbrpulz>Synthetic demo data. Messages are logged, not sent; payments are test mode.</p> <p class="site-footer__links" data-astro-cid-hkbrpulz> <a href="/termwise/guide/" data-astro-cid-hkbrpulz>guide</a> <a href="https://github.com/moneytosms/termwise" data-astro-cid-hkbrpulz>source</a> <a href="https://moneytosms.github.io/termwise/" data-astro-cid-hkbrpulz>termwise</a> </p> </div> </footer><script type="module">var e=document.documentElement;document.querySelector(`[data-theme-toggle]`)?.addEventListener(`click`,()=>{let t=(e.dataset.theme?e.dataset.theme===`dark`:matchMedia(`(prefers-color-scheme: dark)`).matches)?`light`:`dark`;e.dataset.theme=t;try{localStorage.setItem(`site-theme`,t)}catch{}});</script> </body> </html>

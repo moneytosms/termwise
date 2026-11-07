@@ -1,0 +1,514 @@
+<!DOCTYPE html><html lang="en" data-astro-cid-hkbrpulz> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Termwise: Technical Design Document, Termwise guide</title><meta name="description" content="Termwise documentation: Termwise: Technical Design Document."><link rel="canonical" href="https://moneytosms.github.io/termwise/guide/tdd/"><link rel="icon" href="/termwise/favicon.svg" type="image/svg+xml"><meta property="og:title" content="Termwise: Technical Design Document, Termwise guide"><meta property="og:description" content="Termwise documentation: Termwise: Technical Design Document."><meta property="og:type" content="website"><meta property="og:url" content="https://moneytosms.github.io/termwise/guide/tdd/"><meta property="og:image" content="https://moneytosms.github.io/termwise/og.png"><meta name="twitter:card" content="summary_large_image"><script>
+      // Apply a saved theme before first paint. No saved choice: follow the OS.
+      try {
+        const t = localStorage.getItem("site-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch {}
+      document.documentElement.classList.add("js");
+    </script><link rel="stylesheet" href="/termwise/_astro/_..CMJe1L9s.css"></head> <body data-astro-cid-hkbrpulz> <a class="skip-link" href="#main" data-astro-cid-hkbrpulz>Skip to content</a> <header class="site-header" data-astro-cid-hkbrpulz> <div class="site-header__inner" data-astro-cid-hkbrpulz> <a class="brand" href="/termwise/" aria-label="Termwise home" data-astro-cid-hkbrpulz> <svg class="brand__mark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" data-astro-cid-hkbrpulz> <path d="M2 2h12M8 2v12M2 14h12" fill="none" stroke="currentColor" stroke-width="1.25" data-astro-cid-hkbrpulz></path> <path d="M5 6h6M5 9.5h6" fill="none" stroke="currentColor" stroke-width="1" data-astro-cid-hkbrpulz></path> </svg> <span data-astro-cid-hkbrpulz>Termwise</span> </a> <nav aria-label="Primary" class="site-nav" data-astro-cid-hkbrpulz> <a class="nav-home" href="/termwise/" data-astro-cid-hkbrpulz>overview</a> <a href="/termwise/guide/" aria-current="page" data-astro-cid-hkbrpulz>guide</a> <a href="https://github.com/moneytosms/termwise" rel="noopener" data-astro-cid-hkbrpulz>source</a> <button class="theme-toggle" type="button" aria-label="Switch colour theme" data-theme-toggle data-astro-cid-hkbrpulz> <svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" data-astro-cid-hkbrpulz><circle cx="12" cy="12" r="4" data-astro-cid-hkbrpulz></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" data-astro-cid-hkbrpulz></path></svg> <svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-hkbrpulz><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" data-astro-cid-hkbrpulz></path></svg> </button> </nav> </div> </header> <main id="main" tabindex="-1" data-astro-cid-hkbrpulz>  <link rel="stylesheet" href="/termwise/pagefind/pagefind-ui.css"> <div class="guide" data-astro-cid-egoltos3> <aside class="guide__nav" aria-label="Guide sections" data-astro-cid-egoltos3> <div id="search" class="guide__search" data-astro-cid-egoltos3></div> <noscript><p data-astro-cid-egoltos3>Search needs JavaScript. All documents are available below.</p></noscript> <details class="guide__menu" open data-astro-cid-egoltos3> <summary data-astro-cid-egoltos3>All documents</summary> <div class="group" data-astro-cid-egoltos3> <p class="group__name" data-astro-cid-egoltos3>Start here</p> <ul data-astro-cid-egoltos3> <li data-astro-cid-egoltos3><a href="/termwise/guide/deployment" data-astro-cid-egoltos3>Deployment</a></li><li data-astro-cid-egoltos3><a href="/termwise/guide/readme" data-astro-cid-egoltos3>Termwise</a></li><li data-astro-cid-egoltos3><a href="/termwise/guide/tdd" aria-current="page" data-astro-cid-egoltos3>Termwise: Technical Design Document</a></li> </ul> </div> </details> </aside> <article class="prose" data-pagefind-body data-astro-cid-egoltos3> <h1 id="termwise-technical-design-document">Termwise: Technical Design Document</h1>
+<p><strong>GitHub:</strong> <a href="https://github.com/moneytosms/termwise">https://github.com/moneytosms/termwise</a>
+<strong>Live app:</strong> <a href="https://termwise-s1vj.onrender.com">https://termwise-s1vj.onrender.com</a>
+<strong>Project site:</strong> <a href="https://moneytosms.github.io/termwise/">https://moneytosms.github.io/termwise/</a> (landing page, coming soon)
+<strong>Demo logins:</strong> see <code>deployment.md</code> (password <code>termwise-demo</code> for every account)</p>
+<h2 id="at-a-glance">At a glance</h2>
+<p><strong>What it is.</strong> Termwise is the first phase of a college ERP (a system that runs a college’s daily records) for Company A’s trust, which runs several campuses.</p>
+<p><strong>Who it serves.</strong> Faculty, office staff (admin, admissions, exams, accounts, HR), heads of department, students, parents and the trust secretary. Each sees only what their role allows.</p>
+<p><strong>What works today:</strong></p>
+<ul>
+<li>Attendance taken on a phone with no network, synced later, with conflicts sent to the office.</li>
+<li>Internal marks in components, a moderation lock, an upload CSV and a printable mark sheet with a verification page.</li>
+<li>Fee dues calculated from instalments, payments, scholarships, receipts and Tally export.</li>
+<li>An at-risk flag decided by fixed rules, and a plain-English question assistant (Termy) that can only read filtered views.</li>
+<li>Student and parent portal, trust dashboard, reports, AICTE and NAAC packs, admissions, staff leave, promotion and graduation.</li>
+</ul>
+<p><strong>What it is not.</strong> A demo for the assignment, not a production system. Messages are logged, not sent, and payments are test mode (section 8).</p>
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#1-what-the-slice-proves">What the slice proves</a></li>
+<li><a href="#2-architecture">Architecture</a></li>
+<li><a href="#3-data-model">Data model</a></li>
+<li><a href="#4-main-flows">Main flows</a> (offline attendance 4.1, marks 4.2, fees 4.3, portal 4.4, then the shipped extras 4.5 to 4.16)</li>
+<li><a href="#5-how-the-ai-part-works">How the AI part works</a></li>
+<li><a href="#6-ui-and-design-decisions">UI and design decisions</a></li>
+<li><a href="#7-testing-and-security">Testing and security</a></li>
+<li><a href="#8-what-was-cut-and-what-comes-next">What was cut, and what comes next</a></li>
+<li><a href="#9-assumptions">Assumptions</a></li>
+</ol>
+<h2 id="how-to-read-this">How to read this</h2>
+<ul>
+<li><strong>In 5 minutes:</strong> the At a glance block, then section 1 (what the brief needs), section 2 (architecture), 4.1 (offline attendance), 5 (the AI part) and 8 (what was cut).</li>
+<li><strong>Deep detail:</strong> sections 3, 4.2 to 4.16 and 7 are reference. Dip in when a screen or rule raises a question.</li>
+<li><strong>Assumptions:</strong> marked <strong>[A]</strong> in the text and all listed in section 9. Each is a choice the brief does not settle.</li>
+<li><strong>Every section opens with its takeaway</strong> in bold, then the detail.</li>
+</ul>
+<p>Terms used below:</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server action</td>
+<td>A server function a page calls to change data; it checks role and campus first</td>
+</tr>
+<tr>
+<td>Service worker</td>
+<td>A script in the browser that serves pages when offline</td>
+</tr>
+<tr>
+<td>Outbox</td>
+<td>The phone’s queue of saved attendance sheets waiting to sync (kept in IndexedDB, the browser’s database)</td>
+</tr>
+<tr>
+<td>Moderation lock</td>
+<td>After review, a subject’s marks can no longer be edited without a reason</td>
+</tr>
+<tr>
+<td>HMAC hash</td>
+<td>A keyed fingerprint that shows a receipt or mark sheet was not altered</td>
+</tr>
+<tr>
+<td>DPDP</td>
+<td>India’s Digital Personal Data Protection Act; it requires parental consent for minors</td>
+</tr>
+<tr>
+<td>AICTE, NAAC</td>
+<td>Indian technical-education regulator and accreditation body, whose returns the Reports page prepares</td>
+</tr>
+<tr>
+<td>Tally</td>
+<td>Accounting software that imports the receipt vouchers</td>
+</tr>
+<tr>
+<td>ADR</td>
+<td>Architecture decision record, in <code>docs/adr/</code></td>
+</tr>
+<tr>
+<td>IST</td>
+<td>Indian Standard Time</td>
+</tr>
+<tr>
+<td>Termy</td>
+<td>The in-app assistant that answers plain-English questions</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-what-the-slice-proves">1. What the slice proves</h2>
+<p><strong>Takeaway: the design starts from attendance on a phone with weak Wi-Fi, and one record per student feeds marks, dues, risk and messages with no re-entry.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Brief success measure</th>
+<th>How the slice serves it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attendance entered the same day for 95% of classes</td>
+<td>Home opens on today’s classes; marking a class is one tap per absentee and works with no network</td>
+</tr>
+<tr>
+<td>University mark uploads with no re-typing</td>
+<td>Marks are entered once per component, locked after moderation, exported in an upload CSV</td>
+</tr>
+<tr>
+<td>Fee reconciliation from 10 days to 1</td>
+<td>Dues are calculated from instalments and payments, never typed; receipts export as Tally vouchers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shipped beyond the slice:</strong></p>
+<ul>
+<li><strong>Trust dashboard.</strong> A read-only view for the trust secretary across all campuses (section 4.6).</li>
+<li><strong>Term mark sheet.</strong> A printable sheet for a student, with a verification hash, a QR code and a public verify page. Only locked subjects count (section 4.7).</li>
+<li><strong>Standard reports.</strong> Strength, attendance shortage, marks and fees, with month and programme filters, CSV export and a monthly snapshot (section 4.8).</li>
+<li><strong>Odia parent messages.</strong> Each guardian gets messages in their own language (section 4.5).</li>
+<li><strong>Precomputed results.</strong> Each locked subject writes one result row per student, so the portal reads a row instead of recomputing marks (section 4.9).</li>
+<li><strong>Applicants and document checklist.</strong> Applicants are imported from a CSV, each gets a checklist of the documents their programme requires, and the office tracks each document (section 4.10).</li>
+<li><strong>Confirm admission.</strong> One step turns a complete applicant into a student, with a roll number, fee instalments and a guardian login (section 4.11).</li>
+<li><strong>Staff leave.</strong> Faculty apply for casual, medical or on-duty leave and see their yearly balances. The office admin of the same campus approves or rejects it (section 4.12).</li>
+<li><strong>Multi-campus logins.</strong> One login can hold a staff row on each campus. A sidebar switcher picks the active campus, and offline sheets sync under the row they were marked with (section 4.15).</li>
+<li><strong>Office roles and head of department.</strong> Admissions, exams, accounts and HR each get the modules of their office, and a head of department sees the own department and decides its faculty leave (section 4.15).</li>
+<li><strong>Fee structure and scholarships.</strong> Each programme can set a semester fee per category, and scholarship schemes are awarded per student per semester (section 4.13).</li>
+<li><strong>Promotion and graduation.</strong> A batch moves to its next semester, or graduates into alumni, from College setup (section 4.14).</li>
+<li><strong>Accreditation packs.</strong> AICTE and NAAC returns in Reports, with the sanctioned intake, posts and staff details they need (section 4.16).</li>
+</ul>
+<h2 id="2-architecture">2. Architecture</h2>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="mermaid"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">flowchart</span><span style="--shiki-light:#6F42C1;--shiki-dark:#DCBDFB"> LR</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  P</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"Phone or browser&#x3C;br/>service worker + IndexedDB outbox"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">]</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067"> --></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> N</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"Next.js 16 app&#x3C;br/>server components, server actions, route handlers"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">]</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  P </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF"> "/api/today, /api/sync" </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> N</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  N </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> DB</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[(</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"Postgres 18&#x3C;br/>app role: read/write"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">)]</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  N </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> V</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[(</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"Postgres views&#x3C;br/>assistant role: read-only, self-filtering"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">)]</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  N </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> L</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"LLM (Gemini or Groq)&#x3C;br/>capped per day, optional"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">]</span></span>
+<span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">  G</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">[</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">"GitHub Actions daily schedule"</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">]</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067"> --</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7"> "</span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">POST </span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">/</span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">api</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">/</span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">cron</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">/</span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50">daily </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">(</span><span style="--shiki-light:#032F62;--shiki-dark:#96D0FF">shared secret</span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">)</span><span style="--shiki-light:#24292E;--shiki-dark:#ADBAC7">" </span><span style="--shiki-light:#D73A49;--shiki-dark:#F47067">--></span><span style="--shiki-light:#E36209;--shiki-dark:#F69D50"> N</span></span></code></pre>
+<p><strong>Takeaway: one Next.js app with one Postgres database, so there is one thing to deploy and no API contract to maintain.</strong></p>
+<p><strong>One deployable.</strong> A single Next.js app with its database, in one Docker image. Server components read the database directly; mutations are server actions that check the viewer’s role and campus, validate with zod and write an audit row in the same transaction. For a 6 to 8 screen slice built by one person in a week, a separate API service would add a contract to maintain and nothing the client can see. Route handlers exist only where a non-page client needs them: the offline sync endpoint, CSV, Tally and report downloads, the precomputed results API and the daily job.</p>
+<p><strong>Why these parts</strong></p>
+<ul>
+<li><strong>Next.js and React</strong> for one language across screens and server, and server components that keep student data on the server unless a screen needs it.</li>
+<li><strong>Postgres</strong> because the domain is relational (student, batch, subject, session, entry) and because two database features carry the AI guardrails: views and roles.</li>
+<li><strong>Drizzle</strong> for typed queries that stay close to SQL, so the attendance and dues arithmetic is readable.</li>
+<li><strong>Better Auth</strong> with email and password. Campus roles live on <code>staff</code> rows linked to the user, one row per campus, so access checks are one join, not an organisation plugin.</li>
+<li><strong>Dexie (IndexedDB) and a hand-written service worker</strong> for offline. A plugin-generated worker could not reliably serve the app’s dynamic pages offline on Next 16, so the worker is about 70 lines that precache exactly three screens and their assets.</li>
+<li><strong>Vercel AI SDK</strong> with a structured output schema, so the LLM returns a plan object, never free text that is executed.</li>
+</ul>
+<p><strong>Access control.</strong> Every query on a screen goes through <code>getViewer()</code>, which resolves the signed-in user to one of their staff rows: the active campus’s row, chosen by the sidebar switcher and validated against the user’s own rows (section 4.15). The row gives a role and a campus. Each office role sees only the modules its role holds (<code>CAPS</code> in <code>src/domain/roles.ts</code>, section 4.15). Faculty see the subjects they teach and the students they mentor. A head of department is limited to their department. Anyone visiting a screen outside their modules is sent to Home. The assistant, Termy, runs as a separate database role that can only read views filtered by campus, role, staff id and department.</p>
+<h2 id="3-data-model">3. Data model</h2>
+<p><strong>Takeaway: a student exists once, and everything hangs off that row; money and percentages are calculated, never typed in.</strong></p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>campus ─┬─ department ─ programme ─ batch ─┬─ student ─┬─ attendance_entry ── attendance_session</span></span>
+<span class="line"><span>        │                                  │            ├─ mark ── mark_component ── subject</span></span>
+<span class="line"><span>        ├─ staff (role, campus, department) ── user   ├─ subject   ├─ fee_instalment ── fee_payment</span></span>
+<span class="line"><span>        ├─ calendar_day                     │            └─ result (subject, student)</span></span>
+<span class="line"><span>        ├─ report_snapshot (campus, month)  └─ timetable_slot</span></span>
+<span class="line"><span>        ├─ scholarship_scheme ── scholarship_award (student, semester)</span></span>
+<span class="line"><span>        ├─ audit_log, job_run               risk_flag ── mentor_task, message, sync_conflict</span></span>
+<span class="line"><span>        └─ staff ── staff_leave</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>programme ─┬─ required_document</span></span>
+<span class="line"><span>           ├─ fee_structure (category)</span></span>
+<span class="line"><span>           └─ applicant ── applicant_document        (applicant.student_id → student once confirmed)</span></span></code></pre>
+<p>Choices that matter:</p>
+<ul>
+<li><strong>A student exists once.</strong> Roll number is unique across the trust. Attendance, marks, dues, flags and messages all hang off <code>student.id</code>.</li>
+<li><strong>Attendance session, not attendance sheet.</strong> One row per batch, subject, date and period, with a client-generated UUID so the phone can create it offline. A lab is one session covering several periods (<code>period_count</code>); percentages are weighted by periods. Late counts as attended <strong>[A]</strong>.</li>
+<li><strong>Dues are calculated, never stored.</strong> Due = instalment amount − scholarship − payments. Overdue = due on instalments past their due date. No balance column can drift from the payments.</li>
+<li><strong>Marks scheme by section.</strong> Each subject is theory or lab and has a maximum per section. Faculty define the internal components, which must total the internal maximum of 40 (the demo uses Internal test 20, Assignment 10, Quiz 5, Attendance 5 <strong>[A]</strong>). Mid-term exam (20) and end-term exam (40) are one component each; a lab adds lab exam (15), viva (10) and continuous evaluation (5) <strong>[A]</strong>. Internal marks are the internal section alone. The final score is out of 100: theory (internal, mid, end) scaled by the theory scale (100 for theory, 70 for labs), plus the lab sections. See <code>adr/0001-marks-scheme-internal-40.md</code>. A subject’s marks move draft → submitted → locked. A locked subject rejects edits at the server; reopening needs a reason, and every change is in the audit log.</li>
+<li><strong>Appeals.</strong> A student (not a parent) appeals one mark or one absent or late entry, with a reason of 10 to 500 characters. One open appeal per item. An accepted appeal can change a locked mark; it is audited with the appeal id.</li>
+<li><strong>College profile.</strong> Legal name, tagline, affiliation, registration number, GSTIN, address, contact, logo (data URL, 200 KB at most) and receipt footer sit on the campus row. Receipts read them.</li>
+<li><strong>Rules are settings, not AI.</strong> Attendance cutoff (75% default per programme), risk thresholds (attendance drop of 10 points in 4 weeks, internal marks below 50% of the maximum of the internal components entered, at least 10 sessions held <strong>[A]</strong>) live on the campus and programme rows and are edited in College setup.</li>
+<li><strong>Audit log</strong> records actor, action, entity, old and new value and reason, written in the same transaction as the change.</li>
+<li><strong>Staff roles.</strong> A staff row has one of seven roles: <code>faculty</code>, <code>office_admin</code>, <code>admissions</code>, <code>exams</code>, <code>accounts</code>, <code>hr</code> or <code>hod</code>. Each role’s capabilities are the <code>CAPS</code> table in <code>src/domain/roles.ts</code> (section 4.15). A staff row has a campus. <code>department_id</code> is nullable and is set for <code>faculty</code> and <code>hod</code> rows. The <code>trust</code> role belongs to the trust secretary, has no campus of its own and is read-only everywhere (section 4.6). Only the trust area accepts it; every campus screen and action rejects it.</li>
+<li><strong>One login, several campuses.</strong> A user can hold one staff row per campus, which is the seed convention. The <code>staff</code> table has no unique index, so nothing in the schema stops a second row for the same user and campus. The app assumes one row per campus <strong>[A]</strong>. The same person can be faculty at one campus and an admissions officer at another (section 4.15).</li>
+<li><strong>Results are precomputed.</strong> <code>result</code> holds one row per subject and student, with the theory total (internal, mid-term and end-term, raw out of 100 <strong>[A]</strong>), the scaled theory, the lab total and the final score. It is written when a subject locks, deleted when it is reopened and recomputed when an accepted mark appeal changes a locked mark. Its <code>internal</code> column holds that raw theory total, not the internal section alone; the name is misleading and a later migration should rename it.</li>
+<li><strong>Report snapshots.</strong> <code>report_snapshot</code> keeps one copy per campus, month and report (strength, shortage, marks, fees). A unique index on those three columns makes the monthly write idempotent (section 4.8).</li>
+<li><strong>Applicants stay apart until admission.</strong> <code>applicant</code> holds the person, their category, guardian details, parent consent date and a status: <code>applied</code>, <code>confirmed</code> or <code>rejected</code> (with a reason). Only a confirmed applicant has a student row, linked by <code>applicant.student_id</code>, which is unique so one applicant becomes one student.</li>
+<li><strong>Checklist is stored per item.</strong> <code>required_document</code> lists the documents a programme needs, with an optional list of categories (null means all). <code>applicant_document</code> holds one status per applicant and document: <code>pending</code>, <code>received</code> or <code>verified</code>. An applicable document with no row counts as pending, so the checklist is never out of step with the list.</li>
+<li><strong>Fees per programme and category.</strong> <code>programme.semester_fee_paise</code> holds the default semester fee. <code>fee_structure</code> holds one semester fee per programme and category (unique on both), and a category with no row uses the default (section 4.13). Admission splits the fee into two instalments (section 4.11). Scholarship schemes and their awards are stored as <code>scholarship_scheme</code> and <code>scholarship_award</code> (section 4.13).</li>
+<li><strong>Leave is stored as requests.</strong> <code>staff_leave</code> holds the kind (<code>casual</code>, <code>medical</code>, <code>on_duty</code>), the from and to dates, the reason, the status (<code>pending</code>, <code>approved</code>, <code>rejected</code>, <code>withdrawn</code>), the office note and the decider. Days used are counted from the dates, never stored, so balances cannot drift.</li>
+</ul>
+<h2 id="4-main-flows">4. Main flows</h2>
+<p><strong>Takeaway: the offline attendance flow (4.1) is the hard part and the core of the build. 4.2 to 4.4 are the rest of the brief; 4.5 to 4.16 are extras.</strong></p>
+<h3 id="41-offline-attendance-with-sync-the-hard-part">4.1 Offline attendance with sync (the hard part)</h3>
+<ol>
+<li>When a teacher opens the app with any connection, <code>/api/today</code> returns today’s classes with rosters (roll numbers and names only) and the phone stores them in IndexedDB. The service worker caches Home, Classes and Mark attendance.</li>
+<li>In class, with no network, the teacher opens the class. Everyone starts present; one tap marks absent, a second tap late, a third tap present again. A search box jumps to a roll number. Save writes the sheet to an outbox in IndexedDB and returns to Home, where the class shows as queued.</li>
+<li>The outbox flushes when the app opens, when the network returns and through Background Sync on Android. The server answers each item separately: saved, stale (an older edit), conflict or rejected, so one bad item never blocks the rest.</li>
+<li><strong>Conflicts.</strong> If another teacher already saved the same class, the incoming sheet goes to a conflict queue for the office admin instead of overwriting it. Last-edit-wins only applies to the same teacher’s own edits. Edit times are corrected for a wrong phone clock using the gap between the phone’s and the server’s time at send.</li>
+<li><strong>Shared phones.</strong> Each queued sheet carries the id of the teacher who marked it. If a different teacher is signed in when it sends, the server rejects it and the sheet stays on the phone until the right teacher signs in.</li>
+<li>Signing out clears everything about students from the phone.</li>
+</ol>
+<h3 id="42-marks-and-moderation">4.2 Marks and moderation</h3>
+<p>Faculty enter marks per component on one sheet per subject, with each cell checked against the component’s maximum, then save as draft and submit. The office admin locks a submitted subject; the lock is enforced in the server action, not just hidden in the UI. Reopen needs a typed reason. The locked sheet exports as CSV in an assumed university upload layout: <code>RollNo, Name, SubjectCode</code>, one column per internal component, <code>InternalTotal</code> (internal section only) <strong>[A]</strong>.</p>
+<h3 id="43-fees">4.3 Fees</h3>
+<p>Instalments per student (the seed uses two per year with some scholarships) produce dues and overdue amounts. The office admin records bank counter payments against an instalment; a payment over the remaining due or of zero is refused. Fee reminders go to students with dues. Receipts for a date range download as Tally receipt vouchers in XML <strong>[A: format based on Tally ERP 9 import samples, not confirmed against TallyPrime]</strong>. Each voucher’s narration reads the roll number, student name, instalment label and payment reference. When the instalment has a scholarship, the narration also adds <code>scholarship &#x3C;amount></code>, and the cash entry stays at the amount paid. Scholarships reduce instalments as set out in section 4.13.</p>
+<p>Each payment also has an official receipt on the college profile letterhead, with the amount in words (Indian numbering), a verification hash (HMAC-SHA256 over the receipt’s fixed fields, keyed by <code>BETTER_AUTH_SECRET</code>) and a QR code. The public <code>/verify/receipt/&#x3C;id>?h=&#x3C;hash></code> page shows whether the receipt is valid, with the student’s name masked to first name and last initial.</p>
+<h3 id="44-student-and-parent-portal-tier-2">4.4 Student and parent portal (Tier 2)</h3>
+<p>Students and parents sign in like staff and get the same sidebar layout with their own menu. A student sees today’s classes as a carousel that opens on the current or next class, and the week’s timetable, attendance per subject with a planner (“attend the next N in a row to reach 75%” or “you can miss N”), a day-by-day register with search, status and date-range filters, marks by component with the final score and a printable mark sheet once moderation locks them, fees with a test-mode Pay button and receipts, with the scholarship awards for each semester and each instalment’s scholarship, leave requests, their profile with the admission document checklist, and Termy scoped to their own rows. A parent sees the same for each linked child (switcher in the sidebar), approves the child’s leave before the mentor does, reads the college’s messages in English or Odia, writes to the mentor, and gives or withdraws DPDP consent for a minor. Every portal query uses the signed-in student, or a child linked to the signed-in parent; no student id is taken from the browser. An alumni account, student or parent, is read-only: the profile and message actions refuse with “Alumni accounts are read-only.” (the alumni rule is section 4.14). Mentors decide leave and answer parent notes, and the office answers record corrections, on a Requests page. Approved leave is shown on the register but still counts as absent. Subject faculty (their own subjects) or the office admin decide an appeal once, under Requests > Appeals: accept with the corrected mark or status, or reject with a response. The decision is final. Long lists are paged with <code>?page=</code>: register 30 rows, leave 10, messages 15, payments 10.</p>
+<h3 id="45-messages-and-consent">4.5 Messages and consent</h3>
+<p>Messages are logged, not sent <strong>[A: no SMS or WhatsApp gateway in scope]</strong>, in English and Odia. Each message is written in the guardian’s language: the daily job and the manual fee reminder write one message per distinct guardian language for the student, and a student with no guardian gets English <strong>[A]</strong>. The Messages page shows both language previews of each template, with a note that the Odia text needs review. A student under 18 with no recorded parental consent gets no message; the attempt is logged as blocked, following the DPDP Act’s rule for minors. The Odia templates need review by a native speaker before real use.</p>
+<h3 id="46-trust-dashboard">4.6 Trust dashboard</h3>
+<p>The trust secretary signs in with the <code>trust</code> role and lands on <code>/trust</code>, a separate area with its own layout and a guard (<code>requireTrust()</code>). The overview shows totals across all campuses: students, the same-day attendance rate, students below the attendance line, fees overdue and open at-risk flags. Campus cards show the same figures side by side, with comparison bars for each measure, and each card opens a read-only drill-down for that campus. The screens have no write actions. Every campus screen and action also rejects the trust role, so the read-only rule does not depend on the UI. The NAAC returns page (<code>/trust/naac</code>) shows each NAAC return (section 4.16) for every campus side by side, read-only, for the current month <strong>[A]</strong>. The same-day attendance rate is session-weighted, and fees overdue means unpaid amounts past their due date <strong>[A]</strong>.</p>
+<h3 id="47-term-mark-sheet-and-verification">4.7 Term mark sheet and verification</h3>
+<p>A student or a parent (for the active child) opens the mark sheet from the portal, and an office admin opens it from a student’s panel. It lists each subject with its section columns, theory and final score out of 100. Only locked subjects count: a subject that is not yet locked shows as pending, with no numbers. The sheet carries an HMAC-SHA256 hash over the student’s id, roll number, semester and each locked subject’s code, internal total and final total, keyed by <code>BETTER_AUTH_SECRET</code>, and a QR code that links to the public page <code>/verify/marksheet/&#x3C;studentId></code>. That page checks the hash with a timing-safe comparison and says whether the sheet is genuine. It shows the roll number, semester and locked totals with the student’s name masked. Like receipts, the sheet is printed from the browser to PDF on an A4 layout; no PDF library is used.</p>
+<h3 id="48-standard-reports">4.8 Standard reports</h3>
+<p>An office admin opens Reports and picks one of four standard reports: strength by programme, year, batch, category and gender, attendance shortage for a month, marks summary per subject, and fees against dues by programme. Exams see the first three and accounts see fees, each by its capability (<code>reports</code> or <code>fee_reports</code>, section 4.15). The accreditation returns are listed beside them (section 4.16). The report lists are fixed in <code>src/domain/reports.ts</code>:</p>
+<ul>
+<li><strong>Strength:</strong> programme, year, batch, category, gender, students.</li>
+<li><strong>Attendance shortage:</strong> roll no, name, programme, subject, periods held, periods attended, percent.</li>
+<li><strong>Marks:</strong> subject code, subject, status, students, average internal, average final, min final, max final.</li>
+<li><strong>Fees:</strong> programme, students, billed, collected, due, overdue (INR).</li>
+</ul>
+<p>Month and programme filters narrow the rows, a 200-row preview is shown, and Export CSV downloads the full report with a header row of the labels above <strong>[A]</strong>. Category and gender are read from each student’s record, so the strength rows split each programme and year by them <strong>[A]</strong>. The export is audited. Once a day the cron job writes a snapshot of each campus’s last full month’s standard reports (strength, shortage, marks and fees) into <code>report_snapshot</code>. The AICTE and NAAC returns are not snapshotted. The write uses a unique index and does nothing if the month is already stored, so a second run is harmless <strong>[A]</strong>.</p>
+<h3 id="49-precomputed-results">4.9 Precomputed results</h3>
+<p>When office staff lock a subject, the server writes one <code>result</code> row per student in the batch, in the same transaction as the lock and its audit row. Missing marks count as zero. Reopening deletes those rows. An accepted mark appeal on a locked subject recomputes the rows for that subject. The portal reads only these rows for locked subjects: the student’s marks page and <code>/api/results</code>, which returns the signed-in student’s results with <code>Cache-Control: private, max-age=60</code>. Nothing on the portal recomputes a final score for a locked subject, so results day reads a single row per student, not every mark.</p>
+<h3 id="410-applicants-and-document-checklist">4.10 Applicants and document checklist</h3>
+<p>Office admins open <strong>Applicants</strong> and see the campus’s applicants, with a checklist count per row and an Incomplete or Complete filter. Applicants arrive by CSV import from the same page. The file has the columns <code>name</code>, <code>birth_date</code>, <code>category</code>, <code>guardian_name</code>, <code>guardian_phone</code>, <code>guardian_email</code> and <code>gender</code>, and a template downloads from the dialog. The import is all-or-nothing: if any line is wrong, nothing is saved and the dialog lists each bad line with its reason. A file holds at most 500 rows. Categories are General, OBC, SC, ST and EWS <strong>[A]</strong>.</p>
+<p>Each programme lists its required documents in <strong>College setup > Documents</strong>. A document can carry a category condition (for example, a caste certificate only for SC and ST), and with none it applies to everyone. An applicant’s checklist is the set of documents that apply to their category. Each item is pending, received or verified, and the office sets it from the applicant’s panel. Every change is written to the audit log. The checklist is complete only when every applicable document is verified and at least one applies. The office can attach a PDF, JPEG or PNG of up to 2 MB to an item; the server checks the size and that the file’s content matches its type, by magic bytes (PDF, JPEG or PNG), not the browser’s MIME type. It then stores the file in the database (demo scale) <strong>[A]</strong>, and audits each upload or replacement. A file opens only for staff of the applicant’s campus with admissions access, or for the student it belongs to on the portal.</p>
+<h3 id="411-confirm-admission">4.11 Confirm admission</h3>
+<p>An office admin confirms an applicant from the applicant’s panel. The confirm is blocked, and the screen says why, until every applicable document is verified and, for an applicant under 18 on the confirm date, a parent consent date is recorded <strong>[A]</strong>. A rejected applicant needs a reason, which is stored and audited, and a rejected applicant cannot be confirmed later.</p>
+<p>A confirm runs in one transaction:</p>
+<ol>
+<li>Claim the applicant with a conditional update from <code>applied</code> to <code>confirmed</code>. A second confirm, or a confirm racing a reject, finds nothing to claim and is refused.</li>
+<li>Read the checklist again inside the transaction and apply the same checks.</li>
+<li>Lock the batch row. The roll number is the batch’s prefix plus the highest 4-digit suffix in the batch, plus one, padded to four digits. Gaps left by deleted students are not refilled <strong>[A]</strong>. In an empty batch the prefix is the campus code, the admission year and the programme code, for example <code>ENG-26-CSE-</code>.</li>
+<li>Create the student with the roll number, name, batch, birth date, guardian name, guardian phone, parent consent date, category and gender, and copy the checklist into the student’s document rows.</li>
+<li>Create two fee instalments, labelled “Instalment 1” and “Instalment 2”, due 30 and 120 days after confirmation. Each is half the semester fee for the student’s category (section 4.13), rounded <strong>[A]</strong>.</li>
+<li>Create the guardian’s login: a user, a credential account, the guardian row and the link to the student with relation “Guardian”. The email is the applicant’s guardian email when it is free, otherwise <code>firstname.lastname@termwise.demo</code>, with a number added when that is taken. The password is the demo password <strong>[A]</strong>.</li>
+<li>Link the applicant to the student (<code>applicant.student_id</code>) and write one audit row.</li>
+</ol>
+<p>Two concurrent confirms in one batch get consecutive roll numbers, and a repeat confirm of the same applicant is refused. <code>scripts/confirm-race.mts</code> checks both against a live database.</p>
+<h3 id="412-staff-leave">4.12 Staff leave</h3>
+<p>Faculty open <strong>Leave</strong> to apply for casual, medical or on-duty leave, giving from and to dates and a reason. Leave days are inclusive calendar days, so weekends and holidays count <strong>[A]</strong>. Balances are per calendar year: casual 12 days, medical 10 days and on duty unlimited <strong>[A]</strong>. The form refuses a leave that ends before it starts, one that spans a year end (it must be split) <strong>[A]</strong>, one that overlaps the person’s own pending or approved leave, and one longer than the balance left for that kind.</p>
+<p>Faculty see their balances and their history, and can withdraw a request while it is pending. An office admin or an HR officer of the campus (both hold the <code>staff_leave</code> capability) sees the pending requests from that campus’s staff, approves or rejects each one, and adds a note that the requester sees. A rejection needs a note. A head of department decides the pending leave of faculty in their own department, and no one else’s (section 4.15). The office admin and HR keep the whole campus queue, including faculty leave, as a fallback for departments without a head <strong>[A]</strong>. Nobody decides their own leave, including an office admin or HR. Approved leave is marked “On leave” on that day of the Classes week.</p>
+<h3 id="413-fee-structure-and-scholarships">4.13 Fee structure and scholarships</h3>
+<ul>
+<li><strong>Fee structure.</strong> In College setup, the office sets a semester fee per programme and category (<code>saveFeeStructure</code>, which needs the <code>fees</code> capability). A default option sets the programme’s default semester fee. A category with no row uses that default <strong>[A]</strong>. Saving a fee never changes existing instalments; it applies to the instalments created after it <strong>[A]</strong>.</li>
+<li><strong>Schemes.</strong> A scholarship scheme has a name, a funding source (<code>government</code>, <code>institution</code> or <code>non_government</code>), a kind (a fixed amount in paise, or a percent from 1 to 100), an optional list of categories (empty means all) and an active flag. <code>saveScheme</code> needs the <code>fees</code> capability.</li>
+<li><strong>Award.</strong> On the fees page, an office admin with the <code>fees</code> capability awards a scheme to a student for one semester. The award is refused when the scheme is inactive, when the student’s category is not on the scheme’s list, when the scheme is already awarded for that semester (<code>This scheme is already awarded for that semester.</code>), or when scholarships already cover the semester’s fees (<code>Scholarships already cover this semester's fees.</code>) <strong>[A]</strong>. The amount is a percent of the semester’s total, rounded to the paisa, or a fixed amount capped at that total. It is spread over the semester’s instalments, earliest due first, each capped at what is left unfunded on it. The award is audited as <code>fees.scholarship.award</code>.</li>
+<li><strong>Withdraw.</strong> Withdrawing an award reverses its spread on the instalments, latest due first, and never takes an instalment’s scholarship below zero. It is refused with <code>Already paid; the award can't be withdrawn.</code> when nothing is due on the semester any more <strong>[A]</strong>. The withdrawal is audited as <code>fees.scholarship.withdraw</code>.</li>
+<li><strong>Dues.</strong> A scholarship reduces an instalment’s due, so due = instalment amount − scholarship − payments, floored at zero (section 3).</li>
+</ul>
+<h3 id="414-promote-and-graduate">4.14 Promote and graduate</h3>
+<p>From College setup, a batch moves to its next semester, or graduates. Both are done by <code>advanceBatch</code>, which needs the <code>setup</code> capability, and both are audited (<code>setup.batch.promote</code> or <code>setup.batch.graduate</code>).</p>
+<ol>
+<li><strong>Blocker.</strong> The move is refused until every subject of the batch’s current semester is locked, and the message lists the codes still open: <code>Lock every subject first: &#x3C;codes>.</code></li>
+<li><strong>Next term.</strong> A batch whose semester is at or past twice the programme’s duration in years graduates. Every programme lasts 4 years except the MBA, which lasts 2 <strong>[A]</strong>. Otherwise the next semester is the current one plus one, and the year is the next semester divided by two, rounded up.</li>
+<li><strong>Promote.</strong> The finished semester’s subjects are stamped with that semester, then cloned as drafts for the new one. Each current student gets two instalments: <code>Sem N instalment 1/2</code>, due 30 days later, and <code>Sem N instalment 2/2</code>, due 120 days later. Together they make up the student’s semester fee for their category: the first is half of it, rounded, and the second is the rest <strong>[A]</strong>. Both start with no scholarship <strong>[A]</strong>.</li>
+<li><strong>Graduate.</strong> Each current student in the batch gets <code>graduated_on</code> set to today’s IST date and becomes alumni. Alumni keep their records, and they are left out of the current-student lists, the risk checks, the Home counts, the daily job and the scholarship counts in the reports. Their portal accounts are read-only (section 4.4).</li>
+</ol>
+<h3 id="415-campuses-and-staff-roles">4.15 Campuses and staff roles</h3>
+<ul>
+<li>
+<p><strong>Campus switcher.</strong> A user with rows on several campuses picks the active one in the sidebar. The choice is kept in the <code>termwise_campus</code> cookie, which is httpOnly, sameSite lax and kept for one year. <code>getViewer()</code> uses the row on that campus. A missing, stale or forged value falls back to the user’s lowest-id row, so the cookie never gives access to a campus the user does not hold.</p>
+</li>
+<li>
+<p><strong>Capabilities.</strong> Each staff role holds the capabilities below, as listed in <code>CAPS</code> in <code>src/domain/roles.ts</code>. A screen or action checks the capability it needs, and a role without it is sent to Home.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Capabilities</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>faculty</code></td>
+<td><code>teach</code></td>
+</tr>
+<tr>
+<td><code>office_admin</code></td>
+<td><code>campus_students</code>, <code>attendance</code>, <code>admissions</code>, <code>moderate_marks</code>, <code>fees</code>, <code>risk</code>, <code>messages</code>, <code>office_requests</code>, <code>appeals</code>, <code>staff_leave</code>, <code>reports</code>, <code>fee_reports</code>, <code>setup</code>, <code>setup_faculty</code>, <code>audit</code></td>
+</tr>
+<tr>
+<td><code>admissions</code></td>
+<td><code>admissions</code>, <code>campus_students</code></td>
+</tr>
+<tr>
+<td><code>exams</code></td>
+<td><code>moderate_marks</code>, <code>reports</code>, <code>appeals</code></td>
+</tr>
+<tr>
+<td><code>accounts</code></td>
+<td><code>fees</code>, <code>fee_reports</code></td>
+</tr>
+<tr>
+<td><code>hr</code></td>
+<td><code>staff_leave</code>, <code>setup_faculty</code></td>
+</tr>
+<tr>
+<td><code>hod</code></td>
+<td><code>dept_students</code>, <code>attendance_view</code>, <code>marks_view</code>, <code>risk_view</code>, <code>dept_leave</code></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>Audit actor.</strong> An audit row names its actor. For an office role, the name carries the role’s label in parentheses, so the log shows which office made the change <strong>[A]</strong>.</p>
+</li>
+<li>
+<p><strong>Seed personas.</strong> The visiting faculty seed persona is faculty at Engineering (Mechanical) and at the Management School, with no department at the Management School. The dual-role persona is faculty at Engineering (Computer Science) and office admin at the Pharmacy College <strong>[A]</strong>.</p>
+</li>
+<li>
+<p><strong>Head of department.</strong> A <code>hod</code> sees only their department’s students, attendance, marks status and at-risk flags, and decides the pending leave of faculty in that department. A <code>hod</code> row with no department sees nothing. A head of department has no fee access and no setup access. The trust role is section 4.6.</p>
+</li>
+</ul>
+<h3 id="416-aicte-and-naac-packs">4.16 AICTE and NAAC packs</h3>
+<p>The Reports page lists two accreditation packs beside the standard reports. Each return is one report on the campus. Every return needs the <code>reports</code> capability. Each return’s note, shown on the page, states the rule it uses.</p>
+<ul>
+<li><strong>AICTE:</strong> intake (sanctioned seats against everyone admitted in each admission year, alumni included, by category and gender) <strong>[A]</strong>; faculty and HODs by department with designation and qualification; student-faculty ratio against a 1:20 norm, counting students not yet alumni per faculty member of the programme’s department <strong>[A]</strong>; cadre ratio of professors, associates and assistants against 1:2:6 per department <strong>[A]</strong>. The sanctioned intake is set per programme and the sanctioned posts per department, both in College setup.</li>
+<li><strong>NAAC:</strong> 2.1.1 enrolment percentage (admitted in the admission year, alumni included, over sanctioned seats) <strong>[A]</strong>; 2.2 student to full-time teacher ratio, campus-wide, counting faculty and HODs <strong>[A]</strong>; 2.4.1 full-time teachers against sanctioned posts, by department, campus-wide <strong>[A]</strong>; 2.6.3 pass percentage of final-year students <strong>[A]</strong>; 5.1.1 students benefited by scholarships, by funding source <strong>[A]</strong>.</li>
+<li><strong>Pass rule (2.6.3).</strong> The final year is the batch year equal to the programme’s duration, alumni included. A student passes when every locked-subject result is at least the pass mark of 40 out of 100 <strong>[A]</strong>. For a lab subject the pass mark is 40% of its full total. A student with no locked result yet is not counted <strong>[A]</strong>.</li>
+<li><strong>Norms.</strong> A ratio is below norm when there are more than 20 students per faculty member, or no faculty, for the AICTE student-faculty ratio. For the cadre ratio, it is below norm when professors or associates fall short of 1 and 2 per 6 assistants <strong>[A]</strong>.</li>
+<li><strong>Pharmacy.</strong> Pharmacy reports to the Pharmacy Council of India (PCI). The AICTE intake return uses the same layout for pharmacy <strong>[A]</strong>.</li>
+<li><strong>Scope.</strong> The AICTE and NAAC returns are not snapshotted (section 4.8). The NAAC returns page for the trust is in section 4.6.</li>
+</ul>
+<h2 id="5-how-the-ai-part-works">5. How the AI part works</h2>
+<p><strong>Takeaway: fixed rules decide who is at risk, and the LLM only rewords or plans a query. It cannot write data, and every AI answer shows what it did so staff can check it.</strong></p>
+<h3 id="51-at-risk-flag">5.1 At-risk flag</h3>
+<p>A daily job (and a Run now button) checks every student against the fixed rules: attendance below the cutoff in any subject, attendance dropping by the configured points over 4 weeks, or internal marks below the configured percentage of the maximum of the internal components entered so far. <strong>The rule decides; the LLM never does.</strong> When a student is flagged, the LLM may reword the rule’s reason into one plain sentence for the mentor. If the LLM fails, times out or the daily cap is used, the rule’s own wording is kept and marked as such. A flag only creates a mentor task; it changes no record and sends nothing to the student. A student with too little data (fewer than the minimum sessions, or no marks entered) is reported as not enough data, not as clear.</p>
+<h3 id="52-plain-english-questions">5.2 Plain-English questions</h3>
+<p>Office staff ask questions such as “how many second-year students are below 75% this month”.</p>
+<ol>
+<li>The LLM receives the question and a description of the views the user’s role may read, and must return a structured plan: query, clarify or refuse, the SQL, the filters in plain English, and a one-sentence summary. The views each role gets are set in the <code>ROLE</code> config in <code>src/server/assistant/ask.ts</code>:
+<ul>
+<li><strong>office_admin:</strong> all six views, with fees, for the user’s campus.</li>
+<li><strong>faculty:</strong> five views, without <code>v_fee_dues</code>, for the subjects they teach and those batches’ students.</li>
+<li><strong>student:</strong> their own rows, without <code>v_risk_flags</code>, with fees.</li>
+<li><strong>admissions:</strong> <code>v_students</code> only, no fees.</li>
+<li><strong>exams:</strong> <code>v_students</code> and <code>v_marks</code>, no fees.</li>
+<li><strong>accounts:</strong> <code>v_students</code> and <code>v_fee_dues</code>, for the user’s campus.</li>
+<li><strong>hod:</strong> <code>v_students</code>, <code>v_subject_attendance</code>, <code>v_student_subject_attendance</code>, <code>v_marks</code> and <code>v_risk_flags</code>, limited to their department, no fees.</li>
+<li><strong>hr:</strong> no views; every question is refused.</li>
+</ul>
+</li>
+<li>The SQL is parsed with the Postgres parser (libpg-query) and checked against an allowlist: one SELECT, only the six views, no functions outside a safe list, no writes, no comments or multiple statements.</li>
+<li>It runs as the <code>termwise_assistant</code> role, which can read only those views, inside a read-only transaction with a statement timeout and a row limit. The views filter themselves by the session values set for that transaction: <code>app.campus_id</code>, <code>app.role</code>, <code>app.staff_id</code>, <code>app.student_id</code> and <code>app.department_id</code>. A head of department’s views are limited to <code>app.department_id</code>, so a head of department sees only their department. Even a query that passes validation cannot widen that, and an unset role makes the views error rather than show everything.</li>
+<li><strong>When it is wrong or unsure:</strong> the answer always shows the filters it used, the row count and the SQL, so staff can see what was counted. An unclear question gets a clarifying question back. A request to change data is refused. Invalid SQL is rejected with a plain message. With no provider or a spent daily cap, the screen says so and points to the normal lists.</li>
+</ol>
+<h3 id="53-models-and-fallback">5.3 Models and fallback</h3>
+<p>The chat assistant (Termy) uses these models, in this order. The picker lists only models whose provider key is set, and the first listed is the default. If a call fails, the remaining keyed models are tried in the same order.</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>GPT-OSS 120B (Groq; default when <code>GROQ_API_KEY</code> is set)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Gemini 3.6 Flash</td>
+</tr>
+<tr>
+<td>3</td>
+<td>GPT-OSS 20B (Groq)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Gemini 3.5 Flash</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Gemini 3.5 Flash Lite</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Gemma 4 26B</td>
+</tr>
+</tbody>
+</table>
+<p>The at-risk reason wording job uses one model. It is the preferred provider set by <code>LLM_PROVIDER</code>: Google (default) gives Gemini 3.6 Flash, and Groq gives GPT-OSS 120B. If that provider’s key is missing, the other keyed provider is used. With no keys, the rule’s own wording is kept and marked as such. All LLM calls count against the daily cap <code>LLM_DAILY_CAP</code> (default 200).</p>
+<h2 id="6-ui-and-design-decisions">6. UI and design decisions</h2>
+<p><strong>Takeaway: one repeated screen pattern, a phone-first attendance sheet and a restrained palette where colour means status.</strong></p>
+<p>The brief asks for calm, minimal screens used all day, one layout pattern across modules and attendance in under 30 seconds per class.</p>
+<ul>
+<li><strong>One layout.</strong> Every admin screen is a page header, a short row of counts, and one table with search and filters; selecting a row opens a side panel rather than a new page. Faculty get a bottom tab bar on the phone with four items.</li>
+<li><strong>Sign-in persona picker.</strong> The demo logins are one searchable list, grouped by campus and role and searchable by name, role or campus. The list is <code>PERSONAS</code> in <code>src/app/(auth)/sign-in/personas.ts</code>, and <code>deployment.md</code> copies it.</li>
+<li><strong>Campus switcher.</strong> The sidebar shows a campus select only when the login holds rows on two or more campuses. Picking one changes the active campus for every screen (section 4.15).</li>
+<li><strong>Narrow office roles.</strong> Admissions, exams, accounts and HR get a plain Home with links to their own modules, not the campus dashboard (section 4.15).</li>
+<li><strong>Restrained palette.</strong> One accent (a petrol blue-green) on neutral greys, in light and dark. Colour carries meaning only for status: present, absent, late, shortage and overdue.</li>
+<li><strong>Type.</strong> Figtree for text, IBM Plex Mono for roll numbers, percentages and money, so figures line up in tables.</li>
+<li><strong>Mark attendance.</strong> Built for one thumb: large rows, everyone present by default, a running present and absent count on the Submit button, and a confirm sheet that lists the absent and late names before saving. A class of 60 with five absentees takes five taps, Submit and Confirm.</li>
+<li><strong>States.</strong> Every list has a loading skeleton, an empty state that says what to do next, and an error state with retry. Offline screens say what is queued and what needs a connection.</li>
+<li><strong>Key screens:</strong> faculty Home (today’s classes and queued sheets), Mark attendance, Marks sheet; admin Home (campus counts and to-dos), Attendance (sessions and conflict queue), Marks (subjects by status, lock and reopen), Fees (dues, payments, reminders, scholarship awards per semester, Tally export), Risk (flags and mentor tasks), Requests (leave, parent notes and appeals), Termy (the assistant, for each role that has views, section 5.2), College setup (subjects with their marks schemes, college profile, required documents, programmes with sanctioned intake, departments with sanctioned posts, faculty with designation and qualification, fee structure, scholarship schemes), Audit log.</li>
+<li><strong>Batches and promotion.</strong> College setup > Batches has an Advance button on each batch. Its dialog previews the next move (the next semester, or graduation for the final semester), lists any blocking subjects and runs the move on confirm (section 4.14).</li>
+<li><strong>Students.</strong> The student list has an Alumni or Not alumni filter, so graduated students can be listed on their own (section 4.14). The admissions and leave screens follow the same layout: Applicants (list with the import dialog, and a panel with the checklist and the confirm or reject footer) and Leave (faculty: apply form, balances and history; office admin: pending queue and recent decisions).</li>
+<li><strong>Phone first on new screens.</strong> Every new screen works at 375 px wide with no horizontal page scroll. Lists switch to a card row on phones, form grids stack to one column, and button rows wrap. Only the table itself scrolls sideways, inside its own box.</li>
+</ul>
+<h2 id="7-testing-and-security">7. Testing and security</h2>
+<p><strong>Takeaway: rules are covered by unit tests, whole flows by phone-viewport end-to-end tests, and access is enforced on the server, not hidden in the UI.</strong></p>
+<ul>
+<li>
+<p><strong>Unit tests (Vitest)</strong> cover attendance percentages with labs and late, sync decisions and clock correction, marks validation and the lock, dues and payment validation, risk rules, the assistant SQL validator against injection attempts and per-role view lists, the assistant views’ role scoping against a seeded database, Tally XML, the attendance planner, the marks scheme and final score, appeal rules, and amount in words with the receipt hash. Newer unit tests cover the capability map (<code>CAPS</code>), head of department scope, the active campus cookie, the fee structure and scholarship spread, promotion and the accreditation rules.</p>
+</li>
+<li>
+<p><strong>End-to-end tests (Playwright, phone viewport)</strong> cover offline marking then sync, the conflict queue, the shared-phone rejection, the marks lock and audited reopen, campus and role limits, fee payments and reminders, the at-risk run, the assistant with no provider, College setup edits, attendance correction, and the student and parent portal (role pages, child switch, leave from student to parent to mentor, appeals raised and decided). Newer specs cover the trust area (overview, drill-down, staff roles kept out), results on lock and reopen, reports (switching, CSV headers, refused requests), Odia messages (templates and a guardian’s inbox) and the mark sheet (student, parent, verify page and a tampered hash). Later specs cover access by role and campus, office roles and their modules, the campus switcher, the head of department’s department, batch promotion and graduation (with alumni read-only), and fee structure and scholarships.</p>
+</li>
+<li>
+<p><strong>Admissions and leave.</strong> Unit tests in <code>src/domain/applicants.test.ts</code>, <code>admission.test.ts</code> and <code>staff-leave.test.ts</code> cover the checklist and its completion rule, the CSV parser and its 500-row cap, roll number generation, the confirm blockers (documents, minors, status), and the leave balances, overlap and year-end rules. End-to-end specs <code>e2e/applicants.spec.ts</code>, <code>admission.spec.ts</code> and <code>staff-leave.spec.ts</code> cover the checklist and import, the confirm and reject flow, and the leave flow, each with a 375 px check that the page has no horizontal scroll.</p>
+</li>
+<li>
+<p><strong>Unit tests</strong> added for trust totals and ranking, result rows, report aggregation and CSV escaping, the mark sheet hash and message language choice.</p>
+</li>
+<li>
+<p><strong>Run results.</strong> A fresh database run on 2026-11-06 gave 232 unit tests (Vitest, 28 files) and 88 end-to-end runs (Playwright): 69 on a phone viewport and 19 on desktop for sign-in and role access, one desktop run skipped because it changes seed data. The race script passed: two concurrent confirms got consecutive roll numbers, and a repeat confirm was refused. The production build and seed both ran from empty and again on a seeded database.</p>
+</li>
+<li>
+<p><strong>Load test [A].</strong> <code>scripts/load-results.mts</code> simulates 7,800 students reading results at once against a running server, with a concurrency of 200. One student session is signed in and reused for every request, so the run measures the route and the database, not sign-in. Run it with <code>BASE=http://localhost:3000 EMAIL=ankit.panda@termwise.demo N=7800 C=200 pnpm tsx scripts/load-results.mts</code> after starting the server with <code>E2E=1 BETTER_AUTH_URL=&#x3C;same origin></code>. Measured on a local <code>pnpm start</code> build on a 16-core laptop:</p>
+<pre class="astro-code astro-code-themes github-light github-dark-dimmed" style="--shiki-light:#24292e;--shiki-dark:#adbac7;--shiki-light-bg:#fff;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>requests: 7800, concurrency: 200, errors: 0</span></span>
+<span class="line"><span>total time: 6.81 s, req/s: 1146.2</span></span>
+<span class="line"><span>latency ms p50: 169.4, p95: 212.8, p99: 318.3</span></span></code></pre>
+<p>These numbers come from a laptop running the server and the database together, not from the Render free tier, so they show the route’s headroom, not production capacity.</p>
+</li>
+<li>
+<p><strong>CI</strong> runs all of it on every push against a fresh Postgres.</p>
+</li>
+<li>
+<p><strong>Security:</strong> no secrets in the repository (only local-only defaults); every input validated with zod at the server; role and campus checked on every query and action; audit log on every change; auth rate-limited; the assistant on a read-only role; students and parents sign in and every portal query is pinned to their own (or their linked children’s) record; offline data limited to names and roll numbers and cleared on sign-out. The public receipt verify page shows only the receipt number, date, amount and a masked student name. The public mark sheet verify page shows only the roll number, semester, locked totals and a masked name. The trust role is read-only in code, not just in the UI. Applicant and leave actions check role and campus on the server, and the server refuses a leave decision on one’s own request. Access follows the capability map in <code>CAPS</code>: each screen and action checks the capability it needs, so a role without it is refused on the server, not only hidden. A head of department’s reads and leave decisions are limited to their department. An alumni account is read-only on the server, and its writes are refused with “Alumni accounts are read-only.”. The active campus can only select one of the login’s own staff rows, so the campus cookie never widens access.</p>
+</li>
+</ul>
+<h2 id="8-what-was-cut-and-what-comes-next">8. What was cut, and what comes next</h2>
+<p><strong>Takeaway: external integrations (SMS, payments, real PDFs) were cut; storage and results-day scale come next.</strong></p>
+<p><strong>Cut from this phase:</strong> real SMS or WhatsApp, a real payment gateway, electives and class sections, timetable generation, and real PDF files (the mark sheet and receipts use the browser’s print to PDF). Two smaller limits: the mark sheet hash changes if <code>BETTER_AUTH_SECRET</code> changes, and the load test reuses one session for every simulated student.</p>
+<p><strong>Next, in order:</strong></p>
+<ol>
+<li>Object storage for admission documents. Today files are stored in the database.</li>
+<li>Leave across a year end, so a leave can be split and each year’s balance is counted correctly.</li>
+<li>Results day at scale: results are precomputed, but the portal still serves each request from the app. Put a CDN in front of the per-student results page, so the database sees one write per student rather than thousands of reads.</li>
+<li>University report formats, and saved queries over the same views the assistant uses. AICTE and NAAC are fixed packs in Reports (section 4.16).</li>
+<li>Rollout: one programme per campus first, then each campus, training one teacher per department as the first line of support.</li>
+</ol>
+<h2 id="9-assumptions">9. Assumptions</h2>
+<p><strong>Takeaway: 48 choices the brief leaves open, each flagged [A] where it is used.</strong></p>
+<p>Each is a choice the brief does not settle.</p>
+<ol>
+<li>Late counts as attended for the percentage.</li>
+<li>A lab is one session covering consecutive periods, weighted by periods.</li>
+<li>Internal marks out of 40 are faculty-defined components; the demo uses Internal test 20, Assignment 10, Quiz 5 and Attendance 5. Theory is internal 40, mid-term exam 20 and end-term exam 40 (100 in all). A lab scales that theory to 70 and adds lab exam 15, viva 10 and continuous evaluation 5 (see ADR 0001).</li>
+<li>University upload columns: <code>RollNo, Name, SubjectCode</code>, one column per internal component, <code>InternalTotal</code>.</li>
+<li>Risk thresholds: below the cutoff in any subject, a 10-point drop over 4 weeks, internal marks under 50% of the maximum of the internal components entered, at least 10 sessions before judging.</li>
+<li>Fees in two instalments per year; scholarships reduce an instalment.</li>
+<li>Tally receipt voucher XML follows ERP 9 import samples.</li>
+<li>Messages are logged, not sent; parental consent is a recorded date on the student.</li>
+<li>The demo timetable includes Sunday so a class is always available to mark on the demo day.</li>
+<li>Faculty see only the subjects they teach and the students they mentor.</li>
+<li>The sample data is synthetic; the brief’s three students appear with their exact figures.</li>
+<li>Only students (not parents) can appeal; one open appeal per item, with a reason of 10 to 500 characters; a decision is final.</li>
+<li>Receipt hashes are keyed by <code>BETTER_AUTH_SECRET</code>; rotating that secret makes issued receipts fail verification.</li>
+<li>Report columns are the lists in <code>src/domain/reports.ts</code>, copied in section 4.8. The strength report splits by the student’s category and gender from the student record.</li>
+<li>The marks report counts every student in the subject’s batch, but its averages, minimum and maximum use only students with complete marks.</li>
+<li>Monthly report snapshots cover the previous calendar month in IST. The daily job writes them, and a second write for the same month is ignored.</li>
+<li>The trust attendance rate is session-weighted: sessions attended divided by sessions held, summed across a campus’s students, not an average of student percentages.</li>
+<li>Trust “fees overdue” is the unpaid amount on instalments past their due date.</li>
+<li>A result’s theory total is the internal, mid-term and end-term marks added up raw, out of 100. It is stored in <code>result.internal</code>.</li>
+<li>Each message is written once per distinct guardian language. A student with no guardian gets English. Existing message rows are not rewritten when a guardian’s language changes.</li>
+<li>The load test simulates 7,800 students with one signed-in session reused for every request, so it measures the results route and the database, not sign-in or many sessions.</li>
+<li>Mark sheet hashes use the same secret as receipts, so rotating <code>BETTER_AUTH_SECRET</code> also makes issued mark sheets fail verification.</li>
+<li>Leave balances are per calendar year: casual 12 days, medical 10 days, on duty unlimited.</li>
+<li>Leave days are inclusive calendar days. Weekends and holidays count.</li>
+<li>Leave cannot span a year end. It must be split into two requests.</li>
+<li>A roll number is the batch’s highest roll plus one. Gaps left by deleted students are not refilled.</li>
+<li>Admission fees are two instalments of half the student’s semester fee (the fee for their category, section 4.13), due 30 and 120 days after confirmation.</li>
+<li>A guardian’s login email is the applicant’s guardian email when it is free, otherwise <code>firstname.lastname@termwise.demo</code>, with the demo password.</li>
+<li>A minor is under 18 on the confirm date (IST), and needs a parent consent date before confirmation.</li>
+<li>Applicant categories are General, OBC, SC, ST and EWS.</li>
+<li>Admission document files are stored in the database as base64 (demo scale), up to 2 MB each, PDF, JPEG or PNG only.</li>
+<li>Each login holds one staff row per campus. The <code>staff</code> table has no unique index, and the app assumes one row per campus (section 3).</li>
+<li>Saving a fee structure does not change existing instalments; it applies to instalments created after it (section 4.13).</li>
+<li>A category with no fee structure row uses the programme’s default semester fee (section 4.13).</li>
+<li>A scholarship award is refused when the scholarships already cover the semester’s fees (“Scholarships already cover this semester’s fees.”) (section 4.13).</li>
+<li>A scholarship withdrawal is refused when nothing is due on that semester any more (section 4.13).</li>
+<li>The trust NAAC page shows the current month (section 4.6).</li>
+<li>The strength report splits rows by category and gender from the student record (section 4.8).</li>
+<li>Promotion splits the semester fee into two instalments: the first is half, rounded, and the second is the rest. Both start with no scholarship (section 4.14).</li>
+<li>The audit actor name carries the office role’s label in parentheses for office roles (section 4.15).</li>
+<li>AICTE intake counts everyone admitted in each admission year, alumni included, against sanctioned seats. The student-faculty ratio counts students not yet alumni per faculty member of the programme’s department. The cadre ratio counts professors, associate and assistant professors per department (section 4.16).</li>
+<li>NAAC 2.1.1 counts students admitted in the admission year, alumni included, over sanctioned seats. 2.2 is the campus-wide student to full-time teacher ratio. 2.4.1 counts full-time teachers against sanctioned posts by department. 2.6.3 uses the final year, alumni included. 5.1.1 counts students benefited by scholarships by funding source (section 4.16).</li>
+<li>The NAAC 2.6.3 pass mark is 40% of each subject’s full total, so 40 out of 100 for a subject with a full total of 100. A student passes when every locked-subject result reaches it. A student with no locked result yet is not counted (section 4.16).</li>
+<li>The norms are 1:20 students per faculty member for the AICTE student-faculty ratio, and 1:2:6 for the cadre ratio of professors, associates and assistants (section 4.16).</li>
+<li>Every programme lasts 4 years, the column default. The MBA is set to 2 years by the alumni seed (section 4.14).</li>
+<li>Pharmacy reports to the Pharmacy Council of India (PCI). The AICTE intake return uses the same layout for pharmacy (section 4.16).</li>
+<li>The visiting faculty seed persona is faculty at Engineering (Mechanical) and at the Management School, with no department at the Management School. The dual-role seed persona is faculty at Engineering (Computer Science) and office admin at the Pharmacy College.</li>
+<li>The office admin and HR keep deciding faculty leave campus-wide, alongside the head of department, so a department without a head still has someone to decide (section 4.12).</li>
+</ol> <p class="prose__source" data-astro-cid-egoltos3>
+This page is <a href="https://github.com/moneytosms/termwise/blob/main/docs/tdd.md" data-astro-cid-egoltos3>docs/tdd.md</a> in the repository, rendered as written.
+</p> </article> <nav class="guide__toc" aria-label="On this page" data-astro-cid-egoltos3> <p class="group__name" data-astro-cid-egoltos3>On this page</p> <ul data-astro-cid-egoltos3> <li class="d2" data-astro-cid-egoltos3><a href="#at-a-glance" data-astro-cid-egoltos3>At a glance</a></li><li class="d2" data-astro-cid-egoltos3><a href="#contents" data-astro-cid-egoltos3>Contents</a></li><li class="d2" data-astro-cid-egoltos3><a href="#how-to-read-this" data-astro-cid-egoltos3>How to read this</a></li><li class="d2" data-astro-cid-egoltos3><a href="#1-what-the-slice-proves" data-astro-cid-egoltos3>1. What the slice proves</a></li><li class="d2" data-astro-cid-egoltos3><a href="#2-architecture" data-astro-cid-egoltos3>2. Architecture</a></li><li class="d2" data-astro-cid-egoltos3><a href="#3-data-model" data-astro-cid-egoltos3>3. Data model</a></li><li class="d2" data-astro-cid-egoltos3><a href="#4-main-flows" data-astro-cid-egoltos3>4. Main flows</a></li><li class="d3" data-astro-cid-egoltos3><a href="#41-offline-attendance-with-sync-the-hard-part" data-astro-cid-egoltos3>4.1 Offline attendance with sync (the hard part)</a></li><li class="d3" data-astro-cid-egoltos3><a href="#42-marks-and-moderation" data-astro-cid-egoltos3>4.2 Marks and moderation</a></li><li class="d3" data-astro-cid-egoltos3><a href="#43-fees" data-astro-cid-egoltos3>4.3 Fees</a></li><li class="d3" data-astro-cid-egoltos3><a href="#44-student-and-parent-portal-tier-2" data-astro-cid-egoltos3>4.4 Student and parent portal (Tier 2)</a></li><li class="d3" data-astro-cid-egoltos3><a href="#45-messages-and-consent" data-astro-cid-egoltos3>4.5 Messages and consent</a></li><li class="d3" data-astro-cid-egoltos3><a href="#46-trust-dashboard" data-astro-cid-egoltos3>4.6 Trust dashboard</a></li><li class="d3" data-astro-cid-egoltos3><a href="#47-term-mark-sheet-and-verification" data-astro-cid-egoltos3>4.7 Term mark sheet and verification</a></li><li class="d3" data-astro-cid-egoltos3><a href="#48-standard-reports" data-astro-cid-egoltos3>4.8 Standard reports</a></li><li class="d3" data-astro-cid-egoltos3><a href="#49-precomputed-results" data-astro-cid-egoltos3>4.9 Precomputed results</a></li><li class="d3" data-astro-cid-egoltos3><a href="#410-applicants-and-document-checklist" data-astro-cid-egoltos3>4.10 Applicants and document checklist</a></li><li class="d3" data-astro-cid-egoltos3><a href="#411-confirm-admission" data-astro-cid-egoltos3>4.11 Confirm admission</a></li><li class="d3" data-astro-cid-egoltos3><a href="#412-staff-leave" data-astro-cid-egoltos3>4.12 Staff leave</a></li><li class="d3" data-astro-cid-egoltos3><a href="#413-fee-structure-and-scholarships" data-astro-cid-egoltos3>4.13 Fee structure and scholarships</a></li><li class="d3" data-astro-cid-egoltos3><a href="#414-promote-and-graduate" data-astro-cid-egoltos3>4.14 Promote and graduate</a></li><li class="d3" data-astro-cid-egoltos3><a href="#415-campuses-and-staff-roles" data-astro-cid-egoltos3>4.15 Campuses and staff roles</a></li><li class="d3" data-astro-cid-egoltos3><a href="#416-aicte-and-naac-packs" data-astro-cid-egoltos3>4.16 AICTE and NAAC packs</a></li><li class="d2" data-astro-cid-egoltos3><a href="#5-how-the-ai-part-works" data-astro-cid-egoltos3>5. How the AI part works</a></li><li class="d3" data-astro-cid-egoltos3><a href="#51-at-risk-flag" data-astro-cid-egoltos3>5.1 At-risk flag</a></li><li class="d3" data-astro-cid-egoltos3><a href="#52-plain-english-questions" data-astro-cid-egoltos3>5.2 Plain-English questions</a></li><li class="d3" data-astro-cid-egoltos3><a href="#53-models-and-fallback" data-astro-cid-egoltos3>5.3 Models and fallback</a></li><li class="d2" data-astro-cid-egoltos3><a href="#6-ui-and-design-decisions" data-astro-cid-egoltos3>6. UI and design decisions</a></li><li class="d2" data-astro-cid-egoltos3><a href="#7-testing-and-security" data-astro-cid-egoltos3>7. Testing and security</a></li><li class="d2" data-astro-cid-egoltos3><a href="#8-what-was-cut-and-what-comes-next" data-astro-cid-egoltos3>8. What was cut, and what comes next</a></li><li class="d2" data-astro-cid-egoltos3><a href="#9-assumptions" data-astro-cid-egoltos3>9. Assumptions</a></li> </ul> </nav> </div> <script>(function(){const base = "/termwise";
+
+    // Pagefind's index only exists in a production build (npm run build).
+    const s = document.createElement("script");
+    s.src = `${base}/pagefind/pagefind-ui.js`;
+    s.onload = () => new PagefindUI({ element: "#search", showSubResults: true, showImages: false });
+    s.onerror = () => {
+      document.querySelector("#search").textContent = "Search is unavailable. Browse the documents below.";
+    };
+    document.head.append(s);
+    const menu = document.querySelector(".guide__menu");
+    if (matchMedia("(max-width: 959px)").matches) menu.open = false;
+  })();</script>  </main> <footer class="site-footer" data-astro-cid-hkbrpulz> <div class="site-footer__inner" data-astro-cid-hkbrpulz> <p data-astro-cid-hkbrpulz>Synthetic demo data. Messages are logged, not sent; payments are test mode.</p> <p class="site-footer__links" data-astro-cid-hkbrpulz> <a href="/termwise/guide/" data-astro-cid-hkbrpulz>guide</a> <a href="https://github.com/moneytosms/termwise" data-astro-cid-hkbrpulz>source</a> <a href="https://moneytosms.github.io/termwise/" data-astro-cid-hkbrpulz>termwise</a> </p> </div> </footer><script type="module">var e=document.documentElement;document.querySelector(`[data-theme-toggle]`)?.addEventListener(`click`,()=>{let t=(e.dataset.theme?e.dataset.theme===`dark`:matchMedia(`(prefers-color-scheme: dark)`).matches)?`light`:`dark`;e.dataset.theme=t;try{localStorage.setItem(`site-theme`,t)}catch{}});</script> </body> </html>

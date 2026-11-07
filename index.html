@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="en" data-astro-cid-houjjtai> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Termwise: One college record, from admission to graduation.</title><meta name="description" content="A college ERP built for classrooms with no signal: attendance taken offline and synced later, marks with a moderation lock, fees with verifiable receipts, and an assistant that can only read. Runs on synthetic demo data."><link rel="canonical" href="https://moneytosms.github.io/termwise/"><link rel="icon" href="/termwise/favicon.svg" type="image/svg+xml"><meta property="og:title" content="Termwise: One college record, from admission to graduation."><meta property="og:description" content="A college ERP built for classrooms with no signal: attendance taken offline and synced later, marks with a moderation lock, fees with verifiable receipts, and an assistant that can only read. Runs on synthetic demo data."><meta property="og:type" content="website"><meta property="og:url" content="https://moneytosms.github.io/termwise/"><meta property="og:image" content="https://moneytosms.github.io/termwise/og.png"><meta name="twitter:card" content="summary_large_image"><style>.skip-link[data-astro-cid-houjjtai]{position:absolute;left:-999px}.skip-link[data-astro-cid-houjjtai]:focus{z-index:1000;color:#000;background:#fff;padding:.5rem .75rem;top:.5rem;left:.5rem}main[data-astro-cid-houjjtai]:focus{outline:none}
+</style><link rel="stylesheet" href="/termwise/_astro/index.CUYLdNxL.css"></head> <body data-astro-cid-houjjtai> <a href="#main" class="skip-link" data-astro-cid-houjjtai>Skip to content</a> <main id="main" tabindex="-1" data-astro-cid-houjjtai>  <div class="page"> <header class="masthead"> <div class="masthead__row"> <a class="wordmark" href="/termwise"> <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"> <path d="M2 2h12M8 2v12M2 14h12M5 6h6M5 9.5h6" fill="none" stroke="currentColor" stroke-width="1.15"></path> </svg>
+Termwise
+</a> <p class="masthead__doc">college register</p> <nav class="masthead__nav" aria-label="Elsewhere"> <a href="/termwise/guide">guide</a> <a href="https://github.com/moneytosms/termwise" rel="noopener">source</a> </nav> </div> <dl class="meta"> <div><dt>campuses</dt><dd>3</dd></div> <div><dt>students in the demo</dt><dd>311</dd></div> <div><dt>records</dt><dd>synthetic</dd></div> <div><dt>phase</dt><dd>1</dd></div> </dl> <nav class="contents" aria-label="Contents"> <a href="#claim"><span aria-hidden="true">01</span>the claim</a><a href="#class"><span aria-hidden="true">02</span>in class</a><a href="#sync"><span aria-hidden="true">03</span>sync</a><a href="#office"><span aria-hidden="true">04</span>the office</a><a href="#ai"><span aria-hidden="true">05</span>the rules</a><a href="#run"><span aria-hidden="true">06</span>run it</a><a href="#limits"><span aria-hidden="true">07</span>limits</a> </nav> </header> <section class="opening" id="claim" aria-labelledby="claim-title"> <p class="index"><span>01</span> the claim</p> <h1 id="claim-title">One student record,<br> from admission<br> to graduation.</h1> <p class="deck">
+Termwise runs a college’s daily records: admissions, attendance, marks, fees,
+        staff leave, and the reports the university, AICTE and NAAC ask for. It is built
+        for classrooms with weak Wi-Fi and an office that works in tables all day.
+</p> <p class="actions"> <a class="action action--ink" href="https://termwise-s1vj.onrender.com" rel="noopener">open the demo</a> <a class="action" href="/termwise/guide">read the guide</a> <span class="pass">password <code>termwise-demo</code></span> </p> <p class="note">
+The demo runs on a free instance, so the first load can take a minute.
+        Every campus, student and receipt here is synthetic.
+</p> </section> <section class="chapter" id="class" aria-labelledby="class-title"> <p class="index"><span>02</span> in class</p> <div class="chapter__head"> <h2 id="class-title">A class is marked in five taps, with the Wi-Fi off.</h2> <p class="lede">
+Everyone starts present. One tap marks absent, a second late, a third present
+          again. A class of sixty with five absentees takes five taps, a save and a confirm.
+</p> </div> <div class="chapter__body"> <figure class="sheet"> <figcaption class="sheet__head"> <span>attendance shortage · ME301 · batch ENG-24-ME · 16 of 60 rows, lowest first</span> <span class="sheet__cut">cutoff 75%</span> </figcaption> <div class="sheet__scroll"> <table> <caption class="sr-only">
+Attendance for subject ME301, batch ENG-24-ME, sixteenth lowest rows.
+5 of the sixteen rows shown are below the 75 percent cutoff.
+</caption> <thead> <tr> <th scope="col" class="col-sno">s.no</th> <th scope="col">roll no</th> <th scope="col">student</th> <th scope="col" class="num col-held">held</th> <th scope="col" class="num col-att">attended</th> <th scope="col" class="meter-col">attendance</th> <th scope="col" class="num">%</th> </tr> </thead> <tbody> <tr class="is-low"> <td class="col-sno">01</td> <td>ENG-24-ME-0048</td> <td class="name">Kajal Dash</td> <td class="num col-held">123</td> <td class="num col-att">82</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:66.7" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 66.7 <span class="flag">below</span> </td> </tr><tr class="is-low"> <td class="col-sno">02</td> <td>ENG-24-ME-0036</td> <td class="name">Debasish Tripathy</td> <td class="num col-held">123</td> <td class="num col-att">84</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:68.3" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 68.3 <span class="flag">below</span> </td> </tr><tr class="is-low"> <td class="col-sno">03</td> <td>ENG-24-ME-0012</td> <td class="name">Gyana Rath</td> <td class="num col-held">123</td> <td class="num col-att">84</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:68.3" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 68.3 <span class="flag">below</span> </td> </tr><tr class="is-low"> <td class="col-sno">04</td> <td>ENG-24-ME-0177</td> <td class="name">Ankit Panda</td> <td class="num col-held">123</td> <td class="num col-att">84</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:68.3" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 68.3 <span class="flag">below</span> </td> </tr><tr class="is-low"> <td class="col-sno">05</td> <td>ENG-24-ME-0024</td> <td class="name">Nihar Sahoo</td> <td class="num col-held">123</td> <td class="num col-att">90</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:73.2" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 73.2 <span class="flag">below</span> </td> </tr><tr> <td class="col-sno">06</td> <td>ENG-24-ME-0035</td> <td class="name">Ipsita Rout</td> <td class="num col-held">123</td> <td class="num col-att">104</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:84.6" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 84.6  </td> </tr><tr> <td class="col-sno">07</td> <td>ENG-24-ME-0007</td> <td class="name">Gyana Patnaik</td> <td class="num col-held">123</td> <td class="num col-att">104</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:84.6" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 84.6  </td> </tr><tr> <td class="col-sno">08</td> <td>ENG-24-ME-0028</td> <td class="name">Chinmay Samal</td> <td class="num col-held">123</td> <td class="num col-att">104</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:84.6" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 84.6  </td> </tr><tr> <td class="col-sno">09</td> <td>ENG-24-ME-0042</td> <td class="name">Sushant Rath</td> <td class="num col-held">123</td> <td class="num col-att">105</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:85.4" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 85.4  </td> </tr><tr> <td class="col-sno">10</td> <td>ENG-24-ME-0049</td> <td class="name">Nihar Tripathy</td> <td class="num col-held">123</td> <td class="num col-att">106</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:86.2" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 86.2  </td> </tr><tr> <td class="col-sno">11</td> <td>ENG-24-ME-0021</td> <td class="name">Ipsita Mishra</td> <td class="num col-held">123</td> <td class="num col-att">107</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:87" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 87.0  </td> </tr><tr> <td class="col-sno">12</td> <td>ENG-24-ME-0014</td> <td class="name">Deepika Das</td> <td class="num col-held">123</td> <td class="num col-att">108</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:87.8" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 87.8  </td> </tr><tr> <td class="col-sno">13</td> <td>ENG-24-ME-0058</td> <td class="name">Jyoti Rout</td> <td class="num col-held">123</td> <td class="num col-att">110</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:89.4" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 89.4  </td> </tr><tr> <td class="col-sno">14</td> <td>ENG-24-ME-0032</td> <td class="name">Priya Das</td> <td class="num col-held">123</td> <td class="num col-att">111</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:90.2" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 90.2  </td> </tr><tr> <td class="col-sno">15</td> <td>ENG-24-ME-0056</td> <td class="name">Arpita Rath</td> <td class="num col-held">123</td> <td class="num col-att">111</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:90.2" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 90.2  </td> </tr><tr> <td class="col-sno">16</td> <td>ENG-24-ME-0027</td> <td class="name">Rakesh Sethi</td> <td class="num col-held">123</td> <td class="num col-att">112</td> <td class="meter-col"> <span class="meterline"> <span class="meter" style="--pct:91.1" aria-hidden="true"> <span class="meter__fill"></span> </span> </span> </td> <td class="num pct"> 91.1  </td> </tr> </tbody> </table> </div> <p class="sheet__foot"> <span>16 rows shown</span> <span>44 rows above the line, not shown</span> <span>123 periods held</span> </p> </figure> <p class="after">
+Ankit Panda is 6.7 points under the cutoff. The daily job flags him once, as a
+          mentor task; the flag changes no record and sends nothing to the student.
+</p> <div class="plates plates--phones"> <figure class="plate"> <img src="/termwise/_astro/faculty-home-phone.fI6ex7a8.png" width="780" height="1688" alt="Faculty home on a phone: today's five classes, all saved, with the next class ready to mark." loading="lazy" decoding="async"> <figcaption>faculty home, 390px. Today’s five classes, one tap to mark.</figcaption> </figure> <div class="plate__text"> <p>
+Attendance is stored as one session per batch, subject, date and period, with
+              a UUID the phone creates while it is offline. A lab is one session covering
+              several periods, and percentages are weighted by periods.
+</p> <p>
+Late counts as attended. The cutoff is a setting on the programme, not a
+              constant in the code.
+</p> </div> </div> </div> </section> <section class="chapter" id="sync" aria-labelledby="sync-title"> <p class="index"><span>03</span> sync</p> <div class="chapter__head"> <h2 id="sync-title">The sheet saves on the phone and settles itself later.</h2> <p class="lede">
+Attendance in a room with no signal, without overwriting the sheet
+          another teacher already saved.
+</p> </div> <div class="chapter__body"> <ol class="flow"> <li> <p class="flow__k">queue</p> <h3>Save into the outbox</h3> <p>
+Today’s classes and rosters, names and roll numbers only, sit in IndexedDB.
+              A saved sheet waits in an outbox and the class shows as queued.
+</p> </li> <li> <p class="flow__k">send</p> <h3>Flush when there is a network</h3> <p>
+The outbox sends when the app opens, when the network returns, or through
+              Background Sync on Android. Each item is decided on its own, so one bad
+              sheet never blocks the rest.
+</p> </li> <li> <p class="flow__k">decide</p> <h3>Four answers, never a guess</h3> <dl class="answers"> <div><dt>saved</dt><dd>written against the session</dd></div> <div><dt>stale</dt><dd>an older edit, ignored</dd></div> <div><dt>conflict</dt><dd>another teacher saved first, so the sheet goes to the office queue</dd></div> <div><dt>rejected</dt><dd>marked by a different teacher on a shared phone</dd></div> </dl> <p class="flow__note">
+Edit times are corrected for a wrong phone clock, using the gap between the
+              phone and the server at send.
+</p> </li> </ol> <figure class="plate plate--wide"> <img src="/termwise/_astro/attendance-conflicts-desktop.BLyzTRv7.png" width="1440" height="1592" alt="The office attendance screen: sessions for the campus and a queue of conflicting sheets." loading="lazy" decoding="async"> <figcaption>attendance, 1440px. Sessions and the conflict queue on one table.</figcaption> </figure> </div> </section> <section class="chapter" id="office" aria-labelledby="office-title"> <p class="index"><span>04</span> the office</p> <div class="chapter__head"> <h2 id="office-title">Four offices, one row per student.</h2> <p class="lede">
+Admissions, exams, accounts and HR each see their own modules, and every change
+          is written to the audit log in the same transaction.
+</p> </div> <div class="chapter__body"> <dl class="ledger"> <div> <dt>marks</dt> <dd>
+Draft, submitted, locked. A reopen needs a typed reason, and a locked subject
+              rejects edits at the server. An accepted appeal can correct one locked mark.
+</dd> </div> <div> <dt>fees</dt> <dd>
+Due is instalment minus scholarship minus payments, floored at zero. Nothing
+              is stored that can drift from the receipts, and a payment over the remaining
+              due is refused.
+</dd> </div> <div> <dt>receipts</dt> <dd>
+Each payment prints with the amount in words, a keyed HMAC over its fixed
+              fields and a QR code. The public page recomputes the hash and shows the
+              student’s name masked.
+</dd> </div> <div> <dt>reports</dt> <dd>
+University upload CSV, Tally receipt vouchers, and the AICTE and NAAC returns,
+              all built from the same rows the screens read.
+</dd> </div> </dl> <div class="plates plates--desk"> <figure class="plate"> <img src="/termwise/_astro/fees-desktop.C9NImoy8.png" width="1440" height="900" alt="The fees screen: dues, payments, reminders and scholarship awards for the campus." loading="lazy" decoding="async"> <figcaption>fees, 1440px. Dues and payments, with the Tally export beside them.</figcaption> </figure> <figure class="plate"> <img src="/termwise/_astro/trust-overview-desktop.C3NGsk29.png" width="1440" height="900" alt="The trust overview: the same measures for each of the three campuses, read-only." loading="lazy" decoding="async"> <figcaption>the trust secretary’s view. Read-only in code, not just in the UI.</figcaption> </figure> </div> <div class="plates plates--phones"> <figure class="plate"> <img src="/termwise/_astro/student-marks-phone.Bcu8GDHe.png" width="780" height="1688" alt="A student's marks on a phone: components per subject, with the internal total and a final score only where the subject is locked." loading="lazy" decoding="async"> <figcaption>the same rows at the student’s end. Only locked subjects carry a final score.</figcaption> </figure> <div class="plate__text"> <p>
+Students and parents sign in to the same record. Every portal query is pinned
+              to the signed-in student or a linked child, so no student id is ever taken
+              from the browser.
+</p> <p>
+A parent sees each child’s attendance, marks and dues, approves leave before
+              the mentor, and gives or withdraws consent for a minor.
+</p> </div> </div> </div> </section> <section class="chapter" id="ai" aria-labelledby="ai-title"> <p class="index"><span>05</span> the rules</p> <div class="chapter__head"> <h2 id="ai-title">Rules decide who is at risk. The model words, plans and refuses.</h2> <p class="lede">
+The assistant is the part most likely to be wrong, so it is built to show its
+          work and to be unable to write.
+</p> </div> <div class="chapter__body"> <dl class="ledger ledger--three"> <div> <dt>the flag</dt> <dd>
+Attendance under the cutoff in any subject, a drop of ten points over four
+              weeks, or internal marks under the configured share. The rule decides; a flag
+              opens a mentor task and changes nothing else. With too little data it reports
+              not enough data, never clear.
+</dd> </div> <div> <dt>the question</dt> <dd>
+A plain-English question becomes a plan: SQL, the filters in plain English and
+              a one-line summary. The SQL is parsed with the Postgres parser and checked
+              against an allowlist of six views and about twenty functions. No writes, no
+              comments, one statement.
+</dd> </div> <div> <dt>the boundary</dt> <dd>
+It runs as a separate read-only role, inside a read-only transaction, on views
+              that filter themselves by campus, role, staff, student and department. Every
+              answer shows the filters, the row count and the SQL.
+</dd> </div> </dl> <figure class="excerpt"> <figcaption> <span>the first check, before anything runs</span> <a href="https://github.com/moneytosms/termwise/blob/main/src/server/assistant/validate.ts">validate.ts</a> </figcaption> <pre><code>export async function validateQuery(query: string, views: string[] = ALLOWED_VIEWS): Promise&lt;{ ok: true } | { ok: false; reason: string }&gt; {
+  let tree: { stmts: { stmt: Node }[] };
+  try { tree = (await parse(query)) as unknown as typeof tree; } catch { return { ok: false, reason: &quot;not valid SQL&quot; }; }
+  if (tree.stmts.length !== 1) return { ok: false, reason: &quot;must be one statement&quot; };
+  const stmt = tree.stmts[0].stmt;
+  if (!stmt.SelectStmt) return { ok: false, reason: &quot;must be a SELECT&quot; };</code></pre> </figure> <figure class="plate plate--wide"> <img src="/termwise/_astro/risk-desktop.DdT-xZEx.png" width="1440" height="900" alt="The at-risk screen: flags by rule, each with its reason and a mentor task." loading="lazy" decoding="async"> <figcaption>at-risk flags, 1440px. Each flag names the rule that fired.</figcaption> </figure> </div> </section> <section class="chapter" id="run" aria-labelledby="run-title"> <p class="index"><span>06</span> run it</p> <div class="chapter__head"> <h2 id="run-title">Clone, seed, sign in.</h2> <p class="lede">
+The demo runs on Postgres, so the database starts in Docker. Seed data and demo
+          logins are written by the seed script.
+</p> </div> <div class="chapter__body"> <pre class="term"><code>git clone https://github.com/moneytosms/termwise &amp;amp;&amp;amp; cd termwise
+pnpm install
+docker compose up -d db
+pnpm db:migrate &amp;amp;&amp;amp; pnpm db:seed
+pnpm dev</code></pre> <p class="after">
+Node 24 or later, pnpm 12.15 and Postgres 18. Open
+<code>http://localhost:3000</code> and sign in as
+<code>eng.admin@termwise.demo</code> or <code>cse.faculty@termwise.demo</code>;
+          every demo password is <code>termwise-demo</code>. The
+<a href="/termwise/guide">guide</a> carries the full deployment steps, the env
+          vars and the persona list.
+</p> </div> </section> <section class="chapter" id="limits" aria-labelledby="limits-title"> <p class="index"><span>07</span> limits</p> <div class="chapter__head"> <h2 id="limits-title">What this is not.</h2> </div> <div class="chapter__body"> <ul class="limits"> <li> <strong>Synthetic data.</strong> Every account and record is made up for the
+            demo. The three seed students show the marks, attendance and fee rules at work.
+</li> <li> <strong>Messages are logged, not sent.</strong> No SMS or WhatsApp gateway is in
+            scope, and the Odia parent templates need a native speaker’s review.
+</li> <li> <strong>Payments are test mode.</strong> No gateway, no real money.
+</li> <li> <strong>The assistant needs a key.</strong> It runs on Gemini or Groq with a
+            daily call cap. Without a key it says so and points to the normal lists; risk
+            reasons keep the rule’s own wording.
+</li> <li> <strong>Verification shows a minimum.</strong> The public receipt and mark sheet
+            pages show the totals and a masked name, never the record.
+</li> </ul> </div> </section> <footer class="colophon"> <p class="colophon__mark">Termwise</p> <p>
+Bhubaneswar, November 2026. Next.js, Postgres and Drizzle, in one deployable.
+        The technical design, deployment guide and source are in the repository.
+</p> <p class="colophon__links"> <a href="/termwise/guide">guide</a> <a href="https://github.com/moneytosms/termwise" rel="noopener">source</a> <a href="https://github.com/moneytosms/termwise/blob/main/docs/tdd.md">technical design</a> <a href="https://github.com/moneytosms/termwise/blob/main/docs/deployment.md">deployment</a> </p> <p class="colophon__fine">Synthetic demo data. Messages are logged, not sent; payments are test mode.</p> </footer> </div>  </main> </body> </html>
