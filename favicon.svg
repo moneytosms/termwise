@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Termwise">
-  <rect width="32" height="32" fill="#17181a"/>
-  <g stroke="#f4f2ec" stroke-width="1.4" fill="none">
-    <path d="M6 8h20M6 16h20M6 24h20"/>
-    <path d="M12 8v16M20 8v16"/>
-  </g>
-  <rect x="14" y="18" width="6" height="6" fill="#1d5fbf"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#16171a"/><g fill="#fff"><rect x="5" y="5" width="4" height="4" rx="1" opacity=".85"/><rect x="10" y="5" width="4" height="4" rx="1" opacity=".85"/><rect x="15" y="5" width="4" height="4" rx="1" opacity=".85"/><rect x="5" y="10" width="4" height="4" rx="1" opacity=".65"/><rect x="10" y="10" width="4" height="4" rx="1" opacity=".65"/><rect x="5" y="15" width="4" height="4" rx="1" opacity=".45"/><rect x="10" y="15" width="4" height="4" rx="1" opacity=".45"/><rect x="15" y="15" width="4" height="4" rx="1" opacity=".45"/></g><rect x="15" y="10" width="4" height="4" rx="1" fill="#5b9bf0"/></svg>
