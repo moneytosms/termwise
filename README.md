@@ -4,7 +4,7 @@
 
 # Termwise
 
-**One college record, from admission to graduation.** Termwise is a college ERP for an Indian trust running three campuses. A teacher marks attendance on a phone with no signal; the office gets the sheet later, and no one types the same student twice.
+**One college record, from admission to graduation.** Termwise is a college ERP for a trust running three campuses. A teacher marks attendance on a phone with no signal; the office gets the sheet later, and no one types the same student twice.
 
 [Try the demo](https://termwise-s1vj.onrender.com) · [Project site](https://moneytosms.github.io/termwise/) · [Guide](https://moneytosms.github.io/termwise/guide/) · [Technical design](docs/tdd.md) · [Deployment](docs/deployment.md)
 
@@ -19,9 +19,9 @@ The demo runs on a free instance, so the first load can take a minute. Every acc
 - **Fees that add up.** Due is instalment minus scholarship minus payments, calculated rather than stored. Receipts print with the amount in words, a keyed HMAC and a QR code, and a public page verifies them. Receipts export as Tally vouchers.
 - **A portal for students and parents.** Attendance with a planner, marks by component, marksheets for locked subjects, fees, leave and messages in English or Odia. Every query is pinned to the signed-in student or a linked child.
 - **An assistant that can only read.** Plain-English questions become a checked `SELECT` over six views, run as a read-only role. Each answer shows its filters, its row count and the SQL, so staff can see what was counted.
-- **The office's own reports.** Strength, shortage, marks and fees, plus the AICTE and NAAC returns, from the same rows the screens read.
+- **Reports for the office.** Strength, shortage, marks and fees, plus the AICTE and NAAC returns, from the same rows the screens read.
 
-## The part the brief calls hard
+## Offline attendance
 
 Attendance is taken where the Wi-Fi is not.
 
@@ -30,7 +30,7 @@ Attendance is taken where the Wi-Fi is not.
 3. **Decide.** The server answers each sheet: saved, stale (an older edit), conflict (another teacher saved first, so it goes to the office queue) or rejected (marked by a different teacher on a shared phone).
 4. **Correct.** Edit times are fixed up for a wrong phone clock using the gap between the phone and the server at send.
 
-The reading is strict on purpose: a student below 75% in a subject gets a mentor task from a fixed rule. The model may reword the reason; it never decides the flag, and it cannot write.
+The at-risk flag is strict by design: a student below 75% in a subject gets a mentor task from a fixed rule. The assistant may reword the reason; it never decides the flag, and it cannot write.
 
 ## Run it
 
@@ -44,13 +44,12 @@ pnpm dev
 
 Node 24 or later, pnpm 12.15 and Postgres 18. Open <http://localhost:3000> and use a login above. Env vars, the daily job, Docker and the load test are in [docs/deployment.md](docs/deployment.md).
 
-## What it is not
+## Scope
 
-- **A seven-day answer, not a deployed system.** Termwise is a build against Company A's brief. The three sample students carry the brief's own figures.
-- **Messages are logged, not sent.** No SMS or WhatsApp gateway is in scope, and the Odia parent templates need a native speaker's review.
+- **Messages are logged, not sent.** No SMS or WhatsApp gateway is connected, and the Odia parent templates need a native speaker's review.
 - **Payments are test mode.** No gateway, no real money.
 - **The assistant needs a key.** It runs on Gemini or Groq with a daily call cap. Without a key it says so and points to the normal lists.
-- **Verification shows a minimum.** The public receipt and mark sheet pages show totals and a masked name, never the record.
+- **Verification shows a minimum.** The public receipt and mark sheet pages show totals and a masked name, never the full record.
 
 ## Built with
 
