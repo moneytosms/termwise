@@ -8,7 +8,7 @@
 
 [Try the demo](https://termwise-s1vj.onrender.com) · [Project site](https://moneytosms.github.io/termwise/) · [Guide](https://moneytosms.github.io/termwise/guide/) · [Technical design](docs/tdd.md) · [Deployment](docs/deployment.md)
 
-The demo runs on a free instance, so the first load can take a minute. Every account and record is synthetic. Password `termwise-demo`; sign in as `cse.faculty@termwise.demo` (faculty) or `eng.admin@termwise.demo` (office admin).
+The demo runs on a free instance, so the first load can take a minute. Every account and record is synthetic. Sign in as `cse.faculty@termwise.demo` (faculty) or `eng.admin@termwise.demo` (office admin); the sign-in page shows the demo password.
 
 ![The attendance screen: 414 sessions for the campus, with present, absent and late counts per session, and two conflicts waiting in a queue.](assets/readme/attendance.png)
 
